@@ -7,7 +7,7 @@ import base64
 import requests
 
 
-POEM_MESSAGE_FILE = 'POEM_MESSAGE.txt'
+POEM_MESSAGE_FILE = "POEM_MESSAGE.txt"
 
 SUCCESS = 0
 NOT_FOUND = 1
@@ -34,15 +34,15 @@ def github_read_file(repository, file_path, github_token=None):
     """
     headers = {}
     if github_token:
-        headers['Authorization'] = f"token {github_token}"
+        headers["Authorization"] = f"token {github_token}"
 
-    url = f'https://api.github.com/repos/{repository}/contents/{file_path}'
+    url = f"https://api.github.com/repos/{repository}/contents/{file_path}"
     r = requests.get(url, headers=headers)
     r.raise_for_status()
     data = r.json()
-    file_content = data['content']
-    file_content_encoding = data.get('encoding')
-    if file_content_encoding == 'base64':
+    file_content = data["content"]
+    file_content_encoding = data.get("encoding")
+    if file_content_encoding == "base64":
         file_content = base64.b64decode(file_content).decode()
 
     return file_content
@@ -73,8 +73,10 @@ def get_poem_message(repository, pull_id, github_token=None):
     try:
         pull_json = subprocess.check_output(cmd)
     except subprocess.CalledProcessError:
-        print(f"Unable to access pull request #{pull_id} on "
-              "repository {repository}:\nrc={err.returncode}")
+        print(
+            f"Unable to access pull request #{pull_id} on "
+            "repository {repository}:\nrc={err.returncode}"
+        )
         return ERROR
 
     pull_body = json.loads(pull_json)["body"]
@@ -84,7 +86,7 @@ def get_poem_message(repository, pull_id, github_token=None):
     for line in pull_body.splitlines():
         print(line)
         if "Resolves #" in line:
-            issue_id = line[line.index("Resolves #") + 10:].strip()
+            issue_id = line[line.index("Resolves #") + 10 :].strip()
             break
 
     print("----------------")
@@ -95,7 +97,7 @@ def get_poem_message(repository, pull_id, github_token=None):
         # issue ID not found, could be blank or "N/A"
         return NOT_FOUND
 
-    repository = 'OpenMDAO/OpenMDAO'  # hard code for issues on main OpenMDAO repo
+    repository = "OpenMDAO/OpenMDAO"  # hard code for issues on main OpenMDAO repo
 
     print("-------------------------------------------------------------------------------")
     print(f"Checking Issue #{issue_id} on {repository} for associated POEM...")
@@ -105,8 +107,10 @@ def get_poem_message(repository, pull_id, github_token=None):
     try:
         issue_json = subprocess.check_output(cmd)
     except subprocess.CalledProcessError:
-        print(f"Unable to access issue  #{issue_id} on repository "
-              "{repository}:\nrc={err.returncode}")
+        print(
+            f"Unable to access issue  #{issue_id} on repository "
+            "{repository}:\nrc={err.returncode}"
+        )
         return ERROR
 
     issue_body = json.loads(issue_json)["body"]
@@ -129,31 +133,35 @@ def get_poem_message(repository, pull_id, github_token=None):
     print(f"{poem_id=}")
     print("----------------")
 
-    for prefix in ['POEM_', 'POEM #', 'POEM#', 'POEM']:
+    for prefix in ["POEM_", "POEM #", "POEM#", "POEM"]:
         pos = poem_id.find(prefix)
-        if pos >=0:
-            poem_id = poem_id[pos+len(prefix):].strip()
+        if pos >= 0:
+            poem_id = poem_id[pos + len(prefix) :].strip()
 
     if not poem_id.isnumeric():
         # valid poem ID not found, could be blank or "_No response_"
         return NOT_FOUND
     else:
-        with open(POEM_MESSAGE_FILE, 'w') as f:
-            f.write(f"This pull request would transition [POEM_{poem_id}]"
-                    f"(https://github.com/OpenMDAO/POEMs/blob/master/POEM_{poem_id}.md) "
-                     "to `Integrated`")
+        with open(POEM_MESSAGE_FILE, "w") as f:
+            f.write(
+                f"This pull request would transition [POEM_{poem_id}]"
+                f"(https://github.com/OpenMDAO/POEMs/blob/master/POEM_{poem_id}.md) "
+                "to `Integrated`"
+            )
 
     print("-------------------------------------------------------------------------------")
     print(f"Checking for existence of POEM_{poem_id}...")
     print("-------------------------------------------------------------------------------")
 
     try:
-        poem_text = github_read_file('OpenMDAO/POEMs', f'POEM_{poem_id}.md', github_token)
+        poem_text = github_read_file("OpenMDAO/POEMs", f"POEM_{poem_id}.md", github_token)
     except requests.exceptions.HTTPError:
-        with open(POEM_MESSAGE_FILE, 'a') as f:
-            f.write(f" but `POEM_{poem_id}` is not found in the "
-                    "[POEMs](https://github.com/OpenMDAO/POEMs) repository. "
-                    "Has it been `Accepted` and merged?")
+        with open(POEM_MESSAGE_FILE, "a") as f:
+            f.write(
+                f" but `POEM_{poem_id}` is not found in the "
+                "[POEMs](https://github.com/OpenMDAO/POEMs) repository. "
+                "Has it been `Accepted` and merged?"
+            )
     else:
         print("-------------------------------------------------------------------------------")
         print("POEM Text:")
@@ -164,12 +172,11 @@ def get_poem_message(repository, pull_id, github_token=None):
     print("POEM Message:")
     print("-------------------------------------------------------------------------------")
 
-    with open(POEM_MESSAGE_FILE, 'r') as f:
+    with open(POEM_MESSAGE_FILE, "r") as f:
         print(f.read())
 
     return SUCCESS
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(get_poem_message(*sys.argv[1:]))
-
