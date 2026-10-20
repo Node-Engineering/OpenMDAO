@@ -1,6 +1,7 @@
 """
 Utility functions related to recording or execution metadata.
 """
+
 from fnmatch import fnmatchcase
 import os
 import re
@@ -23,10 +24,10 @@ def create_local_meta(name):
         Dictionary containing the metadata.
     """
     local_meta = {
-        'name': name,
-        'timestamp': None,
-        'success': 1,
-        'msg': '',
+        "name": name,
+        "timestamp": None,
+        "success": 1,
+        "msg": "",
     }
 
     return local_meta
@@ -49,8 +50,8 @@ def format_iteration_coordinate(coord, prefix=None):
     str
         Iteration coordinate converted to a string.
     """
-    separator = '|'
-    iteration_number_separator = '-'
+    separator = "|"
+    iteration_number_separator = "-"
 
     iteration_coordinate = []
 
@@ -65,14 +66,14 @@ def format_iteration_coordinate(coord, prefix=None):
     else:
         prefix = "rank%d" % (coord[0])
 
-    return ':'.join([prefix, separator.join(iteration_coordinate)])
+    return ":".join([prefix, separator.join(iteration_coordinate)])
 
 
 # Regular expression used for splitting iteration coordinates, removes separator and iter counts
-_coord_split_re = re.compile('\\|\\d+\\|*')
+_coord_split_re = re.compile("\\|\\d+\\|*")
 
 # regular expression used to determine if a node in an iteration coordinate represents a system
-_coord_system_re = re.compile('(\\._solve_nonlinear|\\._apply_nonlinear)$')
+_coord_system_re = re.compile("(\\._solve_nonlinear|\\._apply_nonlinear)$")
 
 
 def get_source_system(iteration_coordinate):
@@ -93,16 +94,16 @@ def get_source_system(iteration_coordinate):
     parts = _coord_split_re.split(iteration_coordinate)
     for part in reversed(parts):
         match = _coord_system_re.search(part)
-        if (match):
+        if match:
             # take the part up to "._solve_nonlinear" or "._apply_nonlinear"
-            part = part[:match.span()[0]]
+            part = part[: match.span()[0]]
             # get rid of 'rank#:'
-            if ':' in part:
-                part = part.split(':')[1]
+            if ":" in part:
+                part = part.split(":")[1]
             # system pathname must always start with "root"
-            return part if part == 'root' or part.startswith('root.') else f'root.{part}'
+            return part if part == "root" or part.startswith("root.") else f"root.{part}"
 
-    return 'root'
+    return "root"
 
 
 def check_valid_sqlite3_db(filename):
@@ -121,18 +122,18 @@ def check_valid_sqlite3_db(filename):
     """
     # check that the file exists
     if not os.path.isfile(filename):
-        raise IOError('File does not exist({0})'.format(filename))
+        raise IOError("File does not exist({0})".format(filename))
 
     # check that the file is large enough (SQLite database file header is 100 bytes)
     if os.path.getsize(filename) < 100:
-        raise IOError('File does not contain a valid sqlite database ({0})'.format(filename))
+        raise IOError("File does not contain a valid sqlite database ({0})".format(filename))
 
     # check that the first 100 bytes actually contains a valid SQLite database header
-    with open(filename, 'rb') as fd:
+    with open(filename, "rb") as fd:
         header = fd.read(100)
 
-    if header[:16] != b'SQLite format 3\x00':
-        raise IOError('File does not contain a valid sqlite database ({0})'.format(filename))
+    if header[:16] != b"SQLite format 3\x00":
+        raise IOError("File does not contain a valid sqlite database ({0})".format(filename))
 
 
 def check_path(path, includes, excludes, include_all_path=False):
@@ -222,11 +223,11 @@ def deserialize(json_data, abs2meta, prom2abs, conns):
 
     for name, value in values.items():
         try:
-            has_shape = 'shape' in abs2meta[name]
+            has_shape = "shape" in abs2meta[name]
         except KeyError:
-            abs_name = prom2abs['input'][name]
+            abs_name = prom2abs["input"][name]
             src_name = conns[abs_name[0]]
-            has_shape = 'shape' in abs2meta[src_name]
+            has_shape = "shape" in abs2meta[src_name]
 
         if isinstance(value, (list, float)) and has_shape:
             values[name] = np.asarray(value)  # array will be proper shape based on list structure
@@ -254,7 +255,7 @@ def dict_to_structured_array(values):
         Numpy structured array containing the same names and values as the input values dict.
     """
     if values:
-        dtype_tuples = [(str(name), f'{value.shape}f8') for name, value in values.items()]
+        dtype_tuples = [(str(name), f"{value.shape}f8") for name, value in values.items()]
 
         array = np.zeros((1,), dtype=dtype_tuples)
 

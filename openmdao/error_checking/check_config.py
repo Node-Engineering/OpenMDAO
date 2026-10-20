@@ -26,7 +26,7 @@ _UNSET = object()
 
 # numpy default print options changed in 1.14
 if Version(np.__version__) >= Version("1.14"):
-    _npy_print_opts = {'legacy': '1.13'}
+    _npy_print_opts = {"legacy": "1.13"}
 else:
     _npy_print_opts = {}
 
@@ -49,14 +49,15 @@ def _check_cycles(group, infos=None):
     """
     graph = group.compute_sys_graph(comps_only=False)
     sccs = get_sccs_topo(graph)
-    cycles = [sorted(s, key=lambda n: group._subsystems_allprocs[n].index)
-              for s in sccs if len(s) > 1]
+    cycles = [
+        sorted(s, key=lambda n: group._subsystems_allprocs[n].index) for s in sccs if len(s) > 1
+    ]
 
     if cycles and infos is not None:
         infos.append(f"   Group '{group.pathname}' has the following cycles:")
         for cycle in cycles:
             infos.append(f"      {cycle}")
-        infos.append('')
+        infos.append("")
 
     return cycles
 
@@ -76,13 +77,14 @@ def _check_ubcs(group, warnings):
     for syspath, conns in out_of_order.items():
         prefix = f"   In System '{syspath}', subsystem " if syspath else "   System "
         for tgt, srcs in conns.items():
-            warnings.append(f"{prefix}'{tgt}' executes out-of-order "
-                            f"with respect to its source systems {srcs}\n")
+            warnings.append(
+                f"{prefix}'{tgt}' executes out-of-order with respect to its source systems {srcs}\n"
+            )
 
     parallel_solvers = {}
     allsubs = group._subsystems_allprocs
     for sub, _ in allsubs.values():
-        if hasattr(sub, '_mpi_proc_allocator') and sub._mpi_proc_allocator.parallel:
+        if hasattr(sub, "_mpi_proc_allocator") and sub._mpi_proc_allocator.parallel:
             parallel_solvers[sub.name] = sub.nonlinear_solver.SOLVER
 
     if parallel_solvers:
@@ -100,22 +102,27 @@ def _check_parallel_solvers(group, parallel_solvers):
     parallel_solvers : dict
         Dictionary of parallel solvers keyed by subsystem names.
     """
-    glen = len(group.pathname.split('.')) if group.pathname else 0
+    glen = len(group.pathname.split(".")) if group.pathname else 0
 
     for tgt_abs, src_abs in group._conn_global_abs_in2out.items():
-        iparts = tgt_abs.split('.')
-        oparts = src_abs.split('.')
+        iparts = tgt_abs.split(".")
+        oparts = src_abs.split(".")
         src_sys = oparts[glen]
         tgt_sys = iparts[glen]
         hierarchy_check = oparts[glen + 1] == iparts[glen + 1]
 
-        if (src_sys in parallel_solvers and tgt_sys in parallel_solvers and
-                (parallel_solvers[src_sys] not in ["NL: NLBJ", "NL: Newton", "NL: BROYDEN"]) and
-                src_sys == tgt_sys and
-                not hierarchy_check):
-            issue_warning("Need to attach NonlinearBlockJac, NewtonSolver, or BroydenSolver to "
-                          f"'{src_sys}' when connecting components inside parallel groups",
-                          category=SetupWarning)
+        if (
+            src_sys in parallel_solvers
+            and tgt_sys in parallel_solvers
+            and (parallel_solvers[src_sys] not in ["NL: NLBJ", "NL: Newton", "NL: BROYDEN"])
+            and src_sys == tgt_sys
+            and not hierarchy_check
+        ):
+            issue_warning(
+                "Need to attach NonlinearBlockJac, NewtonSolver, or BroydenSolver to "
+                f"'{src_sys}' when connecting components inside parallel groups",
+                category=SetupWarning,
+            )
 
 
 def _check_cycles_prob(prob, logger):
@@ -157,7 +164,7 @@ def _check_ubcs_prob(prob, logger):
         _check_ubcs(group, warnings)
 
     if len(warnings) > 1:
-        logger.warning(''.join(warnings[:1] + sorted(warnings[1:])))
+        logger.warning("".join(warnings[:1] + sorted(warnings[1:])))
 
 
 def _check_dup_comp_inputs(problem, logger):
@@ -183,7 +190,7 @@ def _check_dup_comp_inputs(problem, logger):
     for src, inps in src2inps.items():
         comps = defaultdict(list)
         for inp in inps:
-            comp, vname = inp.rsplit('.', 1)
+            comp, vname = inp.rsplit(".", 1)
             comps[comp].append(vname)
 
         dups = sorted([(c, v) for c, v in comps.items() if len(v) > 1], key=lambda x: x[0])
@@ -192,10 +199,12 @@ def _check_dup_comp_inputs(problem, logger):
                 msgs.append("   %s has inputs %s connected to %s\n" % (comp, sorted(vnames), src))
 
     if msgs:
-        msg = ["The following components have multiple inputs connected to the same source, ",
-               "which can introduce unnecessary data transfer overhead:\n"]
+        msg = [
+            "The following components have multiple inputs connected to the same source, ",
+            "which can introduce unnecessary data transfer overhead:\n",
+        ]
         msg += sorted(msgs)
-        logger.warning(''.join(msg))
+        logger.warning("".join(msg))
 
 
 def _trim_str(obj, size):
@@ -224,9 +233,9 @@ def _trim_str(obj, size):
 
     if len(s) > size:
         if isinstance(obj, np.ndarray) and np.issubdtype(obj.dtype, np.floating):
-            s = 'shape={}, norm={:<.3}'.format(obj.shape, np.linalg.norm(obj))
+            s = "shape={}, norm={:<.3}".format(obj.shape, np.linalg.norm(obj))
         else:
-            s = s[:size - 4] + ' ...'
+            s = s[: size - 4] + " ..."
 
     return s
 
@@ -253,7 +262,7 @@ def _check_hanging_inputs(problem, logger):
     desvars = problem.driver._designvars
     unconns = []
     for tgts in model._auto_ivc.auto2tgt.values():
-        prom_tgt = abs2prom(tgts[0], 'input')
+        prom_tgt = abs2prom(tgts[0], "input")
         # Ignore inputs that are declared as design vars.
         if desvars and prom_tgt in desvars:
             continue
@@ -264,8 +273,8 @@ def _check_hanging_inputs(problem, logger):
     if unconns:
         msg = ["The following inputs are connected to Auto IVC output variables:\n"]
         for prom_tgt, abs_tgt in sorted(unconns):
-            msg.append(f'  {prom_tgt} ({abs_tgt})\n')
-        logger.warning(''.join(msg))
+            msg.append(f"  {prom_tgt} ({abs_tgt})\n")
+        logger.warning("".join(msg))
 
 
 def _check_comp_has_no_outputs(problem, logger):
@@ -282,11 +291,11 @@ def _check_comp_has_no_outputs(problem, logger):
     msg = []
 
     for comp in problem.model.system_iter(include_self=True, recurse=True, typ=Component):
-        if len(list(comp._resolver.abs_iter('output'))) == 0:
+        if len(list(comp._resolver.abs_iter("output"))) == 0:
             msg.append("   %s\n" % comp.pathname)
 
     if msg:
-        logger.warning(''.join(["The following Components do not have any outputs:\n"] + msg))
+        logger.warning("".join(["The following Components do not have any outputs:\n"] + msg))
 
 
 def _check_system_configs(problem, logger):
@@ -321,7 +330,7 @@ def _has_ancestor_solver(path, solvers):
         True if the given path has an ancestor with a solver.
     """
     while path:
-        path, _, _ = path.rpartition('.')
+        path, _, _ = path.rpartition(".")
         if path in solvers:
             return True
     return False
@@ -352,11 +361,22 @@ def _check_solvers(problem, logger):
     group = problem.model
     lst = []
 
-    for tup in group._sys_tree_visitor(iter_solver_info,
-                                       predicate=lambda s: isinstance(s,
-                                                                      (Group, ImplicitComponent))):
-        path, pathclass, sccs, lnslv, nlslv, lnmaxiter, nlmaxiter, missing, isgrp, \
-            nl_cansolve, lin_cansolve = tup
+    for tup in group._sys_tree_visitor(
+        iter_solver_info, predicate=lambda s: isinstance(s, (Group, ImplicitComponent))
+    ):
+        (
+            path,
+            pathclass,
+            sccs,
+            lnslv,
+            nlslv,
+            lnmaxiter,
+            nlmaxiter,
+            missing,
+            isgrp,
+            nl_cansolve,
+            lin_cansolve,
+        ) = tup
 
         if isgrp:
             lst.append(tup)
@@ -364,26 +384,30 @@ def _check_solvers(problem, logger):
         if not isgrp or sccs:  # a group with cycles or an implicit component
             missing = []
             if not nl_cansolve and not _has_ancestor_solver(path, has_nl_solver):
-                missing.append('nonlinear')
+                missing.append("nonlinear")
             if not lin_cansolve and not _has_ancestor_solver(path, has_lin_solver):
-                missing.append('linear')
+                missing.append("linear")
 
             if missing:
-                missing = ' or '.join(missing)
+                missing = " or ".join(missing)
 
                 if isgrp:
                     sccs = [tuple(sorted(s)) for s in sccs]
-                    msg = (f"Group '{path}' contains cycles {sccs}, but does not have an iterative "
-                           f"{missing} solver.")
+                    msg = (
+                        f"Group '{path}' contains cycles {sccs}, but does not have an iterative "
+                        f"{missing} solver."
+                    )
                 else:
                     fncs = []
-                    if 'nonlinear' in missing and nlslv != 'solve_nonlinear':
-                        fncs.append('solve_nonlinear')
-                    if 'linear' in missing and lnslv != 'solve_linear':
-                        fncs.append('solve_linear')
-                    fncs = ' or '.join(fncs)
-                    msg = (f"{pathclass} '{path}' contains implicit variables but does "
-                           f"not implement {fncs} or have an iterative {missing} solver.")
+                    if "nonlinear" in missing and nlslv != "solve_nonlinear":
+                        fncs.append("solve_nonlinear")
+                    if "linear" in missing and lnslv != "solve_linear":
+                        fncs.append("solve_linear")
+                    fncs = " or ".join(fncs)
+                    msg = (
+                        f"{pathclass} '{path}' contains implicit variables but does "
+                        f"not implement {fncs} or have an iterative {missing} solver."
+                    )
                 logger.warning(msg)
 
         if isgrp and lin_cansolve:
@@ -394,8 +418,7 @@ def _check_solvers(problem, logger):
     seen = set()
     lines = []
     for tup in lst:
-        path, pathclass, sccs, lnslv, nlslv, lnmaxiter, nlmaxiter, missing, _, \
-            _, _ = tup
+        path, pathclass, sccs, lnslv, nlslv, lnmaxiter, nlmaxiter, missing, _, _, _ = tup
         if sccs:
             if pathclass in seen:
                 continue
@@ -403,23 +426,26 @@ def _check_solvers(problem, logger):
                 continue  # don't show groups without sub-cycles
 
             seen.add(pathclass)
-            lines.append(f"'{path}' ({pathclass})  NL: {nlslv} (maxiter={nlmaxiter}), LN: "
-                         f"{lnslv} (maxiter={lnmaxiter}):")
+            lines.append(
+                f"'{path}' ({pathclass})  NL: {nlslv} (maxiter={nlmaxiter}), LN: "
+                f"{lnslv} (maxiter={lnmaxiter}):"
+            )
 
             for i, scc in enumerate(sccs):
                 lines.append(f"   Cycle {i}: {sorted(scc)}")
             if missing:
                 lines.append(f"   Number of non-cycle subsystems: {missing}")
-            lines.append('')
+            lines.append("")
 
     if lines:
         final = []
-        final.append("The following groups contain sub-cycles. Performance and/or convergence "
-                     "may improve")
+        final.append(
+            "The following groups contain sub-cycles. Performance and/or convergence may improve"
+        )
         final.append("if these sub-cycles are solved separately in their own group.")
-        final.append('')
+        final.append("")
         final.extend(lines)
-        logger.warning('\n'.join(final))
+        logger.warning("\n".join(final))
 
     # Report any additional solver warnings.
     for system in problem.model.system_iter(include_self=True, recurse=True):
@@ -484,26 +510,30 @@ def _check_unserializable_options(problem, logger, check_recordable=True):
                     pickle.dumps(val, PICKLE_VER)
                 except Exception:
                     name_str = name + " " if name else ""
-                    if obj.options._dict[key]['recordable']:
-                        msg = f"{obj.msginfo}: {name_str}option '{key}' is not serializable " \
-                              "(cannot be pickled) but 'recordable=False' has not been set. " \
-                              f"No options will be recorded for this {obj.__class__.__name__} " \
-                              "unless 'recordable' is set to False for this option."
+                    if obj.options._dict[key]["recordable"]:
+                        msg = (
+                            f"{obj.msginfo}: {name_str}option '{key}' is not serializable "
+                            "(cannot be pickled) but 'recordable=False' has not been set. "
+                            f"No options will be recorded for this {obj.__class__.__name__} "
+                            "unless 'recordable' is set to False for this option."
+                        )
                         logger.warning(msg)
                     elif not check_recordable:
-                        msg = f"{obj.msginfo}: {name_str}option '{key}' is not serializable " \
-                              "(cannot be pickled) and will not be recorded."
+                        msg = (
+                            f"{obj.msginfo}: {name_str}option '{key}' is not serializable "
+                            "(cannot be pickled) and will not be recorded."
+                        )
                         logger.warning(msg)
 
     # check options for all for Systems and Solvers
     for system in problem.model.system_iter(include_self=True, recurse=True):
         _check_opts(system)
-        _check_opts(system.linear_solver, 'linear_solver')
+        _check_opts(system.linear_solver, "linear_solver")
 
         nl = system.nonlinear_solver
         if nl:
-            _check_opts(nl, 'nonlinear_solver')
-            for name in ('linear_solver', 'linesearch'):
+            _check_opts(nl, "nonlinear_solver")
+            for name in ("linear_solver", "linesearch"):
                 _check_opts(getattr(nl, name, None), name)
 
 
@@ -538,7 +568,7 @@ def _get_promoted_connected_ins(g):
     resolver = g._resolver
     prom_conn_ins = defaultdict(lambda: ([], []))
     for prom_in in g._manual_connections:
-        for abs_in in resolver.absnames(prom_in, 'input'):
+        for abs_in in resolver.absnames(prom_in, "input"):
             prom_conn_ins[abs_in][1].append((prom_in, g.pathname))
 
     for subsys in g._subgroups_myproc:
@@ -549,8 +579,8 @@ def _get_promoted_connected_ins(g):
             mytup[0].extend(proms)
             mytup[1].extend(mans)
 
-        for inp, sub_prom_inp in subsys._resolver.abs2prom_iter('input', local=True):
-            if resolver.abs2prom(inp, 'input') == sub_prom_inp:  # inp is promoted up from sub
+        for inp, sub_prom_inp in subsys._resolver.abs2prom_iter("input", local=True):
+            if resolver.abs2prom(inp, "input") == sub_prom_inp:  # inp is promoted up from sub
                 if inp in sub_prom_conn_ins and len(sub_prom_conn_ins[inp][1]) > 0:
                     prom_conn_ins[inp][0].append(subsys.pathname)
 
@@ -576,12 +606,14 @@ def _check_explicitly_connected_promoted_inputs(problem, logger):
             # there can only be one manual connection (else an exception would've been raised)
             man_prom, man_group = mans[0]
             if len(proms) > 1:
-                lst = [p for p in proms if p == man_group or man_group.startswith(p + '.')]
+                lst = [p for p in proms if p == man_group or man_group.startswith(p + ".")]
                 s = "groups %s" % sorted(lst)
             else:
                 s = "group '%s'" % proms[0]
-            logger.warning("Input '%s' was explicitly connected in group '%s' as '%s', but was "
-                           "promoted up from %s." % (inp, man_group, man_prom, s))
+            logger.warning(
+                "Input '%s' was explicitly connected in group '%s' as '%s', but was "
+                "promoted up from %s." % (inp, man_group, man_prom, s)
+            )
 
 
 def _check_bad_sparsity(problem, logger):
@@ -598,12 +630,19 @@ def _check_bad_sparsity(problem, logger):
     seen = set()
     for comp in problem.model.system_iter(include_self=True, recurse=True, typ=Component):
         plen = len(comp.pathname) + 1
-        for of, wrt, computed_rows, computed_cols, rows, cols, _, _, wrn in \
-                comp.check_sparsity(out_stream=None):
+        for of, wrt, computed_rows, computed_cols, rows, cols, _, _, wrn in comp.check_sparsity(
+            out_stream=None
+        ):
             # don't repeat same class over if diffs are the same
-            chk = (type(comp).__name__, of[plen:], wrt[plen:],
-                   array_hash(np.asarray(rows)), array_hash(np.asarray(cols)),
-                   array_hash(np.asarray(computed_rows)), array_hash(np.asarray(computed_cols)))
+            chk = (
+                type(comp).__name__,
+                of[plen:],
+                wrt[plen:],
+                array_hash(np.asarray(rows)),
+                array_hash(np.asarray(cols)),
+                array_hash(np.asarray(computed_rows)),
+                array_hash(np.asarray(computed_cols)),
+            )
             if chk not in seen:
                 seen.add(chk)
                 logger.warning(wrn)
@@ -612,31 +651,34 @@ def _check_bad_sparsity(problem, logger):
 # Dict of all checks by name, mapped to the corresponding function that performs the check
 # Each function must be of the form  f(problem, logger).
 _default_checks = {
-    'out_of_order': _check_ubcs_prob,
-    'system': _check_system_configs,
-    'solvers': _check_solvers,
-    'dup_inputs': _check_dup_comp_inputs,
-    'missing_recorders': _check_missing_recorders,
-    'unserializable_options': _check_unserializable_options,
-    'comp_has_no_outputs': _check_comp_has_no_outputs,
+    "out_of_order": _check_ubcs_prob,
+    "system": _check_system_configs,
+    "solvers": _check_solvers,
+    "dup_inputs": _check_dup_comp_inputs,
+    "missing_recorders": _check_missing_recorders,
+    "unserializable_options": _check_unserializable_options,
+    "comp_has_no_outputs": _check_comp_has_no_outputs,
 }
 
 _all_checks = _default_checks.copy()
-_all_checks.update({
-    'cycles': _check_cycles_prob,
-    'unconnected_inputs': _check_hanging_inputs,
-    'promotions': _check_explicitly_connected_promoted_inputs,
-    'all_unserializable_options': _check_all_unserializable_options,
-    'sparsity': _check_bad_sparsity,
-})
+_all_checks.update(
+    {
+        "cycles": _check_cycles_prob,
+        "unconnected_inputs": _check_hanging_inputs,
+        "promotions": _check_explicitly_connected_promoted_inputs,
+        "all_unserializable_options": _check_all_unserializable_options,
+        "sparsity": _check_bad_sparsity,
+    }
+)
 
 _all_non_redundant_checks = _all_checks.copy()
-del _all_non_redundant_checks['unserializable_options']
+del _all_non_redundant_checks["unserializable_options"]
 
 
 #
 # Command line interface functions
 #
+
 
 def _check_config_setup_parser(parser):
     """
@@ -647,13 +689,18 @@ def _check_config_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model')
-    parser.add_argument('-o', action='store', dest='outfile', help='output file')
-    parser.add_argument('-p', '--problem', action='store', dest='problem', help='Problem name')
-    parser.add_argument('-c', action='append', dest='checks', default=[],
-                        help='Only perform specific check(s). Default checks are: %s. '
-                        'Other available checks are: %s' %
-                        (sorted(_default_checks), sorted(set(_all_checks) - set(_default_checks))))
+    parser.add_argument("file", nargs=1, help="Python file containing the model")
+    parser.add_argument("-o", action="store", dest="outfile", help="output file")
+    parser.add_argument("-p", "--problem", action="store", dest="problem", help="Problem name")
+    parser.add_argument(
+        "-c",
+        action="append",
+        dest="checks",
+        default=[],
+        help="Only perform specific check(s). Default checks are: %s. "
+        "Other available checks are: %s"
+        % (sorted(_default_checks), sorted(set(_all_checks) - set(_default_checks))),
+    )
 
 
 def _get_checks(checks):
@@ -661,7 +708,7 @@ def _get_checks(checks):
         checks = sorted(_default_checks)
     elif not checks:
         checks = ()
-    elif 'all' in checks:
+    elif "all" in checks:
         checks = sorted(_all_non_redundant_checks)
     return checks
 
@@ -672,7 +719,7 @@ class _Log2File(object):
 
     def info(self, msg):
         self.f.write(msg)
-        self.f.write('\n')
+        self.f.write("\n")
 
     error = info
     warning = info
@@ -684,24 +731,25 @@ def _run_check_report(prob):
     chk = prob._check if prob._check is not None else True
     for c in _get_checks(chk):
         if c not in _all_checks:
-            print(f"WARNING: '{c}' is not a recognized check.  Available checks are: "
-                  f"{sorted(_all_checks)}")
+            print(
+                f"WARNING: '{c}' is not a recognized check.  Available checks are: "
+                f"{sorted(_all_checks)}"
+            )
             continue
 
-        print('-' * 30, f'Checking {c}', '-' * 30, file=s)
+        print("-" * 30, f"Checking {c}", "-" * 30, file=s)
         _all_checks[c](prob, _Log2File(s))
 
     output = s.getvalue()
     if output:
-        path = pathlib.Path(prob.get_reports_dir() / 'checks.html')
-        with open(path, 'w') as f:
+        path = pathlib.Path(prob.get_reports_dir() / "checks.html")
+        with open(path, "w") as f:
             f.write(text2html(output))
 
 
 # entry point for check report
 def _check_report_register():
-    register_report('checks', _run_check_report, 'Config checks', 'Problem',
-                    'final_setup', 'post')
+    register_report("checks", _run_check_report, "Config checks", "Problem", "final_setup", "post")
 
 
 def _check_config_cmd(options, user_args):
@@ -720,18 +768,20 @@ def _check_config_cmd(options, user_args):
     function
         The post-setup hook function.
     """
+
     def _check_config(prob):
         if not options.checks:
             options.checks = sorted(_default_checks)
-        elif 'all' in options.checks:
+        elif "all" in options.checks:
             options.checks = sorted(_all_non_redundant_checks)
 
         if not MPI or prob.comm.rank == 0:
             if options.outfile is None:
-                logger = get_logger('check_config', out_stream='stdout',
-                                    out_file=None, use_format=True)
+                logger = get_logger(
+                    "check_config", out_stream="stdout", out_file=None, use_format=True
+                )
             else:
-                logger = get_logger('check_config', out_file=options.outfile, use_format=True)
+                logger = get_logger("check_config", out_file=options.outfile, use_format=True)
         else:
             # if not rank 0, don't display anything, but still do the config check to prevent
             # any MPI hangs due to collective calls
@@ -740,8 +790,9 @@ def _check_config_cmd(options, user_args):
         prob.check_config(logger, options.checks)
 
     # register the hook
-    _register_hook('final_setup', class_name='Problem', inst_id=options.problem, post=_check_config,
-                   exit=True)
+    _register_hook(
+        "final_setup", class_name="Problem", inst_id=options.problem, post=_check_config, exit=True
+    )
 
     _load_and_exec(options.file[0], user_args)
 
@@ -765,10 +816,13 @@ def check_allocate_complex_ln(group, under_cs):
     bool
         True if linear vector should be complex.
     """
-    under_cs |= 'cs' in group._approx_schemes
+    under_cs |= "cs" in group._approx_schemes
 
-    if under_cs and group.nonlinear_solver is not None and \
-       group.nonlinear_solver.supports['gradients']:
+    if (
+        under_cs
+        and group.nonlinear_solver is not None
+        and group.nonlinear_solver.supports["gradients"]
+    ):
         return True
 
     for sub, _ in group._subsystems_allprocs.values():
@@ -776,7 +830,7 @@ def check_allocate_complex_ln(group, under_cs):
             return True
 
         elif isinstance(sub, ImplicitComponent):
-            if sub.nonlinear_solver is not None and sub.nonlinear_solver.supports['gradients']:
+            if sub.nonlinear_solver is not None and sub.nonlinear_solver.supports["gradients"]:
                 # Special case, gradient-supporting solver in an ImplicitComponent.
                 return True
 

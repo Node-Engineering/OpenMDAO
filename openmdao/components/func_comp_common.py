@@ -13,6 +13,7 @@ try:
     import jax
     from jax import vmap
     import jax.numpy as jnp
+
     _HAS_JAX = True
 except ImportError:
     jax = None
@@ -45,11 +46,11 @@ if _HAS_JAX:
                 from jax import vjp as _public_vjp
 
                 def _jvp(fun, primals, tangents):
-                    func = fun.call_wrapped if hasattr(fun, 'call_wrapped') else fun
+                    func = fun.call_wrapped if hasattr(fun, "call_wrapped") else fun
                     return _public_jvp(func, primals, tangents)
 
                 def _vjp(fun, *primals):
-                    func = fun.call_wrapped if hasattr(fun, 'call_wrapped') else fun
+                    func = fun.call_wrapped if hasattr(fun, "call_wrapped") else fun
                     return _public_vjp(func, *primals)
 
         # 4. api_util
@@ -62,7 +63,7 @@ if _HAS_JAX:
                 from jax import api_util
 
         jax.config.update("jax_enable_x64", True)
-        
+
     except Exception as e:
         # If any internal import fails, print the EXACT error instead of silently masking it
         print(f"\nOpenMDAO JAX Integration Warning: Failed to import internal JAX modules: {e}\n")
@@ -71,11 +72,16 @@ if _HAS_JAX:
         jax = None
 
 # regex to check for variable names.
-namecheck_rgx = re.compile('[_a-zA-Z][_a-zA-Z0-9]*')
+namecheck_rgx = re.compile("[_a-zA-Z][_a-zA-Z0-9]*")
 
 # Names that are not allowed for input or output variables (keywords for options)
 _disallowed_varnames = {
-    'units', 'shape', 'shape_by_conn', 'run_root_only', 'distributed', 'assembled_jac_type'
+    "units",
+    "shape",
+    "shape_by_conn",
+    "run_root_only",
+    "distributed",
+    "assembled_jac_type",
 }
 
 
@@ -106,8 +112,9 @@ def _check_var_name(comp, name):
         raise NameError(f"{comp.msginfo}: '{name}' is not a valid variable name.")
 
     if name in _disallowed_varnames:
-        raise NameError(f"{comp.msginfo}: cannot use variable name '{name}' because "
-                        "it's a reserved keyword.")
+        raise NameError(
+            f"{comp.msginfo}: cannot use variable name '{name}' because it's a reserved keyword."
+        )
 
 
 def jac_forward(fun, argnums, tangents):
@@ -136,18 +143,21 @@ def jac_forward(fun, argnums, tangents):
     """
     try:
         # Newer JAX versions (>= 0.4.x)
-        f = linear_util.wrap_init(fun, debug_info=api_util.debug_info('jac_forward', fun, (), {}))
+        f = linear_util.wrap_init(fun, debug_info=api_util.debug_info("jac_forward", fun, (), {}))
     except TypeError:
         # Older JAX versions
         f = linear_util.wrap_init(fun)
 
     if argnums is None:
+
         def jacfunf(*args):
             return vmap(partial(_jvp, f, args), out_axes=(None, -1))(tangents)[1]
     else:
+
         def jacfunf(*args):
             f_partial, dyn_args = argnums_partial(f, argnums, args)
             return vmap(partial(_jvp, f_partial, dyn_args), out_axes=(None, -1))(tangents)[1]
+
     return jacfunf
 
 
@@ -178,15 +188,17 @@ def jac_reverse(fun, argnums, tangents):
     """
     try:
         # Newer JAX versions (>= 0.4.x)
-        f = linear_util.wrap_init(fun, debug_info=api_util.debug_info('jac_reverse', fun, (), {}))
+        f = linear_util.wrap_init(fun, debug_info=api_util.debug_info("jac_reverse", fun, (), {}))
     except TypeError:
         # Older JAX versions
         f = linear_util.wrap_init(fun)
 
     if argnums is None:
+
         def jacfunr(*args):
             return vmap(_vjp(f, *args)[1])(tangents)
     else:
+
         def jacfunr(*args):
             f_partial, dyn_args = argnums_partial(f, argnums, args)
             return vmap(_vjp(f_partial, *dyn_args)[1])(tangents)
@@ -218,7 +230,7 @@ def jacvec_prod(fun, argnums, invals, tangent):
     """
     try:
         # Newer JAX versions (>= 0.4.x)
-        f = linear_util.wrap_init(fun, debug_info=api_util.debug_info('jacvec_prod', fun, (), {}))
+        f = linear_util.wrap_init(fun, debug_info=api_util.debug_info("jacvec_prod", fun, (), {}))
     except TypeError:
         # Older JAX versions
         f = linear_util.wrap_init(fun)
@@ -232,9 +244,11 @@ def jacvec_prod(fun, argnums, invals, tangent):
     shaped_tangents = [a.reshape(s.shape) for a, s in zip(np.split(tangent, inds, axis=0), invals)]
 
     if argnums is None:
+
         def jvfun(inps):
             return _jvp(f, inps, shaped_tangents)[1]
     else:
+
         def jvfun(inps):
             f_partial, dyn_args = argnums_partial(f, argnums, inps)
             return _jvp(f_partial, list(dyn_args), shaped_tangents)[1]
@@ -280,8 +294,9 @@ def _get_tangents(vals, direction, coloring=None, argnums=None, trans=None):
         tangent = coloring.tangent_matrix(direction, trans=trans)
 
     shapes = [tangent.shape[:1] + np.shape(v) for v in leaves]
-    tangents = tuple([np.reshape(a, shp) for a, shp in zip(np.split(tangent, inds, axis=1),
-                                                           shapes)])
+    tangents = tuple(
+        [np.reshape(a, shp) for a, shp in zip(np.split(tangent, inds, axis=1), shapes)]
+    )
     if len(leaves) == 1:
         tangents = tangents[0]
 
@@ -303,4 +318,4 @@ def _ensure_iter(val):
     """
     if isinstance(val, tuple):
         return val
-    return val,
+    return (val,)

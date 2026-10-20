@@ -13,6 +13,7 @@ from parameterized import parameterized_class
 
 import openmdao.api as om
 from openmdao.solvers.linear.linear_rhs_checker import LinearRHSChecker
+
 try:
     from openmdao.vectors.petsc_vector import PETScVector
 except ImportError:
@@ -61,13 +62,14 @@ class DistIVC(om.IndepVarComp):
     def setup(self):
         self.add_output("x", val=np.ones(VEC_SIZE), distributed=True)
 
+
 # Run tests with 1 and 2 procs
 @parameterized_class(
     ("N_PROCS",),
     [
         (1,),
         (2,),
-    ]
+    ],
 )
 class TestLinearRHSChecker(unittest.TestCase):
     """

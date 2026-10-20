@@ -67,7 +67,7 @@ def size2range_iter(size_iter):
         start = end
 
 
-def meta2range_iter(meta_iter, size_name='size', subset=None):
+def meta2range_iter(meta_iter, size_name="size", subset=None):
     """
     Iterate over variables and their ranges, based on size metadata for each variable.
 

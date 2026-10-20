@@ -1,4 +1,5 @@
 """Finite difference derivative approximations."""
+
 from collections import namedtuple
 
 import numpy as np
@@ -7,9 +8,9 @@ from openmdao.approximation_schemes.approximation_scheme import ApproximationSch
 
 
 DEFAULT_ORDER = {
-    'forward': 1,
-    'backward': 1,
-    'central': 2,
+    "forward": 1,
+    "backward": 1,
+    "central": 2,
 }
 
 
@@ -32,26 +33,27 @@ def _generate_fd_coeff(form, order, system):
         namedtuple containing the 'deltas', 'coeffs', and 'current_coeff'. These deltas and
         coefficients need to be scaled by the step size.
     """
-    FDForm = namedtuple('FDForm', ['deltas', 'coeffs', 'current_coeff'])
+    FDForm = namedtuple("FDForm", ["deltas", "coeffs", "current_coeff"])
 
     FD_COEFFS = {
-        ('forward', 1): FDForm(deltas=np.array([1.0]),
-                               coeffs=np.array([1.0]),
-                               current_coeff=-1.0),
-        ('backward', 1): FDForm(deltas=np.array([-1.0]),
-                                coeffs=np.array([-1.0]),
-                                current_coeff=1.0),
-        ('central', 2): FDForm(deltas=np.array([1.0, -1.0]),
-                               coeffs=np.array([0.5, -0.5]),
-                               current_coeff=0.),
+        ("forward", 1): FDForm(deltas=np.array([1.0]), coeffs=np.array([1.0]), current_coeff=-1.0),
+        ("backward", 1): FDForm(
+            deltas=np.array([-1.0]), coeffs=np.array([-1.0]), current_coeff=1.0
+        ),
+        ("central", 2): FDForm(
+            deltas=np.array([1.0, -1.0]), coeffs=np.array([0.5, -0.5]), current_coeff=0.0
+        ),
     }
 
     try:
         fd_form = FD_COEFFS[form, order]
     except KeyError:
         # TODO: Automatically generate requested form and store in dict.
-        raise ValueError('{}: Finite Difference form="{}" and order={} are not '
-                         'supported'.format(system.msginfo, form, order))
+        raise ValueError(
+            '{}: Finite Difference form="{}" and order={} are not supported'.format(
+                system.msginfo, form, order
+            )
+        )
     return fd_form
 
 
@@ -77,12 +79,12 @@ class FiniteDifference(ApproximationScheme):
     """
 
     DEFAULT_OPTIONS = {
-        'step': 1e-6,
-        'form': 'forward',
-        'order': None,
-        'step_calc': 'abs',
-        'directional': False,
-        'minimum_step': 1e-12,
+        "step": 1e-6,
+        "form": "forward",
+        "order": None,
+        "step_calc": "abs",
+        "directional": False,
+        "minimum_step": 1e-12,
     }
 
     def __init__(self):
@@ -110,27 +112,33 @@ class FiniteDifference(ApproximationScheme):
         options = self.DEFAULT_OPTIONS.copy()
         options.update(kwargs)
 
-        if options['order'] is None:
+        if options["order"] is None:
             # User-submitted options for method=='fd' are all checked here.
-            form = options['form']
+            form = options["form"]
             if form in DEFAULT_ORDER:
-                options['order'] = DEFAULT_ORDER[options['form']]
+                options["order"] = DEFAULT_ORDER[options["form"]]
             else:
-                raise ValueError("{}: '{}' is not a valid form of finite difference; must be "
-                                 "one of {}".format(system.msginfo, form,
-                                                    list(DEFAULT_ORDER.keys())))
+                raise ValueError(
+                    "{}: '{}' is not a valid form of finite difference; must be one of {}".format(
+                        system.msginfo, form, list(DEFAULT_ORDER.keys())
+                    )
+                )
 
-            step_calc = options['step_calc']
-            step_calcs = ['abs', 'rel', 'rel_legacy', 'rel_avg', 'rel_element']
+            step_calc = options["step_calc"]
+            step_calcs = ["abs", "rel", "rel_legacy", "rel_avg", "rel_element"]
             if step_calc not in step_calcs:
-                raise ValueError(f"{system.msginfo}: '{step_calc}' is not a valid setting for "
-                                 f"step_calc; must be one of {step_calcs}.")
+                raise ValueError(
+                    f"{system.msginfo}: '{step_calc}' is not a valid setting for "
+                    f"step_calc; must be one of {step_calcs}."
+                )
 
-            elif options['directional'] and step_calc == 'rel_element':
-                raise ValueError(f"{system.msginfo}: Option 'directional' is not supported when "
-                                 "'step_calc' is set to 'rel_element.'")
+            elif options["directional"] and step_calc == "rel_element":
+                raise ValueError(
+                    f"{system.msginfo}: Option 'directional' is not supported when "
+                    "'step_calc' is set to 'rel_element.'"
+                )
 
-        options['vector'] = vector
+        options["vector"] = vector
         if wrt in self._wrt_meta:
             self._wrt_meta[wrt].update(options)
         else:
@@ -155,11 +163,11 @@ class FiniteDifference(ApproximationScheme):
         tuple
             Tuple of the form (deltas, coeffs, current_coeff)
         """
-        form = meta['form']
-        order = meta['order']
-        step = meta['step']
-        step_calc = meta['step_calc']
-        minimum_step = meta['minimum_step']
+        form = meta["form"]
+        order = meta["order"]
+        step = meta["step"]
+        step_calc = meta["step_calc"]
+        minimum_step = meta["minimum_step"]
 
         # FD forms are written as a collection of changes to inputs (deltas) and the associated
         # coefficients (coeffs). Since we do not need to (re)evaluate the current step, its
@@ -171,7 +179,7 @@ class FiniteDifference(ApproximationScheme):
         # current_coeff = 0.
         fd_form = _generate_fd_coeff(form, order, system)
 
-        if step_calc != 'abs':
+        if step_calc != "abs":
             var_local = True
             if system._outputs._contains_abs(wrt):
                 wrt_val = system._outputs._abs_get_val(wrt)
@@ -181,13 +189,13 @@ class FiniteDifference(ApproximationScheme):
                 var_local = False
 
             if var_local:
-                if step_calc == 'rel_legacy':
+                if step_calc == "rel_legacy":
                     step *= np.linalg.norm(wrt_val)
 
                     if step < minimum_step:
                         step = minimum_step
 
-                elif step_calc == 'rel_avg' or step_calc == 'rel':
+                elif step_calc == "rel_avg" or step_calc == "rel":
                     step *= np.sum(np.abs(wrt_val)) / len(wrt_val)
 
                     if step < minimum_step:
@@ -200,7 +208,7 @@ class FiniteDifference(ApproximationScheme):
                     if idx_zero:
                         step[idx_zero] = minimum_step
 
-        if step_calc == 'rel_element':
+        if step_calc == "rel_element":
             step_divide = 1.0 / step
             deltas = np.outer(fd_form.deltas, step)
             coeffs = np.outer(fd_form.coeffs, step_divide)
@@ -326,7 +334,7 @@ class FiniteDifference(ApproximationScheme):
                 results_array *= current_coeff[loc_idx]
 
             else:
-                results_array[:] = 0.
+                results_array[:] = 0.0
 
         elif np.any(current_coeff != 0.0):
             current_vec = system._outputs if total else system._residuals
@@ -334,11 +342,10 @@ class FiniteDifference(ApproximationScheme):
             results_array[:] = current_vec.asarray()
             results_array *= current_coeff
         else:
-            results_array[:] = 0.
+            results_array[:] = 0.0
 
         # Run the Finite Difference
         for delta, coeff in zip(deltas, coeffs):
-
             # Support rel_element stepsizing
             if rel_element:
                 local_delta = delta[loc_idx].item()

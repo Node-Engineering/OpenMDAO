@@ -1,6 +1,7 @@
 """
 Utilities for working with files.
 """
+
 import mimetypes
 import sys
 import os
@@ -33,26 +34,27 @@ def get_module_path(fpath):
         Full module path of the given file.  Returns None if the file is not part of a package.
     """
     fpath = abspath(fpath)
-    if basename(fpath).startswith('__init__.'):
+    if basename(fpath).startswith("__init__."):
         pnames = []
     else:
         pnames = [splitext(basename(fpath))[0]]
     path = dirname(fpath)
 
-    initfile = join(path, '__init__.py')
+    initfile = join(path, "__init__.py")
     if not isfile(initfile):
         return None
 
     while isfile(initfile):
         path, pname = split(path)
         pnames.append(pname)
-        initfile = join(path, '__init__.py')
+        initfile = join(path, "__init__.py")
 
-    return '.'.join(pnames[::-1])
+    return ".".join(pnames[::-1])
 
 
-def package_iter(start_dir='.', dir_includes=None, dir_excludes=(), file_includes=None,
-                 file_excludes=()):
+def package_iter(
+    start_dir=".", dir_includes=None, dir_excludes=(), file_includes=None, file_excludes=()
+):
     """
     Iterate over python files in packages (recursively) starting in start_dir.
 
@@ -79,20 +81,31 @@ def package_iter(start_dir='.', dir_includes=None, dir_excludes=(), file_include
         Filenames (full path from start_dir).
     """
     file_includes = set() if file_includes is None else set(file_includes)
-    file_includes.add('*.py')
+    file_includes.add("*.py")
     file_excludes = set() if file_excludes is None else set(file_excludes)
-    file_excludes.update(('_*', 'test_*', 'api.py', 'parallel_api.py'))
+    file_excludes.update(("_*", "test_*", "api.py", "parallel_api.py"))
     dir_excludes = set() if dir_excludes is None else set(dir_excludes)
-    dir_excludes.update(('test', 'tests'))
+    dir_excludes.update(("test", "tests"))
 
-    for f in files_iter(start_dir, dir_includes=dir_includes, dir_excludes=dir_excludes,
-                        file_includes=file_includes, file_excludes=file_excludes,
-                        package_only=True):
+    for f in files_iter(
+        start_dir,
+        dir_includes=dir_includes,
+        dir_excludes=dir_excludes,
+        file_includes=file_includes,
+        file_excludes=file_excludes,
+        package_only=True,
+    ):
         yield f
 
 
-def files_iter(start_dir='.', dir_includes=None, dir_excludes=(),
-               file_includes=None, file_excludes=(), package_only=False):
+def files_iter(
+    start_dir=".",
+    dir_includes=None,
+    dir_excludes=(),
+    file_includes=None,
+    file_excludes=(),
+    package_only=False,
+):
     """
     Iterate over files (recursively) starting in start_dir.
 
@@ -121,7 +134,7 @@ def files_iter(start_dir='.', dir_includes=None, dir_excludes=(),
         Filenames (full path from start_dir).
     """
     for root, dirs, files in os.walk(start_dir):
-        if package_only and '__init__.py' not in files:
+        if package_only and "__init__.py" not in files:
             dirs[:] = []
             continue
         for pat in dir_excludes:
@@ -158,9 +171,9 @@ def _to_filename(spec):
     str
         The filename.
     """
-    if ':' in spec and not isfile(spec):
-        fname, _ = spec.rsplit(':', 1)
-        if not fname.endswith('.py'):
+    if ":" in spec and not isfile(spec):
+        fname, _ = spec.rsplit(":", 1)
+        if not fname.endswith(".py"):
             try:
                 mod = importlib.import_module(fname)
                 return mod.__file__
@@ -187,21 +200,21 @@ def _load_and_exec(script_name, user_args):
     dict
         The globals dictionary of the executed script.
     """
-    if ':' in script_name and not isfile(script_name):
+    if ":" in script_name and not isfile(script_name):
         return _load_and_run_test(script_name)
 
     sys.path.insert(0, dirname(script_name))
 
     sys.argv[:] = [script_name] + user_args
 
-    with open(script_name, 'rb') as fp:
-        code = compile(fp.read(), script_name, 'exec')
+    with open(script_name, "rb") as fp:
+        code = compile(fp.read(), script_name, "exec")
 
     globals_dict = {
-        '__file__': script_name,
-        '__name__': '__main__',
-        '__package__': None,
-        '__cached__': None,
+        "__file__": script_name,
+        "__name__": "__main__",
+        "__package__": None,
+        "__cached__": None,
     }
 
     with set_env_vars_context(OPENMDAO_SCRIPT_NAME=script_name):
@@ -224,17 +237,46 @@ def fname2mod_name(fname):
     str
         A valid module name corresponding to the given filename.
     """
-    to_replace = ['-', ' ', '.', '(', ')', '[', ']', '{', '}', '=', '+'
-                  '!', '@', '#', '$', '%', '^', '&', '*', '~', '`',
-                  ';', ':', '"', "'", '<', '>', '?', '/', '\\', '|']
+    to_replace = [
+        "-",
+        " ",
+        ".",
+        "(",
+        ")",
+        "[",
+        "]",
+        "{",
+        "}",
+        "=",
+        "+!",
+        "@",
+        "#",
+        "$",
+        "%",
+        "^",
+        "&",
+        "*",
+        "~",
+        "`",
+        ";",
+        ":",
+        '"',
+        "'",
+        "<",
+        ">",
+        "?",
+        "/",
+        "\\",
+        "|",
+    ]
 
-    if not fname.endswith('.py'):
+    if not fname.endswith(".py"):
         raise ValueError(f"'{fname}' does not end with '.py'")
 
-    s = basename(fname).rsplit('.', 1)[0]
+    s = basename(fname).rsplit(".", 1)[0]
 
     for c in to_replace:
-        s = s.replace(c, '_')
+        s = s.replace(c, "_")
     return s
 
 
@@ -249,10 +291,10 @@ def _load_and_run_test(testspec):
     """
     syspath_save = sys.path[:]
 
-    modpath, funcpath = testspec.rsplit(':', 1)
+    modpath, funcpath = testspec.rsplit(":", 1)
     orig_modpath = modpath
 
-    if modpath.endswith('.py'):
+    if modpath.endswith(".py"):
         modpath = get_module_path(modpath)
         if modpath is None:
             # create a module dynamically
@@ -263,8 +305,8 @@ def _load_and_run_test(testspec):
             mod.__name__ = modpath
             mod.__package__ = None
             mod.__cached__ = None
-            with open(orig_modpath, 'rb') as fp:
-                code = compile(fp.read(), orig_modpath, 'exec')
+            with open(orig_modpath, "rb") as fp:
+                code = compile(fp.read(), orig_modpath, "exec")
             exec(code, mod.__dict__)  # nosec: private, internal use only
         else:
             mod = importlib.import_module(modpath)
@@ -293,15 +335,15 @@ def _run_test_func(mod, funcpath):
     object
         In the case of a module level function call, returns whatever the function returns.
     """
-    parts = funcpath.split('.', 1)
+    parts = funcpath.split(".", 1)
     if len(parts) == 2:
         tcase_name, method_name = parts
         testcase = getattr(mod, tcase_name)(methodName=method_name)
-        setup = getattr(testcase, 'setUp', None)
+        setup = getattr(testcase, "setUp", None)
         if setup is not None:
             setup()
         getattr(testcase, method_name)()
-        teardown = getattr(testcase, 'tearDown', None)
+        teardown = getattr(testcase, "tearDown", None)
         if teardown:
             teardown()
     else:
@@ -313,11 +355,13 @@ if sys.version_info >= (3, 8):
     from importlib.metadata import entry_points
 
     if sys.version_info >= (3, 10):
+
         def _eps_get(group):
             eps = entry_points().select(group=group)
             for name in eps.names:
                 yield eps[name]
     else:
+
         def _eps_get(group):
             eps = entry_points()
             if group in eps:
@@ -336,17 +380,21 @@ else:
     try:
         import pkg_resources
     except ImportError:
+
         def _iter_entry_points(group):
-            issue_warning("Can't retrieve entry points because pkg_resources is not installed. "
-                          "Either install it using 'pip install setuptools' or upgrade to python "
-                          "3.8 or newer.")
+            issue_warning(
+                "Can't retrieve entry points because pkg_resources is not installed. "
+                "Either install it using 'pip install setuptools' or upgrade to python "
+                "3.8 or newer."
+            )
             return ()
     else:
+
         def _iter_entry_points(group):
             yield from pkg_resources.iter_entry_points(group)
 
 
-def text2html(text, title='', style=None):
+def text2html(text, title="", style=None):
     """
     Wrap the given text for display as an html file.
 
@@ -374,7 +422,8 @@ def text2html(text, title='', style=None):
             white-space: pre;
             margin: 1em 0;
         """
-    return """
+    return (
+        """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -386,21 +435,28 @@ def text2html(text, title='', style=None):
             width: 90%;
         }
         h2 {text-align: center;}
-        pre {""" + style + """
+        pre {"""
+        + style
+        + """
         }
     </style>
 </head>
 <body>
-<h2>""" + title + """</h2>
+<h2>"""
+        + title
+        + """</h2>
 <pre>
-""" + text + """
+"""
+        + text
+        + """
 </pre>
 </body>
 </html>
 """
+    )
 
 
-def image2html(imagefile, title='', alt=''):
+def image2html(imagefile, title="", alt=""):
     """
     Wrap the given image for display as an html file.
 
@@ -420,7 +476,8 @@ def image2html(imagefile, title='', alt=''):
     str
         Content string to create an html file.
     """
-    return """
+    return (
+        """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -435,18 +492,22 @@ def image2html(imagefile, title='', alt=''):
     </style>
 </head>
 <body>
-<h2>""" + title + "</h2>" + f"""
+<h2>"""
+        + title
+        + "</h2>"
+        + f"""
 <img src="{imagefile}" alt="{alt}" class="center"></img>
 
 </body>
 </html>
 """
+    )
 
 
-if env_truthy('TESTFLO_RUNNING'):
+if env_truthy("TESTFLO_RUNNING"):
     TESTFLO_WORKDIR = get_tempdir()
 else:
-    TESTFLO_WORKDIR = ''
+    TESTFLO_WORKDIR = ""
 
 
 def _get_work_dir():
@@ -458,13 +519,13 @@ def _get_work_dir():
     str
         The working directory.
     """
-    workdir = os.environ.get('OPENMDAO_WORKDIR', '')
-    if not workdir and env_truthy('TESTFLO_RUNNING'):
+    workdir = os.environ.get("OPENMDAO_WORKDIR", "")
+    if not workdir and env_truthy("TESTFLO_RUNNING"):
         # use testflo's temp dir for all of the test related files to avoid polluting the user's
         # current directory
         workdir = TESTFLO_WORKDIR
         if workdir:
-            os.environ['OPENMDAO_WORKDIR'] = workdir
+            os.environ["OPENMDAO_WORKDIR"] = workdir
 
     return workdir if workdir else os.getcwd()
 
@@ -502,18 +563,19 @@ def _get_outputs_dir(obj, *subdirs, mkdir=False):
     elif isinstance(obj, Solver):
         system = obj._system
         if system is None:
-            raise RuntimeError('The output directory for Solvers cannot be accessed '
-                               'before final_setup.')
+            raise RuntimeError(
+                "The output directory for Solvers cannot be accessed before final_setup."
+            )
         prob_meta = system()._problem_meta
     else:
-        raise RuntimeError(f'Cannot get problem metadata for object: {obj}')
+        raise RuntimeError(f"Cannot get problem metadata for object: {obj}")
 
-    if prob_meta is None or prob_meta.get('pathname', None) is None:
-        raise RuntimeError('The output directory cannot be accessed before setup.')
+    if prob_meta is None or prob_meta.get("pathname", None) is None:
+        raise RuntimeError("The output directory cannot be accessed before setup.")
 
-    prob_pathname = prob_meta['pathname']
+    prob_pathname = prob_meta["pathname"]
 
-    work_dir = prob_meta['work_dir']
+    work_dir = prob_meta["work_dir"]
     if mkdir and not work_dir.exists():
         work_dir.mkdir(exist_ok=True)
 
@@ -529,16 +591,16 @@ def _get_outputs_dir(obj, *subdirs, mkdir=False):
     # and handling race conditions by using exist_ok=True works better than trying to limit creation
     # to rank==0 and performing some sort of barrier operation to ensure that the file is created
     # before returning in all ranks.
-    for p in prob_pathname.split('/'):
-        outs_dir = outs_dir / f'{p}_out'
+    for p in prob_pathname.split("/"):
+        outs_dir = outs_dir / f"{p}_out"
         if mkdir and not outs_dir.exists():
             outs_dir.mkdir(exist_ok=True)
 
             # Touch the .openmdao_out file for the output directory to ease identification.
-            outs_file = outs_dir / '.openmdao_out'
+            outs_file = outs_dir / ".openmdao_out"
             if not outs_file.exists():
                 try:
-                    open(outs_file, 'w').close()
+                    open(outs_file, "w").close()
                 except OSError:
                     pass
 
@@ -568,10 +630,10 @@ def _is_openmdao_output_dir(directory):
         True if the directory is an OpenMDAO output directory, False otherwise.
     """
     directory = pathlib.Path(directory)
-    return directory.is_dir() and (directory / '.openmdao_out').exists()
+    return directory.is_dir() and (directory / ".openmdao_out").exists()
 
 
-def _find_openmdao_output_dirs(paths, pattern='*_out', recurse=False):
+def _find_openmdao_output_dirs(paths, pattern="*_out", recurse=False):
     """
     Find all OpenMDAO output directories in the given path.
 
@@ -616,7 +678,7 @@ def _find_openmdao_output_dirs(paths, pattern='*_out', recurse=False):
     return openmdao_dirs
 
 
-def clean_outputs(obj='.', recurse=False, prompt=True, pattern='*_out', dryrun=False):
+def clean_outputs(obj=".", recurse=False, prompt=True, pattern="*_out", dryrun=False):
     """
     Remove output directories created by OpenMDAO.
 
@@ -647,34 +709,34 @@ def clean_outputs(obj='.', recurse=False, prompt=True, pattern='*_out', dryrun=F
     elif isinstance(obj, (Iterable,)):
         # Multiple paths given
         output_dirs.extend(_find_openmdao_output_dirs(obj, pattern, recurse))
-    elif hasattr(obj, 'get_outputs_dir'):
+    elif hasattr(obj, "get_outputs_dir"):
         output_dir = obj.get_outputs_dir()
         prompt = False
         if output_dir and _is_openmdao_output_dir(output_dir):
             output_dirs.append(pathlib.Path(output_dir))
 
     if not output_dirs:
-        print('No OpenMDAO output directories found.')
+        print("No OpenMDAO output directories found.")
         return
     else:
-        print(f'Found {len(output_dirs)} OpenMDAO output directories:')
+        print(f"Found {len(output_dirs)} OpenMDAO output directories:")
 
     removed_count = 0
     for dir_path in sorted(output_dirs):
         if dryrun:
-            print(f'Would remove {dir_path} (dryrun = True).')
+            print(f"Would remove {dir_path} (dryrun = True).")
         elif prompt:
             response = input(f"Remove {dir_path}? [y/N] ").strip().lower()
-            if response == 'y':
+            if response == "y":
                 shutil.rmtree(dir_path)
-                print(f'Removed {dir_path}')
+                print(f"Removed {dir_path}")
                 removed_count += 1
         else:
             shutil.rmtree(dir_path)
-            print(f'Removed {dir_path}')
+            print(f"Removed {dir_path}")
             removed_count += 1
 
-    print(f'Removed {removed_count} OpenMDAO output directories.')
+    print(f"Removed {removed_count} OpenMDAO output directories.")
 
 
 def is_python_file(file_path):

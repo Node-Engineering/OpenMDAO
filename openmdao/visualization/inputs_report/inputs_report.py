@@ -1,6 +1,7 @@
 """
 A Viewer for OpenMDAO inputs.
 """
+
 import functools
 
 import numpy as np
@@ -14,10 +15,10 @@ from openmdao.visualization.tables.table_builder import generate_table
 
 def _unit_str(meta):
     try:
-        u = meta['units']
+        u = meta["units"]
     except KeyError:
-        return ''
-    return '' if u is None else u
+        return ""
+    return "" if u is None else u
 
 
 def _get_val_cells(val):
@@ -37,8 +38,7 @@ def _arr_fmt(formatter, string):
     return formatter.format(string)
 
 
-def inputs_report(prob, outfile=None, display=True, precision=6, title=None,
-                  tablefmt='tabulator'):
+def inputs_report(prob, outfile=None, display=True, precision=6, title=None, tablefmt="tabulator"):
     """
     Generate a self-contained html file containing a detailed inputs report.
 
@@ -64,8 +64,9 @@ def inputs_report(prob, outfile=None, display=True, precision=6, title=None,
     if isinstance(prob, Problem):
         model = prob.model
     else:
-        raise RuntimeError("Input report requires a Problem instance, but got a "
-                           f"'{type(prob).__name__}'.")
+        raise RuntimeError(
+            f"Input report requires a Problem instance, but got a '{type(prob).__name__}'."
+        )
 
     connections = model._conn_global_abs_in2out
 
@@ -73,90 +74,136 @@ def inputs_report(prob, outfile=None, display=True, precision=6, title=None,
         return
 
     if model._outputs is None:
-        raise RuntimeError("Can't generate inputs report. Input values are unknown because "
-                           "final_setup has not been called.")
+        raise RuntimeError(
+            "Can't generate inputs report. Input values are unknown because "
+            "final_setup has not been called."
+        )
 
     # get absolute src names of design vars
     desvars = model.get_design_vars(recurse=True, get_sizes=False, use_prom_ivc=False)
 
-    headers = ['Absolute Name', 'Input Name', 'Source Name', 'Source is IVC', 'Source is DV',
-               'Units', 'Shape', 'Tags', 'Val', 'Min Val', 'Max Val', 'Absolute Source', ]
-    column_meta = [{'header': h} for h in headers]
-    column_meta[9]['format'] = '{:.6g}'
-    column_meta[10]['format'] = '{:.6g}'
-    column_meta[1]['tooltip'] = 'c0'
-    column_meta[2]['tooltip'] = 'c11'
-    column_meta[0]['visible'] = False  # abs input is only used for a tooltip, so hide it
-    column_meta[11]['visible'] = False  # abs src is only used for a tooltip, so hide it
+    headers = [
+        "Absolute Name",
+        "Input Name",
+        "Source Name",
+        "Source is IVC",
+        "Source is DV",
+        "Units",
+        "Shape",
+        "Tags",
+        "Val",
+        "Min Val",
+        "Max Val",
+        "Absolute Source",
+    ]
+    column_meta = [{"header": h} for h in headers]
+    column_meta[9]["format"] = "{:.6g}"
+    column_meta[10]["format"] = "{:.6g}"
+    column_meta[1]["tooltip"] = "c0"
+    column_meta[2]["tooltip"] = "c11"
+    column_meta[0]["visible"] = False  # abs input is only used for a tooltip, so hide it
+    column_meta[11]["visible"] = False  # abs src is only used for a tooltip, so hide it
 
     rows = []
-    with printoptions(formatter={'float': functools.partial(_arr_fmt, '{:.6g}')},
-                      suppress=True, threshold=10000):
-        for target, meta in model._var_allprocs_abs2meta['input'].items():
-            prom = model._resolver.abs2prom(target, 'input')
+    with printoptions(
+        formatter={"float": functools.partial(_arr_fmt, "{:.6g}")}, suppress=True, threshold=10000
+    ):
+        for target, meta in model._var_allprocs_abs2meta["input"].items():
+            prom = model._resolver.abs2prom(target, "input")
             src = connections[target]
-            if src.startswith('_auto_ivc.'):
+            if src.startswith("_auto_ivc."):
                 sprom = src
             else:
-                sprom = model._resolver.abs2prom(src, 'output')
-            val = model.get_val(target, get_remote=True, from_src=not src.startswith('_auto_ivc.'))
-            smeta = model._var_allprocs_abs2meta['output'][src]
-            src_is_ivc = 'openmdao:indep_var' in smeta['tags']
+                sprom = model._resolver.abs2prom(src, "output")
+            val = model.get_val(target, get_remote=True, from_src=not src.startswith("_auto_ivc."))
+            smeta = model._var_allprocs_abs2meta["output"][src]
+            src_is_ivc = "openmdao:indep_var" in smeta["tags"]
 
             vcell, mincell, maxcell = _get_val_cells(val)
 
-            rows.append([target, prom, sprom, src_is_ivc, src in desvars, _unit_str(meta),
-                         meta['global_shape'], sorted(meta['tags']), vcell, mincell, maxcell, src])
+            rows.append(
+                [
+                    target,
+                    prom,
+                    sprom,
+                    src_is_ivc,
+                    src in desvars,
+                    _unit_str(meta),
+                    meta["global_shape"],
+                    sorted(meta["tags"]),
+                    vcell,
+                    mincell,
+                    maxcell,
+                    src,
+                ]
+            )
 
-    for target, meta in model._var_discrete['input'].items():
-        prom = model._resolver.abs2prom(target, 'input')
+    for target, meta in model._var_discrete["input"].items():
+        prom = model._resolver.abs2prom(target, "input")
         src = connections[target]
-        val = model.get_val(target, get_remote=True, from_src=not src.startswith('_auto_ivc.'))
-        smeta = model._var_discrete['output'][src]
-        src_is_ivc = 'openmdao:indep_var' in smeta['tags']
+        val = model.get_val(target, get_remote=True, from_src=not src.startswith("_auto_ivc."))
+        smeta = model._var_discrete["output"][src]
+        src_is_ivc = "openmdao:indep_var" in smeta["tags"]
 
-        rows.append([target, prom, src, src_is_ivc, src in desvars, '', None, sorted(meta['tags']),
-                     val, None, None, src])
+        rows.append(
+            [
+                target,
+                prom,
+                src,
+                src_is_ivc,
+                src in desvars,
+                "",
+                None,
+                sorted(meta["tags"]),
+                val,
+                None,
+                None,
+                src,
+            ]
+        )
 
     if not rows:
         column_meta = []
 
-    kwargs = {'rows': rows, 'tablefmt': tablefmt, 'column_meta': column_meta}
-    if title is not None and tablefmt in ('html', 'tabulator'):
-        kwargs['title'] = title
-        kwargs['center'] = True
+    kwargs = {"rows": rows, "tablefmt": tablefmt, "column_meta": column_meta}
+    if title is not None and tablefmt in ("html", "tabulator"):
+        kwargs["title"] = title
+        kwargs["center"] = True
 
     table = generate_table(**kwargs)
-    if tablefmt == 'tabulator':
-        table._table_meta['initialHeaderFilter'] = [
+    if tablefmt == "tabulator":
+        table._table_meta["initialHeaderFilter"] = [
             # set the filter defaults for Source is IVC and Source is DV so that the user will
             # initially see only those inputs that they are responsible for setting.
-
             # set initial filter for 'Source is IVC' to True
-            {'field': 'c3', 'value': True},
+            {"field": "c3", "value": True},
             # set initial filter for 'Source is DV' to False
-            {'field': 'c4', 'value': False},
+            {"field": "c4", "value": False},
         ]
 
     if MPI and MPI.COMM_WORLD.rank != 0:
         return
 
     if display:
-        if tablefmt in ('html', 'tabulator') and outfile is None:
-            outfile = 'inputs.html'
+        if tablefmt in ("html", "tabulator") and outfile is None:
+            outfile = "inputs.html"
         table.display(outfile)
     elif outfile is not None:
         table.write(outfile)
 
 
 # inputs report definition
-def _run_inputs_report(prob, report_filename='inputs.html'):
+def _run_inputs_report(prob, report_filename="inputs.html"):
 
     path = prob.get_reports_dir() / report_filename
-    inputs_report(prob, display=False, outfile=path,
-                  title=f'Inputs Report for {prob._name}', tablefmt='tabulator')
+    inputs_report(
+        prob,
+        display=False,
+        outfile=path,
+        title=f"Inputs Report for {prob._name}",
+        tablefmt="tabulator",
+    )
 
 
 def _inputs_report_register():
-    register_report('inputs', _run_inputs_report, 'Inputs report',
-                    'Problem', 'final_setup', 'post')
+    register_report("inputs", _run_inputs_report, "Inputs report", "Problem", "final_setup", "post")

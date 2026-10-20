@@ -12,14 +12,14 @@ or diagnosing why an optimization is not converging.
 import openmdao.api as om
 
 prob = om.Problem()
-prob.model.add_subsystem('comp', MyComponent())
+prob.model.add_subsystem("comp", MyComponent())
 
 prob.driver = om.ScipyOptimizeDriver()
-prob.driver.options['optimizer'] = 'SLSQP'
+prob.driver.options["optimizer"] = "SLSQP"
 
-prob.model.add_design_var('comp.x', lower=-10, upper=10)
-prob.model.add_objective('comp.f')
-prob.model.add_constraint('comp.g', upper=0.0)
+prob.model.add_design_var("comp.x", lower=-10, upper=10)
+prob.model.add_objective("comp.f")
+prob.model.add_constraint("comp.g", upper=0.0)
 
 prob.setup()
 prob.run_driver()

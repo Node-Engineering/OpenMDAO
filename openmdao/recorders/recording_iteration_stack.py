@@ -1,7 +1,8 @@
 """Management of iteration stack for recording."""
+
 import weakref
 
-_norec_funcs = frozenset(['_run_apply', '_compute_totals'])
+_norec_funcs = frozenset(["_run_apply", "_compute_totals"])
 
 
 class _RecIteration(object):
@@ -43,8 +44,8 @@ class _RecIteration(object):
         """
         print()
         for name, iter_count in reversed(self.stack):
-            print('^^^', name, iter_count)
-        print(60 * '^')
+            print("^^^", name, iter_count)
+        print(60 * "^")
 
     def get_formatted_iteration_coordinate(self):
         """
@@ -57,20 +58,20 @@ class _RecIteration(object):
         str :
             the iteration coordinate formatted in our proprietary way.
         """
-        separator = '|'
+        separator = "|"
 
         # prefix
         if self.prefix:
-            prefix = '%s_' % self.prefix
+            prefix = "%s_" % self.prefix
         else:
-            prefix = ''
+            prefix = ""
 
-        prefix += f'rank{self.rank}:'
+        prefix += f"rank{self.rank}:"
 
         # iteration hierarchy
         coord_list = []
         for name, iter_count in self.stack:
-            coord_list.append('{}{}{}'.format(name, separator, iter_count))
+            coord_list.append("{}{}{}".format(name, separator, iter_count))
 
         return prefix + separator.join(coord_list)
 
@@ -145,6 +146,7 @@ class Recording(object):
         self.rel = 0
 
         from openmdao.solvers.solver import Solver
+
         self._is_solver = isinstance(recording_requester, Solver)
 
     def __enter__(self):

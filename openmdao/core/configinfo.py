@@ -26,9 +26,9 @@ def _descendents(system, sysiter):
     int
         Number of system names in each pathname.
     """
-    mylen = system.pathname.count('.') + 1 if system.pathname else 0
+    mylen = system.pathname.count(".") + 1 if system.pathname else 0
     for path in sysiter:
-        plen = path.count('.') + 1 if path else 0
+        plen = path.count(".") + 1 if path else 0
         if plen > mylen:
             yield (path, plen)
 
@@ -47,11 +47,12 @@ class _ConfigInfo(object):
         if group.comm.size > 1 and group._contains_parallel_group:
             mod_pars = set()
             if self._modified_systems:
-                prefix = group.pathname + '.' if group.pathname else ''
-                our_pars = [p for p in group._problem_meta['parallel_groups']
-                            if p.startswith(prefix)]
+                prefix = group.pathname + "." if group.pathname else ""
+                our_pars = [
+                    p for p in group._problem_meta["parallel_groups"] if p.startswith(prefix)
+                ]
                 for par in our_pars:
-                    pre = par + '.'
+                    pre = par + "."
                     for spath in self._modified_systems:
                         if spath.startswith(pre):
                             mod_pars.add(par)
@@ -91,8 +92,9 @@ class _ConfigInfo(object):
         len_prefix = len(group.pathname) + 1 if group.pathname else 0
 
         # sort into longest first order so the systems will get updated bottom up
-        for path, _ in sorted(_descendents(group, self._modified_systems),
-                              key=lambda t: (t[1], t[0]), reverse=True):
+        for path, _ in sorted(
+            _descendents(group, self._modified_systems), key=lambda t: (t[1], t[0]), reverse=True
+        ):
             s = group._get_subsystem(path[len_prefix:])
             if s is group:
                 continue  # don't update this group because that will happen later

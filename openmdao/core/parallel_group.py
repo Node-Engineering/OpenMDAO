@@ -35,7 +35,7 @@ class ParallelGroup(Group):
         tree = super()._get_sys_promotion_tree(tree)
 
         if self.comm.size > 1:
-            prefix = self.pathname + '.' if self.pathname else ''
+            prefix = self.pathname + "." if self.pathname else ""
             subtree = {n: data for n, data in tree.items() if n.startswith(prefix)}
             for sub in self.comm.allgather(subtree):  # TODO: make this more efficient
                 for n, data in sub.items():
@@ -86,9 +86,11 @@ class ParallelGroup(Group):
         dict
             Lists of out-of-order connections keyed by group pathname.
         """
-        if self.options['auto_order']:
-            issue_warning("auto_order is not supported in ParallelGroup. "
-                          "Ignoring auto_order option.", prefix=self.msginfo)
+        if self.options["auto_order"]:
+            issue_warning(
+                "auto_order is not supported in ParallelGroup. Ignoring auto_order option.",
+                prefix=self.msginfo,
+            )
 
         if out_of_order is None:
             out_of_order = {}
@@ -214,8 +216,9 @@ class ParallelGroup(Group):
 
         return self._is_explicit
 
-    def _sys_tree_visitor(self, func, predicate=None, recurse=True, include_self=True,
-                          *args, **kwargs):
+    def _sys_tree_visitor(
+        self, func, predicate=None, recurse=True, include_self=True, *args, **kwargs
+    ):
         """
         Apply a function to all subsystems that satisfy a predicate.
 
@@ -245,8 +248,11 @@ class ParallelGroup(Group):
             The result of the function called on each system.
         """
         if self.comm.size > 1:
-            lst = list(super()._sys_tree_visitor(func, predicate, recurse=recurse,
-                                                 include_self=include_self, *args, **kwargs))
+            lst = list(
+                super()._sys_tree_visitor(
+                    func, predicate, recurse=recurse, include_self=include_self, *args, **kwargs
+                )
+            )
             if self._gather_full_data():
                 gathered = self.comm.allgather(lst)
             else:
@@ -256,5 +262,6 @@ class ParallelGroup(Group):
                 for obj in ranklist:
                     yield obj
         else:
-            yield from super()._sys_tree_visitor(func, predicate, recurse=recurse,
-                                                 include_self=include_self, *args, **kwargs)
+            yield from super()._sys_tree_visitor(
+                func, predicate, recurse=recurse, include_self=include_self, *args, **kwargs
+            )

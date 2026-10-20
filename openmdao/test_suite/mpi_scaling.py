@@ -1,4 +1,3 @@
-
 import time
 from itertools import repeat
 import numpy as np
@@ -6,7 +5,8 @@ import openmdao.api as om
 from openmdao.utils.general_utils import shape2tuple, env_truthy
 
 
-debug = env_truthy('OM_DEBUG')
+debug = env_truthy("OM_DEBUG")
+
 
 class ExplicitSleepComp(om.ExplicitComponent):
     """
@@ -18,8 +18,17 @@ class ExplicitSleepComp(om.ExplicitComponent):
     If run under MPI, the sleep times will be divided by the number of procs in the comm in
     order to simulate a component that splits up its work across its procs.
     """
-    def __init__(self, nvars, compute_delay=0.001, compute_partials_delay=0.001,
-                 var_default=1.0, add_var_kwargs=None, use_coloring=True, **kwargs):
+
+    def __init__(
+        self,
+        nvars,
+        compute_delay=0.001,
+        compute_partials_delay=0.001,
+        var_default=1.0,
+        add_var_kwargs=None,
+        use_coloring=True,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         self.nvars = nvars
@@ -32,10 +41,10 @@ class ExplicitSleepComp(om.ExplicitComponent):
         self.varshape = ()  # default to scalar variables
 
         if add_var_kwargs is not None:
-            if 'shape' in add_var_kwargs:
-                self.varshape = shape2tuple(add_var_kwargs['shape'])
-            if 'val' in add_var_kwargs:
-                v = add_var_kwargs['val']
+            if "shape" in add_var_kwargs:
+                self.varshape = shape2tuple(add_var_kwargs["shape"])
+            if "val" in add_var_kwargs:
+                v = add_var_kwargs["val"]
                 if isinstance(v, float):
                     self.varshape = ()
                 elif isinstance(v, np.ndarray):
@@ -48,23 +57,26 @@ class ExplicitSleepComp(om.ExplicitComponent):
         self.onames = []
         add_var_kwargs = self.add_var_kwargs if self.add_var_kwargs else {}
         for i in range(self.nvars):
-            self.inames.append(f'i{i}')
-            self.onames.append(f'o{i}')
+            self.inames.append(f"i{i}")
+            self.onames.append(f"o{i}")
             self.add_input(self.inames[-1], **add_var_kwargs)
             self.add_output(self.onames[-1], **add_var_kwargs)
-            self.declare_partials('*', '*', method='cs')
+            self.declare_partials("*", "*", method="cs")
 
         if self.use_coloring:
-            self.declare_coloring(wrt='*', method='cs', perturb_size=1e-5,
-                                  num_full_jacs=2, tol=1e-20)
+            self.declare_coloring(
+                wrt="*", method="cs", perturb_size=1e-5, num_full_jacs=2, tol=1e-20
+            )
 
     def compute(self, inputs, outputs):
-        if debug: print(f"running {self.pathname}")
+        if debug:
+            print(f"running {self.pathname}")
         self.sleep(self.compute_delay)
         outputs.set_val(inputs.asarray())
 
     def compute_partials(self, inputs, partials):
-        if debug: print(f"compute partials for {self.pathname}")
+        if debug:
+            print(f"compute partials for {self.pathname}")
         self.sleep(self.compute_partials_delay)
         val = np.eye(np.prod(self.varshape, dtype=int))
         for iname, oname in zip(self.inames, self.onames):
@@ -112,8 +124,9 @@ def expand_kwargs(**kwargs):
         for idx in range(nitems):
             yield {k: v[idx] for k, v in lstkwargs.items()}
     except IndexError:
-        raise IndexError("expand_kwargs() requires that all kwargs entries have the same number of "
-                         "items.")
+        raise IndexError(
+            "expand_kwargs() requires that all kwargs entries have the same number of items."
+        )
 
 
 def dup_inst(n, klass, *kwargs):
@@ -128,11 +141,11 @@ def inst_iter(class_iter, kwargs_iter):
         yield klass(**kwargs)
 
 
-def sys_var_path_iter(ncomps, nvars, path=''):
+def sys_var_path_iter(ncomps, nvars, path=""):
     # yield system_path, input_path, output_path for each input/output pair using
     # the default naming scheme (Component is 'C?', inputs are 'i?' and outputs are 'o?').
     if path:
-        path = path + '.'
+        path = path + "."
     for c in range(ncomps):
         for v in range(nvars):
             cpath = f"{path}C{c}"
@@ -163,15 +176,18 @@ def group_from_iter(par, sysiter, proc_groups=None, max_procs=None, nliters=1, l
 
 
 def make_group(ncomps, nvars, delays, proc_groups, max_procs, nliters=2, liniters=1):
-    compiter = inst_iter(repeat(ExplicitSleepComp, ncomps),
-                         expand_kwargs(nvars=repeat(nvars, ncomps),
-                                       use_coloring=repeat(True, ncomps),
-                                       compute_delay=delays))
-    return group_from_iter(True, compiter, proc_groups=proc_groups, max_procs=max_procs,
-                           nliters=2, liniters=1)
+    compiter = inst_iter(
+        repeat(ExplicitSleepComp, ncomps),
+        expand_kwargs(
+            nvars=repeat(nvars, ncomps), use_coloring=repeat(True, ncomps), compute_delay=delays
+        ),
+    )
+    return group_from_iter(
+        True, compiter, proc_groups=proc_groups, max_procs=max_procs, nliters=2, liniters=1
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
     from time import perf_counter
 
@@ -181,21 +197,22 @@ if __name__ == '__main__':
     ncomps = 10
     nruns = 1
 
-    if 'eq' in sys.argv:
-        delays=[.136]*ncomps
-        proc_groups=[None]*ncomps
-        max_procs=[None]*ncomps
+    if "eq" in sys.argv:
+        delays = [0.136] * ncomps
+        proc_groups = [None] * ncomps
+        max_procs = [None] * ncomps
         print("Running equal runtime components under parallel group")
     else:
-        delays=[.01]*6 + [.1,.1,.1, 1.]
-        proc_groups=['a']*9 + ['b']
-        max_procs=[1]*9 + [None]
+        delays = [0.01] * 6 + [0.1, 0.1, 0.1, 1.0]
+        proc_groups = ["a"] * 9 + ["b"]
+        max_procs = [1] * 9 + [None]
         print("Running mixed runtime components under parallel group")
 
     p = om.Problem()
-    p.model.add_subsystem('par', make_group(ncomps, nvars,
-                                            delays=delays, proc_groups=proc_groups,
-                                            max_procs=max_procs))
+    p.model.add_subsystem(
+        "par",
+        make_group(ncomps, nvars, delays=delays, proc_groups=proc_groups, max_procs=max_procs),
+    )
 
     p.setup()
 

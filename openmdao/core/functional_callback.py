@@ -7,9 +7,13 @@ from openmdao.core.total_jac import _TotalJacInfo
 
 
 class _FunctionalCallback:
-
-    def __init__(self, prob, form, input_vars, output_vars,
-                 ):
+    def __init__(
+        self,
+        prob,
+        form,
+        input_vars,
+        output_vars,
+    ):
         """
         Initialize a _FunctionalCallback.
 
@@ -36,22 +40,36 @@ class _FunctionalCallback:
             raise ValueError(msg)
         self._form = form
 
-        (self._total_jac_info, self._input_len, self._input_metadata, self._output_len,
-         self._output_metadata) = self._process_vars(input_vars, output_vars,
-                                                     # driver_scaling,
-                                                     )
+        (
+            self._total_jac_info,
+            self._input_len,
+            self._input_metadata,
+            self._output_len,
+            self._output_metadata,
+        ) = self._process_vars(
+            input_vars,
+            output_vars,
+            # driver_scaling,
+        )
 
-    def _process_vars(self, input_vars, output_vars,
-                      # driver_scaling,
-                      ):
+    def _process_vars(
+        self,
+        input_vars,
+        output_vars,
+        # driver_scaling,
+    ):
         # First, decided on what names we'll be working with.
         if self.form == "f":
             # For the "f" form, we won't be working with derivatives and can't rely on
             # `_TotalJacInfo` to decided on inputs and outputs based on design variables and
             # responses.
             if (not input_vars) or (not output_vars):
-                raise ValueError((f"{self.msginfo}: input_vars and output_vars arguments must "
-                                  f"be provided when using form='{self.form}'"))
+                raise ValueError(
+                    (
+                        f"{self.msginfo}: input_vars and output_vars arguments must "
+                        f"be provided when using form='{self.form}'"
+                    )
+                )
             # `"f"` form is not doing derivatives, so no need for the `_TotalJacInfo`.
             tji = None
         else:
@@ -72,8 +90,9 @@ class _FunctionalCallback:
                             if u is not None:
                                 input_var_units[k] = u
                     else:
-                        raise ValueError((f"{self.msginfo}: invalid entry {entry} in "
-                                           "input_vars argument"))
+                        raise ValueError(
+                            (f"{self.msginfo}: invalid entry {entry} in input_vars argument")
+                        )
             else:
                 input_var_names = None
                 input_var_indices = None
@@ -96,8 +115,9 @@ class _FunctionalCallback:
                             if u is not None:
                                 output_var_units[k] = u
                     else:
-                        raise ValueError((f"{self.msginfo}: invalid entry {entry} in "
-                                           "output_vars argument"))
+                        raise ValueError(
+                            (f"{self.msginfo}: invalid entry {entry} in output_vars argument")
+                        )
             else:
                 output_var_names = None
                 output_var_indices = None
@@ -105,39 +125,57 @@ class _FunctionalCallback:
 
             if not self.problem.driver:
                 if not input_var_names:
-                    raise ValueError((f"{self.msginfo}: inputs must be "
-                        "explicitly specified for a Problem without a driver"))
+                    raise ValueError(
+                        (
+                            f"{self.msginfo}: inputs must be "
+                            "explicitly specified for a Problem without a driver"
+                        )
+                    )
                 if not output_var_names:
-                    raise ValueError((f"{self.msginfo}: outputs must be "
-                        "explicitly specified for a Problem without a driver"))
+                    raise ValueError(
+                        (
+                            f"{self.msginfo}: outputs must be "
+                            "explicitly specified for a Problem without a driver"
+                        )
+                    )
 
-            tji = _TotalJacInfo(self.problem, output_var_names, input_var_names,
-                                of_indices=output_var_indices, wrt_indices=input_var_indices,
-                                return_format='flat_dict',
-                                driver_scaling=False,
-                                _functional=True,
-                                always_include_linear=True,
-                                of_units=output_var_units or None,
-                                wrt_units=input_var_units or None,
-                                )
+            tji = _TotalJacInfo(
+                self.problem,
+                output_var_names,
+                input_var_names,
+                of_indices=output_var_indices,
+                wrt_indices=input_var_indices,
+                return_format="flat_dict",
+                driver_scaling=False,
+                _functional=True,
+                always_include_linear=True,
+                of_units=output_var_units or None,
+                wrt_units=input_var_units or None,
+            )
 
             if not input_vars:
                 # User didn't provide any input var data, so create one from what `_TotalJacInfo`
                 # decided.
                 input_vars = [
-                    {vname: {
-                        "indices": vmeta["indices"],
-                        "name": vmeta["name"],
-                    } for vname, vmeta in tji.input_meta["fwd"].items()}
+                    {
+                        vname: {
+                            "indices": vmeta["indices"],
+                            "name": vmeta["name"],
+                        }
+                        for vname, vmeta in tji.input_meta["fwd"].items()
+                    }
                 ]
             if not output_vars:
                 # User didn't provide any output var data, so create one from what `_TotalJacInfo`
                 # decided.
                 output_vars = [
-                    {valias: {
-                        "indices": vmeta["indices"],
-                        "name": vmeta["name"],
-                    } for valias, vmeta in tji.output_meta["fwd"].items()}
+                    {
+                        valias: {
+                            "indices": vmeta["indices"],
+                            "name": vmeta["name"],
+                        }
+                        for valias, vmeta in tji.output_meta["fwd"].items()
+                    }
                 ]
 
         input_metadata, input_len = self._process_var_arguments(input_vars)
@@ -157,8 +195,9 @@ class _FunctionalCallback:
                 # Object is dict-like, so iterate over the mapping from variable names to variable
                 # metadata.
                 for valias, vmeta in entry.items():
-                    vmetas[valias], offset = self._get_var_metadata_with_defaults(valias, vmeta,
-                                                                                  offset)
+                    vmetas[valias], offset = self._get_var_metadata_with_defaults(
+                        valias, vmeta, offset
+                    )
             else:
                 # Assume object is a string of a variable name, with no metadata.
                 valias = entry
@@ -185,8 +224,13 @@ class _FunctionalCallback:
 
         offset_new = offset + val_size
         offsets = (offset, offset_new)
-        return {"name": name, "units": units, "indices": indices,
-                "shape": shape, "offsets": offsets}, offset_new
+        return {
+            "name": name,
+            "units": units,
+            "indices": indices,
+            "shape": shape,
+            "offsets": offsets,
+        }, offset_new
 
     def _vector_to_problem(self, vec, metadata):
         problem = self._problem
@@ -260,15 +304,19 @@ class _FunctionalCallback:
         problem = self.problem
 
         if len(x) != self._input_len:
-            msg = (f"{self.msginfo}: expected x argument with length {self._input_len}, "
-                   f"but found {len(x)}")
+            msg = (
+                f"{self.msginfo}: expected x argument with length {self._input_len}, "
+                f"but found {len(x)}"
+            )
             raise ValueError(msg)
 
         if self.form in ("f", "fdfdx"):
             if y is not None:
                 if len(y) != self._output_len:
-                    msg = (f"{self.msginfo}: expected y argument with length {self._output_len}, "
-                           f"but found {len(y)}")
+                    msg = (
+                        f"{self.msginfo}: expected y argument with length {self._output_len}, "
+                        f"but found {len(y)}"
+                    )
                     raise ValueError(msg)
             else:
                 y = np.zeros(self._output_len, dtype=x.dtype)
@@ -276,8 +324,10 @@ class _FunctionalCallback:
         if self.form in ("dfdx", "fdfdx"):
             if J is not None:
                 if J.shape != (self._output_len, self._input_len):
-                    msg = (f"{self.msginfo}: expected J argument with shape "
-                           f"{(self._output_len, self._input_len)}, but found {J.shape}")
+                    msg = (
+                        f"{self.msginfo}: expected J argument with shape "
+                        f"{(self._output_len, self._input_len)}, but found {J.shape}"
+                    )
                     raise ValueError(msg)
             else:
                 J = np.zeros((self._output_len, self._input_len), dtype=x.dtype)
@@ -524,10 +574,10 @@ class _FunctionalCallback:
             index_map = {}
             for ovalias, ovmeta in self._output_metadata.items():
                 for ivalias, ivmeta in self._input_metadata.items():
-                    index_map[ovalias, ivalias] = (slice(*ovmeta['offsets']),
-                                                   slice(*ivmeta['offsets']))
+                    index_map[ovalias, ivalias] = (
+                        slice(*ovmeta["offsets"]),
+                        slice(*ivmeta["offsets"]),
+                    )
             return J0, index_map
         else:
             return J0
-
-

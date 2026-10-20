@@ -9,7 +9,6 @@ from openmdao.devtools.debug import config_summary
 
 
 class TestDebug(unittest.TestCase):
-
     def test_summary(self):
         prob = Problem(model=CircleOpt())
         prob.setup()
@@ -17,7 +16,7 @@ class TestDebug(unittest.TestCase):
 
         stdout = StringIO()
         config_summary(prob, stream=stdout)
-        text = stdout.getvalue().split('\n')
+        text = stdout.getvalue().split("\n")
 
         expected = [
             "============== Problem Summary ============",
@@ -44,12 +43,13 @@ class TestDebug(unittest.TestCase):
             "",
             "Driver type: Driver",
             "Linear Solvers: [LinearRunOnce]",
-            "Nonlinear Solvers: [NonlinearRunOnce]"
+            "Nonlinear Solvers: [NonlinearRunOnce]",
         ]
 
         for i in range(len(expected)):
-            self.assertEqual(text[i], expected[i],
-                            '\nExpected: %s\nReceived: %s\n' % (expected[i], text[i]))
+            self.assertEqual(
+                text[i], expected[i], "\nExpected: %s\nReceived: %s\n" % (expected[i], text[i])
+            )
 
 
 if __name__ == "__main__":

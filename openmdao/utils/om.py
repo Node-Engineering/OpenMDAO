@@ -27,13 +27,14 @@ else:
 import openmdao.utils.hooks as hooks
 from openmdao.visualization.n2_viewer.n2_viewer import _n2_setup_parser, _n2_cmd
 from openmdao.visualization.connection_viewer.viewconns import view_connections
-from openmdao.visualization.scaling_viewer.scaling_report import _scaling_setup_parser, \
-    _scaling_cmd
+from openmdao.visualization.scaling_viewer.scaling_report import _scaling_setup_parser, _scaling_cmd
 from openmdao.visualization.timing_viewer.timing_viewer import _timing_setup_parser, _timing_cmd
-from openmdao.visualization.dyn_shape_plot import _view_dyn_shapes_setup_parser, \
-    _view_dyn_shapes_cmd
-from openmdao.visualization.dyn_units_plot import _view_dyn_units_setup_parser, \
-    _view_dyn_units_cmd
+from openmdao.visualization.dyn_shape_plot import (
+    _view_dyn_shapes_setup_parser,
+    _view_dyn_shapes_cmd,
+)
+from openmdao.visualization.dyn_units_plot import _view_dyn_units_setup_parser, _view_dyn_units_cmd
+
 try:
     import bokeh
     from openmdao.visualization.meta_model_viewer.meta_model_visualization import view_metamodel
@@ -43,40 +44,73 @@ from openmdao.components.meta_model_semi_structured_comp import MetaModelSemiStr
 from openmdao.components.meta_model_structured_comp import MetaModelStructuredComp
 from openmdao.components.meta_model_unstructured_comp import MetaModelUnStructuredComp
 from openmdao.core.component import Component
-from openmdao.devtools.debug import config_summary, tree, comm_info, _dist_conns_cmd, \
-    _dist_conns_setup_parser
+from openmdao.devtools.debug import (
+    config_summary,
+    tree,
+    comm_info,
+    _dist_conns_cmd,
+    _dist_conns_setup_parser,
+)
 from openmdao.devtools.itrace import _itrace_exec, _itrace_setup_parser
 from openmdao.devtools.iprofile_app.iprofile_app import _iprof_exec, _iprof_setup_parser
 from openmdao.devtools.iprofile import _iprof_totals_exec, _iprof_totals_setup_parser
-from openmdao.devtools.iprof_mem import _mem_prof_exec, _mem_prof_setup_parser, \
-    _mempost_exec, _mempost_setup_parser
+from openmdao.devtools.iprof_mem import (
+    _mem_prof_exec,
+    _mem_prof_setup_parser,
+    _mempost_exec,
+    _mempost_setup_parser,
+)
 from openmdao.error_checking.check_config import _check_config_cmd, _check_config_setup_parser
 from openmdao.utils.mpi import MPI
 from openmdao.utils.file_utils import clean_outputs
 from openmdao.utils.find_cite import print_citations
 from openmdao.utils.code_utils import _calltree_setup_parser, _calltree_exec
-from openmdao.utils.jax_utils import _to_compute_primal_setup_parser, \
-    _to_compute_primal_exec
-from openmdao.utils.coloring import _total_coloring_setup_parser, _total_coloring_cmd, \
-    _partial_coloring_setup_parser, _partial_coloring_cmd, \
-    _view_coloring_setup_parser, _view_coloring_exec
+from openmdao.utils.jax_utils import _to_compute_primal_setup_parser, _to_compute_primal_exec
+from openmdao.utils.coloring import (
+    _total_coloring_setup_parser,
+    _total_coloring_cmd,
+    _partial_coloring_setup_parser,
+    _partial_coloring_cmd,
+    _view_coloring_setup_parser,
+    _view_coloring_exec,
+)
 from openmdao.utils.scaffold import _scaffold_setup_parser, _scaffold_exec
 from openmdao.utils.file_utils import _load_and_exec, _iter_entry_points
-from openmdao.utils.entry_points import _list_installed_setup_parser, _list_installed_cmd, \
-    split_ep, _compute_entry_points_setup_parser, _compute_entry_points_exec, \
-        _find_repos_setup_parser, _find_repos_exec
-from openmdao.utils.reports_system import _list_reports_setup_parser, _list_reports_cmd, \
-    _view_reports_setup_parser, _view_reports_cmd
+from openmdao.utils.entry_points import (
+    _list_installed_setup_parser,
+    _list_installed_cmd,
+    split_ep,
+    _compute_entry_points_setup_parser,
+    _compute_entry_points_exec,
+    _find_repos_setup_parser,
+    _find_repos_exec,
+)
+from openmdao.utils.reports_system import (
+    _list_reports_setup_parser,
+    _list_reports_cmd,
+    _view_reports_setup_parser,
+    _view_reports_cmd,
+)
 from openmdao.visualization.graph_viewer import _graph_setup_parser, _graph_cmd
 from openmdao.visualization.conn_graph_ui import _conn_graph_setup_parser, _conn_graph_cmd
-from openmdao.visualization.realtime_plot.realtime_plot import \
-    _realtime_plot_setup_parser, _realtime_plot_cmd, _rtplot_cmd, _rtplot_setup_parser
+from openmdao.visualization.realtime_plot.realtime_plot import (
+    _realtime_plot_setup_parser,
+    _realtime_plot_cmd,
+    _rtplot_cmd,
+    _rtplot_setup_parser,
+)
 from openmdao.recorders.view_cases import _view_cases_setup_parser, _view_cases_cmd
 
 # Conversion subcommands map (for 'openmdao skills' sub-sub-commands)
-from openmdao.utils.cli_skills import (_setup_skills_install, cmd_skills_install,
-                                       _setup_skills_uninstall, cmd_skills_uninstall,
-                                       _setup_skills_list, cmd_skills_list)
+from openmdao.utils.cli_skills import (
+    _setup_skills_install,
+    cmd_skills_install,
+    _setup_skills_uninstall,
+    cmd_skills_uninstall,
+    _setup_skills_list,
+    cmd_skills_list,
+)
+
 
 def _view_connections_setup_parser(parser):
     """
@@ -87,16 +121,18 @@ def _view_connections_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('-o', default='connections.html', action='store', dest='outfile',
-                        help='html output file.')
-    parser.add_argument('-t', '--title', action='store', dest='title',
-                        help='title of web page.')
-    parser.add_argument('--no_browser', action='store_true', dest='no_browser',
-                        help="don't display in a browser.")
-    parser.add_argument('-v', '--show_values', action='store_true', dest='show_values',
-                        help="Display values.")
-    parser.add_argument('-p', '--problem', action='store', dest='problem', help='Problem name')
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument(
+        "-o", default="connections.html", action="store", dest="outfile", help="html output file."
+    )
+    parser.add_argument("-t", "--title", action="store", dest="title", help="title of web page.")
+    parser.add_argument(
+        "--no_browser", action="store_true", dest="no_browser", help="don't display in a browser."
+    )
+    parser.add_argument(
+        "-v", "--show_values", action="store_true", dest="show_values", help="Display values."
+    )
+    parser.add_argument("-p", "--problem", action="store", dest="problem", help="Problem name")
 
 
 def _view_connections_cmd(options, user_args):
@@ -110,23 +146,30 @@ def _view_connections_cmd(options, user_args):
     user_args : list of str
         Args to be passed to the user script.
     """
+
     def _viewconns(prob):
         if options.title:
             title = options.title
         else:
             title = "Connections for %s" % os.path.basename(options.file[0])
-        view_connections(prob, outfile=options.outfile, show_browser=not options.no_browser,
-                         show_values=options.show_values, title=title)
+        view_connections(
+            prob,
+            outfile=options.outfile,
+            show_browser=not options.no_browser,
+            show_values=options.show_values,
+            title=title,
+        )
 
     def _view_model_w_errors(prob):
-        if prob._metadata['saved_errors']:
+        if prob._metadata["saved_errors"]:
             _viewconns(prob)
             # errors will result in exit at the end of the _check_collected_errors method
 
     # register the hooks
-    hooks._register_hook('_check_collected_errors', 'Problem', pre=_view_model_w_errors)
-    hooks._register_hook('final_setup', 'Problem', inst_id=options.problem,
-                         post=_viewconns, exit=True)
+    hooks._register_hook("_check_collected_errors", "Problem", pre=_view_model_w_errors)
+    hooks._register_hook(
+        "final_setup", "Problem", inst_id=options.problem, post=_viewconns, exit=True
+    )
 
     _load_and_exec(options.file[0], user_args)
 
@@ -140,16 +183,37 @@ def _meta_model_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('-m', '--metamodel_pathname', action='store', dest='pathname',
-                        help='pathname of the metamodel component.')
-    parser.add_argument('-r', '--resolution', default=50, type=int,
-                        action='store', dest='resolution',
-                        help='Number of points to create contour grid')
-    parser.add_argument('-p', '--port_number', default=5007, action='store', dest='port_number',
-                        help='Port number to open viewer')
-    parser.add_argument('--no_browser', action='store_false', dest='browser',
-                        help='Bokeh server will start server without browser')
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument(
+        "-m",
+        "--metamodel_pathname",
+        action="store",
+        dest="pathname",
+        help="pathname of the metamodel component.",
+    )
+    parser.add_argument(
+        "-r",
+        "--resolution",
+        default=50,
+        type=int,
+        action="store",
+        dest="resolution",
+        help="Number of points to create contour grid",
+    )
+    parser.add_argument(
+        "-p",
+        "--port_number",
+        default=5007,
+        action="store",
+        dest="port_number",
+        help="Port number to open viewer",
+    )
+    parser.add_argument(
+        "--no_browser",
+        action="store_false",
+        dest="browser",
+        help="Bokeh server will start server without browser",
+    )
 
 
 def _meta_model_cmd(options, user_args):
@@ -163,16 +227,18 @@ def _meta_model_cmd(options, user_args):
     user_args : list of str
         Args to be passed to the user script.
     """
+
     def _view_metamodel(prob):
         if bokeh is None:
-            print("bokeh must be installed to view a MetaModel.  Use the command:\n",
-                  "    pip install bokeh")
+            print(
+                "bokeh must be installed to view a MetaModel.  Use the command:\n",
+                "    pip install bokeh",
+            )
             exit()
 
-        hooks._unregister_hook('final_setup', 'Problem')
+        hooks._unregister_hook("final_setup", "Problem")
 
-        mm_types = (MetaModelStructuredComp, MetaModelUnStructuredComp,
-                    MetaModelSemiStructuredComp)
+        mm_types = (MetaModelStructuredComp, MetaModelUnStructuredComp, MetaModelSemiStructuredComp)
 
         pathname = options.pathname
         port_number = options.port_number
@@ -187,8 +253,9 @@ def _meta_model_cmd(options, user_args):
         else:
             comp = None
 
-        metamodels = {mm.pathname: mm for
-                      mm in prob.model.system_iter(include_self=True, typ=mm_types)}
+        metamodels = {
+            mm.pathname: mm for mm in prob.model.system_iter(include_self=True, typ=mm_types)
+        }
 
         mm_names = list(metamodels.keys())
         mm_count = len(mm_names)
@@ -210,21 +277,20 @@ def _meta_model_cmd(options, user_args):
                 _mm_list(mm_names, options)
             elif not comp:
                 if len(mm_names) > 1:
-                    print("\nMetamodel '{}' not found. Try one of the "
-                          "following:\n".format(pathname))
+                    print(
+                        "\nMetamodel '{}' not found. Try one of the following:\n".format(pathname)
+                    )
                 else:
-                    print("\nMetamodel '{}' not found. Try the "
-                          "following:\n".format(pathname))
+                    print("\nMetamodel '{}' not found. Try the following:\n".format(pathname))
                 _mm_list(mm_names, options)
             else:
                 if len(mm_names) > 1:
-                    print("\n'{}' is not a Metamodel. Try one of the "
-                          "following:\n".format(pathname))
+                    print("\n'{}' is not a Metamodel. Try one of the following:\n".format(pathname))
                 else:
                     print("\n'{}' is not a Metamodel. Try the following:\n".format(pathname))
                 _mm_list(mm_names, options)
 
-    hooks._register_hook('final_setup', 'Problem', post=_view_metamodel, exit=True)
+    hooks._register_hook("final_setup", "Problem", post=_view_metamodel, exit=True)
 
     _load_and_exec(options.file[0], user_args)
 
@@ -238,7 +304,7 @@ def _config_summary_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
 
 
 def _config_summary_cmd(options, user_args):
@@ -252,7 +318,7 @@ def _config_summary_cmd(options, user_args):
     user_args : list of str
         Args to be passed to the user script.
     """
-    hooks._register_hook('final_setup', 'Problem', post=config_summary, exit=True)
+    hooks._register_hook("final_setup", "Problem", post=config_summary, exit=True)
     _load_and_exec(options.file[0], user_args)
 
 
@@ -265,26 +331,71 @@ def _tree_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('-o', default=None, action='store', dest='outfile',
-                        help='Output file name. By default, output goes to stdout.')
-    parser.add_argument('-c', '--colors', action='store_true', dest='show_colors',
-                        help="Display colors if the terminal supports it.  Requires 'colorama' "
-                             "python package.  Use 'pip install colorama' to install it.")
-    parser.add_argument('-d', '--depth', action='store', type=int, dest='depth',
-                        default=0, help="Max depth of tree to display.")
-    parser.add_argument('-a', '--attr', action='append', default=[], dest='attrs',
-                        help='Add an attribute to search for in tree systems.')
-    parser.add_argument('-v', '--var', action='append', default=[], dest='vecvars',
-                        help='Add a variable to search for in vectors of tree components. '
-                             'Use component relative names.')
-    parser.add_argument('-r', '--rank', action='store', type=int, dest='rank',
-                        default=0, help="Display the tree on this rank (if MPI is active).")
-    parser.add_argument('-p', '--problem', action='store', dest='problem', help='Problem name')
-    parser.add_argument('-s', '--sizes', action='store_true', dest='show_sizes',
-                        help="Display input and output sizes.")
-    parser.add_argument('--approx', action='store_true', dest='show_approx',
-                        help="Show which components compute approximations.")
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument(
+        "-o",
+        default=None,
+        action="store",
+        dest="outfile",
+        help="Output file name. By default, output goes to stdout.",
+    )
+    parser.add_argument(
+        "-c",
+        "--colors",
+        action="store_true",
+        dest="show_colors",
+        help="Display colors if the terminal supports it.  Requires 'colorama' "
+        "python package.  Use 'pip install colorama' to install it.",
+    )
+    parser.add_argument(
+        "-d",
+        "--depth",
+        action="store",
+        type=int,
+        dest="depth",
+        default=0,
+        help="Max depth of tree to display.",
+    )
+    parser.add_argument(
+        "-a",
+        "--attr",
+        action="append",
+        default=[],
+        dest="attrs",
+        help="Add an attribute to search for in tree systems.",
+    )
+    parser.add_argument(
+        "-v",
+        "--var",
+        action="append",
+        default=[],
+        dest="vecvars",
+        help="Add a variable to search for in vectors of tree components. "
+        "Use component relative names.",
+    )
+    parser.add_argument(
+        "-r",
+        "--rank",
+        action="store",
+        type=int,
+        dest="rank",
+        default=0,
+        help="Display the tree on this rank (if MPI is active).",
+    )
+    parser.add_argument("-p", "--problem", action="store", dest="problem", help="Problem name")
+    parser.add_argument(
+        "-s",
+        "--sizes",
+        action="store_true",
+        dest="show_sizes",
+        help="Display input and output sizes.",
+    )
+    parser.add_argument(
+        "--approx",
+        action="store_true",
+        dest="show_approx",
+        help="Show which components compute approximations.",
+    )
 
 
 def _clean_setup_parser(parser):
@@ -296,19 +407,44 @@ def _clean_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('path', nargs='*', default='.',
-                        help='Path(s) from which OpenMDAO output directories should be removed.')
-    parser.add_argument('-f', '--noprompt', action='store_false', dest='prompt',
-                        help='Remove output directories without confirmation.')
-    parser.add_argument('-n', '--norecurse', action='store_true', dest='no_recurse',
-                        help='Do not recurse into subdirectories to find directories to remove.')
-    parser.add_argument('-d', '--dryrun', action='store_true', dest='dryrun',
-                        help='Highlight directories to be removed but do not actually remove them.')
-    parser.add_argument('-p', '--pattern', action='store', dest='pattern', default='*_out',
-                        help='Only directories whose name matches this glob pattern will be '
-                        'removed. This glob pattern applies to directory names found when '
-                        'recursing through the given paths. Surround this argument with quotation '
-                        'marks to prevent the OS from interpreting the glob pattern.')
+    parser.add_argument(
+        "path",
+        nargs="*",
+        default=".",
+        help="Path(s) from which OpenMDAO output directories should be removed.",
+    )
+    parser.add_argument(
+        "-f",
+        "--noprompt",
+        action="store_false",
+        dest="prompt",
+        help="Remove output directories without confirmation.",
+    )
+    parser.add_argument(
+        "-n",
+        "--norecurse",
+        action="store_true",
+        dest="no_recurse",
+        help="Do not recurse into subdirectories to find directories to remove.",
+    )
+    parser.add_argument(
+        "-d",
+        "--dryrun",
+        action="store_true",
+        dest="dryrun",
+        help="Highlight directories to be removed but do not actually remove them.",
+    )
+    parser.add_argument(
+        "-p",
+        "--pattern",
+        action="store",
+        dest="pattern",
+        default="*_out",
+        help="Only directories whose name matches this glob pattern will be "
+        "removed. This glob pattern applies to directory names found when "
+        "recursing through the given paths. Surround this argument with quotation "
+        "marks to prevent the OS from interpreting the glob pattern.",
+    )
 
 
 def _clean_cmd(options, user_args):
@@ -322,8 +458,13 @@ def _clean_cmd(options, user_args):
     user_args : list of str
         Args to be passed to the user script.
     """
-    clean_outputs(options.path, recurse=not options.no_recurse, prompt=options.prompt,
-                  pattern=options.pattern, dryrun=options.dryrun)
+    clean_outputs(
+        options.path,
+        recurse=not options.no_recurse,
+        prompt=options.prompt,
+        pattern=options.pattern,
+        dryrun=options.dryrun,
+    )
 
 
 def _get_tree_filter(attrs, vecvars):
@@ -343,10 +484,11 @@ def _get_tree_filter(attrs, vecvars):
     function
         A function that takes a System and returns a list of name value pairs.
     """
+
     def _finder(system):
         found = []
         for attr in attrs:
-            parts = attr.split('.')  # allow attrs with dots
+            parts = attr.split(".")  # allow attrs with dots
             try:
                 obj = system
                 for p in parts:
@@ -382,7 +524,7 @@ def _tree_cmd(options, user_args):
     if options.outfile is None:
         out = sys.stdout
     else:
-        out = open(options.outfile, 'w')
+        out = open(options.outfile, "w")
 
     if options.attrs or options.vecvars:
         filt = _get_tree_filter(options.attrs, options.vecvars)
@@ -390,17 +532,25 @@ def _tree_cmd(options, user_args):
         filt = None
 
     def _tree(prob):
-        tree(prob, show_colors=options.show_colors, show_sizes=options.show_sizes,
-             show_approx=options.show_approx, filter=filt, max_depth=options.depth,
-             rank=options.rank, stream=out)
+        tree(
+            prob,
+            show_colors=options.show_colors,
+            show_sizes=options.show_sizes,
+            show_approx=options.show_approx,
+            filter=filt,
+            max_depth=options.depth,
+            rank=options.rank,
+            stream=out,
+        )
 
     # register the hook
     if options.vecvars or options.show_sizes or options.show_approx:
-        funcname = 'final_setup'
+        funcname = "final_setup"
     else:
-        funcname = 'setup'
-    hooks._register_hook(funcname, class_name='Problem', inst_id=options.problem, post=_tree,
-                         exit=True)
+        funcname = "setup"
+    hooks._register_hook(
+        funcname, class_name="Problem", inst_id=options.problem, post=_tree, exit=True
+    )
     _load_and_exec(options.file[0], user_args)
 
 
@@ -413,11 +563,22 @@ def _cite_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('-o', default=None, action='store', dest='outfile',
-                        help='Name of output file.  By default, output goes to stdout.')
-    parser.add_argument('-c', '--class', action='append', default=[], dest='classes',
-                        help='Find citation for this class.')
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument(
+        "-o",
+        default=None,
+        action="store",
+        dest="outfile",
+        help="Name of output file.  By default, output goes to stdout.",
+    )
+    parser.add_argument(
+        "-c",
+        "--class",
+        action="append",
+        default=[],
+        dest="classes",
+        help="Find citation for this class.",
+    )
 
 
 def _cite_cmd(options, user_args):
@@ -434,7 +595,7 @@ def _cite_cmd(options, user_args):
     if options.outfile is None:
         out = sys.stdout
     else:
-        out = open(options.outfile, 'w')
+        out = open(options.outfile, "w")
 
     if not options.classes:
         options.classes = None
@@ -443,7 +604,7 @@ def _cite_cmd(options, user_args):
         if not MPI or MPI.COMM_WORLD.rank == 0:
             print_citations(prob, classes=options.classes, out_stream=out)
 
-    hooks._register_hook('final_setup', 'Problem', post=_cite, exit=True)
+    hooks._register_hook("final_setup", "Problem", post=_cite, exit=True)
     _load_and_exec(options.file[0], user_args)
 
 
@@ -456,10 +617,15 @@ def _list_pre_post_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('-o', default=None, action='store', dest='outfile',
-                        help='Name of output file.  By default, output goes to stdout.')
-    parser.add_argument('-p', '--problem', action='store', dest='problem', help='Problem name')
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument(
+        "-o",
+        default=None,
+        action="store",
+        dest="outfile",
+        help="Name of output file.  By default, output goes to stdout.",
+    )
+    parser.add_argument("-p", "--problem", action="store", dest="problem", help="Problem name")
 
 
 def _list_pre_post_cmd(options, user_args):
@@ -473,14 +639,15 @@ def _list_pre_post_cmd(options, user_args):
     user_args : list of str
         Args to be passed to the user script.
     """
+
     def _list_pre_post(prob):
         # Only run on the specified problem or on the top-level problem if none
         # is specified. Want to avoid a premature exit since subproblems run
         # their final_setup before the top problem.
         if options.problem:
-            if prob._metadata['name'] != options.problem:
+            if prob._metadata["name"] != options.problem:
                 return
-        elif '/' in prob._metadata['pathname']:
+        elif "/" in prob._metadata["pathname"]:
             return
 
         prob.list_pre_post(outfile=options.outfile)
@@ -489,15 +656,20 @@ def _list_pre_post_cmd(options, user_args):
         sys.exit()
 
     # register the hook WITHOUT exit=True, since we handle it manually.
-    hooks._register_hook('final_setup', class_name='Problem', inst_id=options.problem,
-                         post=_list_pre_post, exit=False)
+    hooks._register_hook(
+        "final_setup",
+        class_name="Problem",
+        inst_id=options.problem,
+        post=_list_pre_post,
+        exit=False,
+    )
 
     # Set a flag to prevent report deletion during problem setup. This allows us to
     # call list_pre_post and then exit without losing previously generated reports.
     # The reports are deleted at the start of setup to ensure only current-run files
     # are present, but since list_pre_post exits before report generation hooks run,
     # we skip the deletion in this case.
-    os.environ['OPENMDAO_CLI_LIST_PRE_POST_MODE'] = 'true'
+    os.environ["OPENMDAO_CLI_LIST_PRE_POST_MODE"] = "true"
 
     _load_and_exec(options.file[0], user_args)
 
@@ -520,7 +692,7 @@ def _get_deps(dep_dict: dict, package_name: str) -> None:
             if dependencies is not None:
                 for dep_fullname in dependencies:
                     # requires() returns the full specs, we just want the package name:
-                    dep_basename = re.sub(r'^([\w-]+)\W*.*$', r'\1', dep_fullname)
+                    dep_basename = re.sub(r"^([\w-]+)\W*.*$", r"\1", dep_fullname)
                     _get_deps(dep_dict, dep_basename)
 
         except ilmd.PackageNotFoundError:
@@ -537,17 +709,32 @@ def _comm_info_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('-o', default=None, action='store', dest='outfile',
-                        help='Name of output file.  By default, output goes to stdout.')
-    parser.add_argument('-p', '--problem', action='store', dest='problem', help='Problem name')
-    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
-                        help="If True, display comm size and rank range for all Systems. "
-                             "Otherwise, display only Systems having a comm size different from "
-                             "their parent system.")
-    parser.add_argument('--format', action='store', dest='table_format', default='simple_grid',
-                        help='Table format.  All formats compatible with the generate_table '
-                             'function are available.')
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument(
+        "-o",
+        default=None,
+        action="store",
+        dest="outfile",
+        help="Name of output file.  By default, output goes to stdout.",
+    )
+    parser.add_argument("-p", "--problem", action="store", dest="problem", help="Problem name")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        dest="verbose",
+        help="If True, display comm size and rank range for all Systems. "
+        "Otherwise, display only Systems having a comm size different from "
+        "their parent system.",
+    )
+    parser.add_argument(
+        "--format",
+        action="store",
+        dest="table_format",
+        default="simple_grid",
+        help="Table format.  All formats compatible with the generate_table "
+        "function are available.",
+    )
 
 
 def _comm_info_cmd(options, user_args):
@@ -561,74 +748,79 @@ def _comm_info_cmd(options, user_args):
     user_args : list of str
         Args to be passed to the user script.
     """
+
     def _comm_info(model):
         if options.problem:
-            if model._problem_meta['name'] != options.problem and \
-                    model._problem_meta['pathname'] != options.problem:
+            if (
+                model._problem_meta["name"] != options.problem
+                and model._problem_meta["pathname"] != options.problem
+            ):
                 return
-        elif '/' in model._problem_meta['pathname']:
+        elif "/" in model._problem_meta["pathname"]:
             # by default, only display comm info for a top level problem
             return
 
-        comm_info(model, outfile=options.outfile, verbose=options.verbose,
-                  table_format=options.table_format)
+        comm_info(
+            model,
+            outfile=options.outfile,
+            verbose=options.verbose,
+            table_format=options.table_format,
+        )
 
         exit()
 
     def _set_dyn_hook(prob):
         # set the _comm_info hook to be called right after _setup_procs on the model
-        prob.model.pathname = ''
-        hooks._register_hook('_setup_procs', class_name='Group', inst_id='', post=_comm_info)
+        prob.model.pathname = ""
+        hooks._register_hook("_setup_procs", class_name="Group", inst_id="", post=_comm_info)
         hooks._setup_hooks(prob.model)
 
     # register the hook to be called right after setup on the problem
-    hooks._register_hook('setup', 'Problem', pre=_set_dyn_hook, ncalls=1)
+    hooks._register_hook("setup", "Problem", pre=_set_dyn_hook, ncalls=1)
 
     _load_and_exec(options.file[0], user_args)
 
+
 _skills_command_map = {
-    'install': (
+    "install": (
         _setup_skills_install,
         cmd_skills_install,
-        'Install OpenMDAO skills.',
+        "Install OpenMDAO skills.",
     ),
-    'uninstall': (
+    "uninstall": (
         _setup_skills_uninstall,
         cmd_skills_uninstall,
-        'Uninstall OpenMDAO skills.',
+        "Uninstall OpenMDAO skills.",
     ),
-    'list': (
+    "list": (
         _setup_skills_list,
         cmd_skills_list,
-        'List OpenMDAO skills.',
+        "List OpenMDAO skills.",
     ),
 }
+
 
 def _setup_skills_parser(parser):
     """Set up parser for the 'skills' subcommand with sub-sub-commands."""
     subparsers = parser.add_subparsers(
-        title='Skills Commands', metavar='', dest='skills_command', help='Type of skills command'
+        title="Skills Commands", metavar="", dest="skills_command", help="Type of skills command"
     )
     for name, (parser_setup_func, executor, help_str) in sorted(_skills_command_map.items()):
         subparser = subparsers.add_parser(name, help=help_str)
         parser_setup_func(subparser)
         subparser.set_defaults(executor=executor)
 
+
 def _skills_cmd(options, user_args):
     """Execute the appropriate skills command based on sub-sub-command."""
-    if not hasattr(options, 'executor'):
+    if not hasattr(options, "executor"):
         # No sub-sub-command was specified, show help
-        print(
-            'Error: Please specify a skills command (install, uninstall, or list)'
-        )
+        print("Error: Please specify a skills command (install, uninstall, or list)")
         print("Use 'openmdao skills -h' for more information.")
         sys.exit(1)
 
     # Execute the appropriate conversion function
     options.executor(options, user_args)
-
-
-
 
 
 # this dict should contain names mapped to tuples of the form:
@@ -718,15 +910,15 @@ _command_map = {
         _partial_coloring_cmd,
         "Compute coloring(s) for specified partial jacobians.",
     ),
-    'rtplot': (
+    "rtplot": (
         _rtplot_setup_parser,
         _rtplot_cmd,
-        "Run the realtime optimization progress plot tool once the driver recorder file is started"
+        "Run the realtime optimization progress plot tool once the driver recorder file is started",
     ),
-    'realtime_plot': (
+    "realtime_plot": (
         _realtime_plot_setup_parser,
         _realtime_plot_cmd,
-        "Run the realtime optimization progress plot tool"
+        "Run the realtime optimization progress plot tool",
     ),
     "scaffold": (
         _scaffold_setup_parser,
@@ -734,10 +926,10 @@ _command_map = {
         "Generate a simple scaffold for a component.",
     ),
     "scaling": (_scaling_setup_parser, _scaling_cmd, "View driver scaling report."),
-    'skills': (
+    "skills": (
         _setup_skills_parser,
         _skills_cmd,
-        'Install OpenMDAO agent skills into AI coding tools.',
+        "Install OpenMDAO agent skills into AI coding tools.",
     ),
     "summary": (
         _config_summary_setup_parser,
@@ -752,8 +944,7 @@ _command_map = {
     "to_compute_primal": (
         _to_compute_primal_setup_parser,
         _to_compute_primal_exec,
-        "Convert a component to use compute_primal instead of compute or "
-        "apply_nonlinear.",
+        "Convert a component to use compute_primal instead of compute or apply_nonlinear.",
     ),
     "total_coloring": (
         _total_coloring_setup_parser,
@@ -803,15 +994,15 @@ def _register_view_reports():
     hooks.use_hooks = True
 
     # request cleanup at exit
-    om_atexit = os.environ.get('OPENMDAO_ATEXIT')
-    os.environ['OPENMDAO_ATEXIT'] = ','.join([om_atexit, 'cleanup']) if om_atexit else 'cleanup'
+    om_atexit = os.environ.get("OPENMDAO_ATEXIT")
+    os.environ["OPENMDAO_ATEXIT"] = ",".join([om_atexit, "cleanup"]) if om_atexit else "cleanup"
 
     from openmdao.utils.reports_system import view_reports
 
     def run_problem_reports(problem):
         view_reports(problem._name)
 
-    hooks._register_hook('cleanup', 'Problem', post=run_problem_reports, exit=False)
+    hooks._register_hook("cleanup", "Problem", post=run_problem_reports, exit=False)
 
 
 def openmdao_cmd():
@@ -819,33 +1010,43 @@ def openmdao_cmd():
     Run an 'openmdao' sub-command or list help info for 'openmdao' command or sub-commands.
     """
     # pre-parse sys.argv to split between before and after '--'
-    if '--' in sys.argv:
-        idx = sys.argv.index('--')
+    if "--" in sys.argv:
+        idx = sys.argv.index("--")
         sys_args = sys.argv[:idx]
-        user_args = sys.argv[idx + 1:]
+        user_args = sys.argv[idx + 1 :]
         sys.argv[:] = sys_args
     else:
         user_args = []
 
-    parser = argparse.ArgumentParser(description='OpenMDAO Command Line Tools',
-                                     epilog='Use -h after any sub-command for sub-command help, '
-                                     'for example, "openmdao tree -h" for help on the "tree" '
-                                     'command. If using a tool on a script that takes its own '
-                                     'command line arguments, place those arguments after a "--". '
-                                     'For example: '
-                                     '"openmdao n2 -o foo.html myscript.py -- -x --myarg=bar"')
+    parser = argparse.ArgumentParser(
+        description="OpenMDAO Command Line Tools",
+        epilog="Use -h after any sub-command for sub-command help, "
+        'for example, "openmdao tree -h" for help on the "tree" '
+        "command. If using a tool on a script that takes its own "
+        'command line arguments, place those arguments after a "--". '
+        "For example: "
+        '"openmdao n2 -o foo.html myscript.py -- -x --myarg=bar"',
+    )
 
     opt_group = parser.add_mutually_exclusive_group()
-    opt_group.add_argument('--version', action='version', version=version)
-    opt_group.add_argument('--dependency_versions', action='store_true', default=False,
-                           help="show versions of OpenMDAO and all dependencies, then exit")
-    opt_group.add_argument('--view_reports', action='store_true', default=False,
-                           help="after running an OpenMDAO script, display any generated reports")
+    opt_group.add_argument("--version", action="version", version=version)
+    opt_group.add_argument(
+        "--dependency_versions",
+        action="store_true",
+        default=False,
+        help="show versions of OpenMDAO and all dependencies, then exit",
+    )
+    opt_group.add_argument(
+        "--view_reports",
+        action="store_true",
+        default=False,
+        help="after running an OpenMDAO script, display any generated reports",
+    )
 
-    opts = ('-h', '--help', '--version', '--dependency_versions', '--view_reports')
+    opts = ("-h", "--help", "--version", "--dependency_versions", "--view_reports")
 
     # setting 'dest' here will populate the Namespace with the active subparser name
-    subs = parser.add_subparsers(title='Tools', metavar='', dest="subparser_name")
+    subs = parser.add_subparsers(title="Tools", metavar="", dest="subparser_name")
     for p, (parser_setup_func, executor, help_str) in sorted(_command_map.items()):
         subp = subs.add_parser(p, help=help_str)
         parser_setup_func(subp)
@@ -853,16 +1054,19 @@ def openmdao_cmd():
 
     # now add any plugin openmdao commands
     epdict = {}
-    for ep in _iter_entry_points('openmdao_command'):
+    for ep in _iter_entry_points("openmdao_command"):
         cmd, module, target = split_ep(ep)
         # don't let plugins override the builtin commands
         if cmd in _command_map:
-            raise RuntimeError("openmdao plugin command '{}' defined in {} conflicts with "
-                               "builtin command '{}'.".format(cmd, module, cmd))
+            raise RuntimeError(
+                "openmdao plugin command '{}' defined in {} conflicts with "
+                "builtin command '{}'.".format(cmd, module, cmd)
+            )
         elif cmd in epdict:
-            raise RuntimeError("openmdao plugin command '{}' defined in {} conflicts with a "
-                               "another plugin command defined in {}."
-                               .format(cmd, module, epdict[cmd][1]))
+            raise RuntimeError(
+                "openmdao plugin command '{}' defined in {} conflicts with a "
+                "another plugin command defined in {}.".format(cmd, module, epdict[cmd][1])
+            )
         epdict[cmd] = (ep, module)
 
     # sort commands by module and then by command name so commands from plugins will
@@ -870,18 +1074,18 @@ def openmdao_cmd():
     for cmd, (ep, module) in sorted(epdict.items(), key=lambda x: x[1][1] + x[0]):
         func = ep.load()
         parser_setup_func, executor, help_str = func()
-        pkg = module.split('.', 1)[0]
-        subp = subs.add_parser(cmd, help='(%s plugin) ' % pkg + help_str)
+        pkg = module.split(".", 1)[0]
+        subp = subs.add_parser(cmd, help="(%s plugin) " % pkg + help_str)
         parser_setup_func(subp)
         subp.set_defaults(executor=executor)
 
-    args = [a for a in sys.argv[1:] if not a.startswith('-')]
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
     cmdopts = [a for a in sys.argv[1:] if a in opts]
     cmdargs = [a for a in sys.argv[1:] if a not in opts]
 
     # handle case where someone just runs `openmdao <script> [dashed-args]`
     if not set(args).intersection(subs.choices) and len(args) == 1 and os.path.isfile(cmdargs[0]):
-        if '--view_reports' in cmdopts:
+        if "--view_reports" in cmdopts:
             _register_view_reports()
         _load_and_exec(args[0], user_args)
     else:
@@ -891,7 +1095,7 @@ def openmdao_cmd():
         # sub-command usage info.
         options, unknown = parser.parse_known_args()
         if unknown:
-            msg = 'unrecognized arguments: ' + ', '.join(unknown)
+            msg = "unrecognized arguments: " + ", ".join(unknown)
             try:
                 sub = subs.choices[options.subparser_name]
             except KeyError:
@@ -901,18 +1105,19 @@ def openmdao_cmd():
                 print(msg, file=sys.stderr)
             parser.exit(2)
 
-        if hasattr(options, 'executor'):
+        if hasattr(options, "executor"):
             options.executor(options, user_args)
         elif options.dependency_versions is True:
             dep_versions = {}
-            _get_deps(dep_versions, 'openmdao')
+            _get_deps(dep_versions, "openmdao")
 
             for dep_basename in sorted(dep_versions.keys()):
-                print(f'{dep_basename}: {dep_versions[dep_basename]}')
+                print(f"{dep_basename}: {dep_versions[dep_basename]}")
         else:
             print("\nNothing to do.")
 
     # add_subparsers(parser)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     openmdao_cmd()

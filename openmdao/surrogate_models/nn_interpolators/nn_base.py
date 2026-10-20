@@ -59,9 +59,9 @@ class NNBase(object):
         # respective values which will be interpolated against.
         # Grab the mins and ranges of each dimension
         self._tpm = np.amin(training_points, axis=0)
-        self._tpr = (np.amax(training_points, axis=0) - self._tpm)
+        self._tpr = np.amax(training_points, axis=0) - self._tpm
         self._tvm = np.amin(training_values, axis=0)
-        self._tvr = (np.amax(training_values, axis=0) - self._tvm)
+        self._tvr = np.amax(training_values, axis=0) - self._tvm
 
         # This prevents against collinear data (range = 0)
         self._tpr[self._tpr == 0] = 1

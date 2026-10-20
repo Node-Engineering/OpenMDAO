@@ -12,8 +12,9 @@ from openmdao.utils import hooks
 from openmdao.utils.file_utils import _load_and_exec, is_python_file
 from openmdao.utils.gui_testing_utils import get_free_port
 from openmdao.utils.record_util import check_valid_sqlite3_db
-from openmdao.visualization.realtime_plot.realtime_analysis_driver_plot \
-    import _RealTimeAnalysisDriverPlot
+from openmdao.visualization.realtime_plot.realtime_analysis_driver_plot import (
+    _RealTimeAnalysisDriverPlot,
+)
 from openmdao.visualization.realtime_plot.realtime_optimizer_plot import _RealTimeOptimizerPlot
 
 try:
@@ -60,8 +61,12 @@ def _realtime_plot_setup_parser(parser):
         "defaults to None if called by the user directly",
     )
 
-    parser.add_argument('--script', type=str, default=None,
-                        help='The name of the script that created the case recorder file.')
+    parser.add_argument(
+        "--script",
+        type=str,
+        default=None,
+        help="The name of the script that created the case recorder file.",
+    )
 
 
 def _realtime_plot_cmd(options, user_args):
@@ -99,7 +104,7 @@ def _rtplot_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
 
 
 def _rtplot_cmd(options, user_args):
@@ -130,18 +135,19 @@ def _rtplot_cmd(options, user_args):
         driver = problem.driver
         if not driver:
             raise RuntimeError(
-                "Unable to run realtime optimization progress plot because no Driver")
+                "Unable to run realtime optimization progress plot because no Driver"
+            )
         if len(problem.driver._rec_mgr._recorders) == 0:
             raise RuntimeError(
                 "Unable to run realtime optimization progress plot "
-                    "because no case recorder attached to Driver"
+                "because no case recorder attached to Driver"
             )
 
         case_recorder_file = str(problem.driver._rec_mgr._recorders[0]._filepath)
 
-        cmd = ['openmdao', 'realtime_plot', '--pid', str(os.getpid()), case_recorder_file]
+        cmd = ["openmdao", "realtime_plot", "--pid", str(os.getpid()), case_recorder_file]
         if script_path:
-            cmd.insert(-1, '--script')
+            cmd.insert(-1, "--script")
             cmd.insert(-1, script_path)
         cp = subprocess.Popen(cmd)  # nosec: trusted input
 
@@ -152,7 +158,8 @@ def _rtplot_cmd(options, user_args):
             # Process already terminated with an error
             stderr = cp.stderr.read().decode()
             raise RuntimeError(
-                f"Failed to start up the realtime plot server with code {quick_check}: {stderr}.")
+                f"Failed to start up the realtime plot server with code {quick_check}: {stderr}."
+            )
 
     def _view_realtime_plot(case_recorder_file):
         cmd = [
@@ -185,9 +192,7 @@ def _rtplot_cmd(options, user_args):
         pass
     if is_python_file(file_path):
         # register the hook
-        hooks._register_hook(
-            "_setup_recording", "Problem", post=_view_realtime_plot_hook, ncalls=1
-        )
+        hooks._register_hook("_setup_recording", "Problem", post=_view_realtime_plot_hook, ncalls=1)
         # run the script
         _load_and_exec(file_path, user_args)
     else:
@@ -208,9 +213,7 @@ class _CaseRecorderTracker:
     def __init__(self, case_recorder_filename):
         self._case_recorder_filename = case_recorder_filename
         self._cr = None
-        self._initial_case = (
-            None  # need the initial case to get info about the variables
-        )
+        self._initial_case = None  # need the initial case to get info about the variables
         self._next_id_to_read = 1
 
     def get_case_reader(self):
@@ -233,7 +236,7 @@ class _CaseRecorderTracker:
             con.row_factory = sqlite3.Row
             cur = con.cursor()
             cur.execute(
-                "SELECT * FROM driver_iterations WHERE " "counter=:counter",
+                "SELECT * FROM driver_iterations WHERE counter=:counter",
                 {"counter": counter},
             )
             row = cur.fetchone()
@@ -315,11 +318,11 @@ class _CaseRecorderTracker:
     def _get_constraint_bounds(self, name):
         cons = self._initial_case.get_constraints()
         var_info = cons._var_info[name]
-        return (var_info['lower'], var_info['upper'])
+        return (var_info["lower"], var_info["upper"])
 
     def _get_desvar_bounds(self, name):
-        lower = self._cr.problem_metadata['variables'][name]['lower']
-        upper = self._cr.problem_metadata['variables'][name]['upper']
+        lower = self._cr.problem_metadata["variables"][name]["lower"]
+        upper = self._cr.problem_metadata["variables"][name]["upper"]
         return lower, upper
 
     def _get_units(self, name):
@@ -345,8 +348,7 @@ class _CaseRecorderTracker:
         return item.size
 
 
-def realtime_plot(case_recorder_filename, callback_period,
-                  pid_of_calling_script, script):
+def realtime_plot(case_recorder_filename, callback_period, pid_of_calling_script, script):
     """
     Visualize the objectives, desvars, and constraints during an optimization or analysis process.
 
@@ -361,6 +363,7 @@ def realtime_plot(case_recorder_filename, callback_period,
     script : str or None
         If not None, the file path of the script that created the case recorder file.
     """
+
     def _make_realtime_plot_doc(doc):
         case_tracker = _CaseRecorderTracker(case_recorder_filename)
         if case_tracker.is_driver_optimizer():
@@ -397,7 +400,7 @@ def realtime_plot(case_recorder_filename, callback_period,
         )
         server.start()
 
-        testflo_running = os.environ.pop('TESTFLO_RUNNING', None)
+        testflo_running = os.environ.pop("TESTFLO_RUNNING", None)
 
         if not testflo_running:
             server.io_loop.add_callback(server.show, "/")
@@ -410,14 +413,10 @@ def realtime_plot(case_recorder_filename, callback_period,
             periodic_callback = PeriodicCallback(update_data, 1000)  # 1 second
             periodic_callback.start()
 
-        print(
-            f"Real-time optimization plot server running on http://localhost:{_port_number}"
-        )
+        print(f"Real-time optimization plot server running on http://localhost:{_port_number}")
         server.io_loop.start()
     except KeyboardInterrupt as e:
-        print(
-            f"Real-time optimization plot server stopped due to keyboard interrupt: {e}"
-        )
+        print(f"Real-time optimization plot server stopped due to keyboard interrupt: {e}")
     except Exception as e:
         print(f"Error starting real-time optimization plot server: {e}")
     finally:

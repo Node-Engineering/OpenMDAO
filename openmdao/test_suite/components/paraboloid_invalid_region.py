@@ -1,4 +1,3 @@
-
 import openmdao.api as om
 
 
@@ -32,7 +31,7 @@ class Paraboloid(om.ExplicitComponent):
         The function that will raise the AnalysisError (compute or compute_partials).
     """
 
-    def __init__(self, invalid_x=None, invalid_y=None, func='compute'):
+    def __init__(self, invalid_x=None, invalid_y=None, func="compute"):
         super().__init__()
         self.invalid_x = invalid_x
         self.invalid_y = invalid_y
@@ -47,12 +46,12 @@ class Paraboloid(om.ExplicitComponent):
         self.raised_grad_errors = []
 
     def setup(self):
-        self.add_input('x', val=0.0)
-        self.add_input('y', val=0.0)
+        self.add_input("x", val=0.0)
+        self.add_input("y", val=0.0)
 
-        self.add_output('f_xy', val=0.0)
+        self.add_output("f_xy", val=0.0)
 
-        self.declare_partials('*', '*')
+        self.declare_partials("*", "*")
 
     def compute(self, inputs, outputs):
         """
@@ -60,24 +59,24 @@ class Paraboloid(om.ExplicitComponent):
         """
         self.eval_count += 1
 
-        x = inputs['x']
-        y = inputs['y']
+        x = inputs["x"]
+        y = inputs["y"]
 
-        f_xy = outputs['f_xy'] = (x-3.0)**2 + x*y + (y+4.0)**2 - 3.0
+        f_xy = outputs["f_xy"] = (x - 3.0) ** 2 + x * y + (y + 4.0) ** 2 - 3.0
 
         self.eval_history.append((x.item(), y.item(), f_xy.item()))
 
-        if self.invalid_x and self.func == 'compute':
-            beg, end =  self.invalid_x
+        if self.invalid_x and self.func == "compute":
+            beg, end = self.invalid_x
             if x >= beg and x <= end:
                 self.raised_eval_errors.append(self.eval_count)
-                raise om.AnalysisError(f'Invalid x: {beg} < {x.item():8.4f} < {end}).')
+                raise om.AnalysisError(f"Invalid x: {beg} < {x.item():8.4f} < {end}).")
 
-        if self.invalid_y and self.func == 'compute':
-            beg, end =  self.invalid_y
+        if self.invalid_y and self.func == "compute":
+            beg, end = self.invalid_y
             if y >= beg and y <= end:
                 self.raised_eval_errors.append(self.eval_count)
-                raise om.AnalysisError(f'Invalid y: {beg} < {y.item():8.4f} < {end}).')
+                raise om.AnalysisError(f"Invalid y: {beg} < {y.item():8.4f} < {end}).")
 
     def compute_partials(self, inputs, partials):
         """
@@ -85,22 +84,22 @@ class Paraboloid(om.ExplicitComponent):
         """
         self.grad_count += 1
 
-        x = inputs['x']
-        y = inputs['y']
+        x = inputs["x"]
+        y = inputs["y"]
 
-        partials['f_xy', 'x'] = 2.0*x - 6.0 + y
-        partials['f_xy', 'y'] = 2.0*y + 8.0 + x
+        partials["f_xy", "x"] = 2.0 * x - 6.0 + y
+        partials["f_xy", "y"] = 2.0 * y + 8.0 + x
 
         self.grad_history.append((x.item(), y.item()))
 
-        if self.invalid_x and self.func == 'compute_partials':
-            beg, end =  self.invalid_x
+        if self.invalid_x and self.func == "compute_partials":
+            beg, end = self.invalid_x
             if x > beg and x < end:
                 self.raised_grad_errors.append(self.grad_count)
-                raise om.AnalysisError(f'Invalid x: {beg} < {x.item():8.4f} < {end}).')
+                raise om.AnalysisError(f"Invalid x: {beg} < {x.item():8.4f} < {end}).")
 
-        if self.invalid_y and self.func == 'compute_partials':
-            beg, end =  self.invalid_y
+        if self.invalid_y and self.func == "compute_partials":
+            beg, end = self.invalid_y
             if y > beg and y < end:
                 self.raised_grad_errors.append(self.grad_count)
-                raise om.AnalysisError(f'Invalid y: {beg} < {y.item():8.4f} < {end}).')
+                raise om.AnalysisError(f"Invalid y: {beg} < {y.item():8.4f} < {end}).")

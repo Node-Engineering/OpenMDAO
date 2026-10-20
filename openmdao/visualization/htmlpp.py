@@ -1,6 +1,7 @@
 """
 Define the HtmlPreprocessor class to generate a single HTML file from many source files.
 """
+
 import base64
 import re
 import zlib
@@ -8,7 +9,7 @@ import json
 from pathlib import Path
 
 
-class HtmlPreprocessor():
+class HtmlPreprocessor:
     """
     Recursively substitute and insert source files to produce a single HTML file.
 
@@ -93,9 +94,16 @@ class HtmlPreprocessor():
     Nothing is written until every directive has been successfully processed.
     """
 
-    def __init__(self, start_filename: str, output_filename: str, search_path=[],
-                 allow_overwrite=False, var_dict: dict = None, json_dumps_default=None,
-                 verbose=False):
+    def __init__(
+        self,
+        start_filename: str,
+        output_filename: str,
+        search_path=[],
+        allow_overwrite=False,
+        var_dict: dict = None,
+        json_dumps_default=None,
+        verbose=False,
+    ):
         """
         Configure the preprocessor and validate file paths.
         """
@@ -112,7 +120,7 @@ class HtmlPreprocessor():
         self._search_path.append(self._start_path.resolve().parent)
 
         # Current folder:
-        self._search_path.append(Path('.'))
+        self._search_path.append(Path("."))
 
         output_path = Path(output_filename)
         if output_path.is_file() and not allow_overwrite:
@@ -187,10 +195,10 @@ class HtmlPreprocessor():
         self.msg(f"Loading file {pathname}.", rlvl)
 
         if binary:
-            with open(pathname, 'rb') as f:
-                file_contents = str(base64.b64encode(f.read()).decode('UTF-8'))
+            with open(pathname, "rb") as f:
+                file_contents = str(base64.b64encode(f.read()).decode("UTF-8"))
         else:
-            with open(pathname, 'r', encoding='UTF-8') as f:
+            with open(pathname, "r", encoding="UTF-8") as f:
                 file_contents = str(f.read())
 
         return file_contents
@@ -207,7 +215,7 @@ class HtmlPreprocessor():
             Recursion level to help with indentation when verbose is enabled.
         """
         if self._verbose:
-            print(rlvl * '--' + msg)
+            print(rlvl * "--" + msg)
 
     def parse_contents(self, contents: str, rlvl=0) -> str:
         """
@@ -228,65 +236,71 @@ class HtmlPreprocessor():
             The complete contents represented as a base64 string.
         """
         # Find all possible keywords:
-        keyword_regex = \
-            r'(//|/\*|<\!--)?\s*<<\s*hpp_(\S+)\s+(\S+)(\s+compress|\s+dup)*\s*>>(\*/|-->)?'
+        keyword_regex = (
+            r"(//|/\*|<\!--)?\s*<<\s*hpp_(\S+)\s+(\S+)(\s+compress|\s+dup)*\s*>>(\*/|-->)?"
+        )
         matches = re.finditer(keyword_regex, contents)
         rlvl += 1
         new_content = None
 
         for found_directive in matches:
-
             full_match = found_directive.group(0)
             # comment_start = found_directive.group(1)
             keyword = found_directive.group(2)
             arg = found_directive.group(3)
 
-            flags = {'compress': False, 'dup': False}
+            flags = {"compress": False, "dup": False}
             if found_directive.group(4) is not None:
-                flags['compress'] = True if 'compress' in found_directive.group(4) else False
-                flags['dup'] = True if 'dup' in found_directive.group(4) else False
+                flags["compress"] = True if "compress" in found_directive.group(4) else False
+                flags["dup"] = True if "dup" in found_directive.group(4) else False
 
             do_compress = False  # Change below with directives where it's allowed
 
             self.msg(f"Handling {keyword} directive.", rlvl)
 
-            if keyword == 'insert':
+            if keyword == "insert":
                 # Recursively insert a plain text file which may also have hpp directives
-                new_content = self.parse_contents(self.load_file(arg, rlvl=rlvl,
-                                                  allow_dup=flags['dup']), rlvl)
+                new_content = self.parse_contents(
+                    self.load_file(arg, rlvl=rlvl, allow_dup=flags["dup"]), rlvl
+                )
 
                 if new_content != "":
-                    do_compress = True if flags['compress'] else False
+                    do_compress = True if flags["compress"] else False
 
-            elif keyword == 'script':
+            elif keyword == "script":
                 # Recursively insert a JavaScript file which may also have hpp directives
-                new_content = self.parse_contents(self.load_file(arg, rlvl=rlvl,
-                                                  allow_dup=flags['dup']), rlvl)
+                new_content = self.parse_contents(
+                    self.load_file(arg, rlvl=rlvl, allow_dup=flags["dup"]), rlvl
+                )
 
                 if new_content != "":
                     new_content = f'<script type="text/javascript">\n{new_content}\n</script>'
 
-            elif keyword == 'style':
+            elif keyword == "style":
                 # Recursively insert a CSS file which may also have hpp directives
-                new_content = '<style type="text/css">\n' + \
-                              self.parse_contents(self.load_file(arg, rlvl=rlvl,
-                                                  allow_dup=flags['dup']), rlvl) + '\n</style>'
+                new_content = (
+                    '<style type="text/css">\n'
+                    + self.parse_contents(
+                        self.load_file(arg, rlvl=rlvl, allow_dup=flags["dup"]), rlvl
+                    )
+                    + "\n</style>"
+                )
 
-            elif keyword == 'bin2b64':
-                new_content = self.load_file(arg, binary=True, allow_dup=flags['dup'], rlvl=rlvl)
+            elif keyword == "bin2b64":
+                new_content = self.load_file(arg, binary=True, allow_dup=flags["dup"], rlvl=rlvl)
 
-            elif keyword == 'pyvar':
+            elif keyword == "pyvar":
                 if arg in self._var_dict:
                     val = self._var_dict[arg]
                     if type(val) in (str, bool, int, float):
                         # Use string representations of primitive types
                         new_content = str(self._var_dict[arg])
-                        do_compress = True if flags['compress'] else False
+                        do_compress = True if flags["compress"] else False
                     else:
                         raw_data = json.dumps(val, default=self._json_dumps_default)
-                        if flags['compress']:
+                        if flags["compress"]:
                             self.msg("Compressing content.", rlvl)
-                            compressed_content = zlib.compress(raw_data.encode('UTF-8'))
+                            compressed_content = zlib.compress(raw_data.encode("UTF-8"))
                             new_content = str(base64.b64encode(compressed_content).decode("UTF-8"))
                         else:
                             new_content = raw_data
@@ -319,6 +333,6 @@ class HtmlPreprocessor():
         if path.is_file() and not self._allow_overwrite:
             raise FileExistsError(f"Error: {self._output_filename} already exists")
 
-        output_file = open(self._output_filename, "w", encoding='UTF-8')
+        output_file = open(self._output_filename, "w", encoding="UTF-8")
         output_file.write(new_html_content)
         output_file.close()

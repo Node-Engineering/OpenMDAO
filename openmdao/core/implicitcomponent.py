@@ -13,8 +13,7 @@ from openmdao.recorders.recording_iteration_stack import Recording
 from openmdao.utils.class_util import overrides_method
 from openmdao.utils.array_utils import shape_to_len
 from openmdao.utils.code_utils import get_return_names
-from openmdao.utils.general_utils import format_as_float_or_array, _subjac_meta2value, \
-    is_undefined
+from openmdao.utils.general_utils import format_as_float_or_array, _subjac_meta2value, is_undefined
 from openmdao.utils.units import simplify_unit
 from openmdao.utils.rangemapper import RangeMapper
 from openmdao.utils.om_warnings import issue_warning
@@ -98,19 +97,19 @@ class ImplicitComponent(Component):
 
         Also tag component if it provides a guess_nonlinear.
         """
-        self._has_guess = overrides_method('guess_nonlinear', self, ImplicitComponent)
+        self._has_guess = overrides_method("guess_nonlinear", self, ImplicitComponent)
 
         if is_undefined(self._has_linearize):
-            self._has_linearize = overrides_method('linearize', self, ImplicitComponent)
+            self._has_linearize = overrides_method("linearize", self, ImplicitComponent)
 
         if is_undefined(self._has_solve_nl):
-            self._has_solve_nl = overrides_method('solve_nonlinear', self, ImplicitComponent)
+            self._has_solve_nl = overrides_method("solve_nonlinear", self, ImplicitComponent)
 
         if is_undefined(self._has_solve_linear):
-            self._has_solve_linear = overrides_method('solve_linear', self, ImplicitComponent)
+            self._has_solve_linear = overrides_method("solve_linear", self, ImplicitComponent)
 
         if is_undefined(self.matrix_free):
-            self.matrix_free = overrides_method('apply_linear', self, ImplicitComponent)
+            self.matrix_free = overrides_method("apply_linear", self, ImplicitComponent)
 
     def override_method(self, name, method):
         """
@@ -136,12 +135,18 @@ class ImplicitComponent(Component):
         ValueError
             If name is not one of the allowed method names.
         """
-        allowed_methods = ('solve_nonlinear', 'linearize', 'apply_linear', 'solve_linear',
-                           'guess_nonlinear')
+        allowed_methods = (
+            "solve_nonlinear",
+            "linearize",
+            "apply_linear",
+            "solve_linear",
+            "guess_nonlinear",
+        )
 
         if name not in allowed_methods:
-            raise ValueError(f"{self.msginfo}: name must be one of {allowed_methods}, "
-                             f"but got '{name}'.")
+            raise ValueError(
+                f"{self.msginfo}: name must be one of {allowed_methods}, but got '{name}'."
+            )
 
         # Convert to MethodType if not already a bound method
         if not isinstance(method, MethodType):
@@ -151,15 +156,15 @@ class ImplicitComponent(Component):
         setattr(self, name, method)
 
         # Update the appropriate attribute
-        if name == 'solve_nonlinear':
+        if name == "solve_nonlinear":
             self._has_solve_nl = True
-        elif name == 'linearize':
+        elif name == "linearize":
             self._has_linearize = True
-        elif name == 'apply_linear':
+        elif name == "apply_linear":
             self.matrix_free = True
-        elif name == 'solve_linear':
+        elif name == "solve_linear":
             self._has_solve_linear = True
-        elif name == 'guess_nonlinear':
+        elif name == "guess_nonlinear":
             self._has_guess = True
 
     def _apply_nonlinear(self):
@@ -167,16 +172,21 @@ class ImplicitComponent(Component):
         Compute residuals. The model is assumed to be in a scaled state.
         """
         with self._unscaled_context(outputs=[self._outputs], residuals=[self._residuals]):
-            with self._call_user_function('apply_nonlinear', protect_outputs=True):
+            with self._call_user_function("apply_nonlinear", protect_outputs=True):
                 if self._run_root_only():
                     if self.comm.rank == 0:
                         if self._discrete_inputs or self._discrete_outputs:
-                            self.apply_nonlinear(self._inputs, self._outputs,
-                                                 self._residuals_wrapper,
-                                                 self._discrete_inputs, self._discrete_outputs)
+                            self.apply_nonlinear(
+                                self._inputs,
+                                self._outputs,
+                                self._residuals_wrapper,
+                                self._discrete_inputs,
+                                self._discrete_outputs,
+                            )
                         else:
-                            self.apply_nonlinear(self._inputs, self._outputs,
-                                                 self._residuals_wrapper)
+                            self.apply_nonlinear(
+                                self._inputs, self._outputs, self._residuals_wrapper
+                            )
                         self.comm.bcast([self._residuals.asarray(), self._discrete_outputs], root=0)
                     else:
                         new_res, new_disc_outs = self.comm.bcast(None, root=0)
@@ -186,8 +196,13 @@ class ImplicitComponent(Component):
                                 self._discrete_outputs[name] = val
                 else:
                     if self._discrete_inputs or self._discrete_outputs:
-                        self.apply_nonlinear(self._inputs, self._outputs, self._residuals_wrapper,
-                                             self._discrete_inputs, self._discrete_outputs)
+                        self.apply_nonlinear(
+                            self._inputs,
+                            self._outputs,
+                            self._residuals_wrapper,
+                            self._discrete_inputs,
+                            self._discrete_outputs,
+                        )
                     else:
                         self.apply_nonlinear(self._inputs, self._outputs, self._residuals_wrapper)
 
@@ -198,22 +213,26 @@ class ImplicitComponent(Component):
         Compute outputs. The model is assumed to be in a scaled state.
         """
         if self._nonlinear_solver is not None:
-            with Recording(self.pathname + '._solve_nonlinear', self.iter_count, self):
+            with Recording(self.pathname + "._solve_nonlinear", self.iter_count, self):
                 self._nonlinear_solver._solve_with_cache_check()
         elif self._has_solve_nl:
             with self._unscaled_context(outputs=[self._outputs]):
-                with Recording(self.pathname + '._solve_nonlinear', self.iter_count, self):
-                    with self._call_user_function('solve_nonlinear'):
+                with Recording(self.pathname + "._solve_nonlinear", self.iter_count, self):
+                    with self._call_user_function("solve_nonlinear"):
                         if self._run_root_only():
                             if self.comm.rank == 0:
                                 if self._discrete_inputs or self._discrete_outputs:
-                                    self.solve_nonlinear(self._inputs, self._outputs,
-                                                         self._discrete_inputs,
-                                                         self._discrete_outputs)
+                                    self.solve_nonlinear(
+                                        self._inputs,
+                                        self._outputs,
+                                        self._discrete_inputs,
+                                        self._discrete_outputs,
+                                    )
                                 else:
                                     self.solve_nonlinear(self._inputs, self._outputs)
-                                self.comm.bcast([self._outputs.asarray(), self._discrete_outputs],
-                                                root=0)
+                                self.comm.bcast(
+                                    [self._outputs.asarray(), self._discrete_outputs], root=0
+                                )
                             else:
                                 new_res, new_disc_outs = self.comm.bcast(None, root=0)
                                 self._outputs.set_val(new_res)
@@ -222,8 +241,12 @@ class ImplicitComponent(Component):
                                         self._discrete_outputs[name] = val
                         else:
                             if self._discrete_inputs or self._discrete_outputs:
-                                self.solve_nonlinear(self._inputs, self._outputs,
-                                                     self._discrete_inputs, self._discrete_outputs)
+                                self.solve_nonlinear(
+                                    self._inputs,
+                                    self._outputs,
+                                    self._discrete_inputs,
+                                    self._discrete_outputs,
+                                )
                             else:
                                 self.solve_nonlinear(self._inputs, self._outputs)
 
@@ -244,14 +267,19 @@ class ImplicitComponent(Component):
                         self._outputs.set_complex_step_mode(False)
                         self._residuals.set_complex_step_mode(False)
 
-                    with self._call_user_function('guess_nonlinear', protect_residuals=True):
+                    with self._call_user_function("guess_nonlinear", protect_residuals=True):
                         if self._discrete_inputs or self._discrete_outputs:
-                            self.guess_nonlinear(self._inputs, self._outputs,
-                                                 self._residuals_wrapper,
-                                                 self._discrete_inputs, self._discrete_outputs)
+                            self.guess_nonlinear(
+                                self._inputs,
+                                self._outputs,
+                                self._residuals_wrapper,
+                                self._discrete_inputs,
+                                self._discrete_outputs,
+                            )
                         else:
-                            self.guess_nonlinear(self._inputs, self._outputs,
-                                                 self._residuals_wrapper)
+                            self.guess_nonlinear(
+                                self._inputs, self._outputs, self._residuals_wrapper
+                            )
             finally:
                 if complex_step:
                     self._inputs.set_complex_step_mode(True)
@@ -271,12 +299,12 @@ class ImplicitComponent(Component):
         if self._run_root_only():
             if self.comm.rank == 0:
                 self.apply_linear(inputs, outputs, d_inputs, d_outputs, d_residuals, mode)
-                if mode == 'fwd':
+                if mode == "fwd":
                     self.comm.bcast(d_residuals.asarray(), root=0)
                 else:  # rev
                     self.comm.bcast((d_inputs.asarray(), d_outputs.asarray()), root=0)
             else:
-                if mode == 'fwd':
+                if mode == "fwd":
                     new_res = self.comm.bcast(None, root=0)
                     d_residuals.set_val(new_res)
                 else:  # rev
@@ -284,7 +312,7 @@ class ImplicitComponent(Component):
                     d_inputs.set_val(new_ins)
                     d_outputs.set_val(new_outs)
         else:
-            if self._problem_meta['checking'] and self.comm.size > 1 and mode == 'rev':
+            if self._problem_meta["checking"] and self.comm.size > 1 and mode == "rev":
                 nzdresids = self._get_dist_nz_dresids()
                 self.apply_linear(inputs, outputs, d_inputs, d_outputs, d_residuals, mode)
                 self._check_consistent_serial_dinputs(nzdresids)
@@ -319,18 +347,19 @@ class ImplicitComponent(Component):
 
             # Jacobian and vectors are all unscaled, dimensional
             with self._unscaled_context(
-                    outputs=[self._outputs, d_outputs], residuals=[d_residuals]):
-
+                outputs=[self._outputs, d_outputs], residuals=[d_residuals]
+            ):
                 # set appropriate vectors to read_only to help prevent user error
-                if mode == 'fwd':
+                if mode == "fwd":
                     d_inputs.read_only = d_outputs.read_only = True
-                elif mode == 'rev':
+                elif mode == "rev":
                     d_residuals.read_only = True
 
                 try:
-                    with self._call_user_function('apply_linear', protect_outputs=True):
-                        self._apply_linear_wrapper(self._inputs, self._outputs,
-                                                   d_inputs, d_outputs, d_residuals, mode)
+                    with self._call_user_function("apply_linear", protect_outputs=True):
+                        self._apply_linear_wrapper(
+                            self._inputs, self._outputs, d_inputs, d_outputs, d_residuals, mode
+                        )
                 finally:
                     d_inputs.read_only = d_outputs.read_only = d_residuals.read_only = False
 
@@ -347,12 +376,12 @@ class ImplicitComponent(Component):
         if self._run_root_only():
             if self.comm.rank == 0:
                 self.solve_linear(d_outputs, d_residuals, mode)
-                if mode == 'fwd':
+                if mode == "fwd":
                     self.comm.bcast(d_outputs.asarray(), root=0)
                 else:  # rev
                     self.comm.bcast((d_residuals.asarray()), root=0)
             else:
-                if mode == 'fwd':
+                if mode == "fwd":
                     new_outs = self.comm.bcast(None, root=0)
                     d_outputs.set_val(new_outs)
                 else:  # rev
@@ -384,21 +413,21 @@ class ImplicitComponent(Component):
 
             with self._unscaled_context(outputs=[d_outputs], residuals=[d_residuals]):
                 # set appropriate vectors to read_only to help prevent user error
-                if mode == 'fwd':
+                if mode == "fwd":
                     d_residuals.read_only = True
-                elif mode == 'rev':
+                elif mode == "rev":
                     d_outputs.read_only = True
 
                 try:
-                    with self._call_user_function('solve_linear'):
+                    with self._call_user_function("solve_linear"):
                         self._solve_linear_wrapper(d_outputs, d_residuals, mode)
                 finally:
                     d_outputs.read_only = d_residuals.read_only = False
 
     def _approx_subjac_keys_iter(self):
         for abs_key, meta in self._subjacs_info.items():
-            if 'method' in meta:
-                method = meta['method']
+            if "method" in meta:
+                method = meta["method"]
                 if method in self._approx_schemes:
                     yield abs_key
 
@@ -406,12 +435,17 @@ class ImplicitComponent(Component):
         """
         Call linearize based on the value of the "run_root_only" option.
         """
-        with self._call_user_function('linearize', protect_outputs=True):
+        with self._call_user_function("linearize", protect_outputs=True):
             if self._run_root_only():
                 if self.comm.rank == 0:
                     if self._discrete_inputs or self._discrete_outputs:
-                        self.linearize(self._inputs, self._outputs, jac,
-                                       self._discrete_inputs, self._discrete_outputs)
+                        self.linearize(
+                            self._inputs,
+                            self._outputs,
+                            jac,
+                            self._discrete_inputs,
+                            self._discrete_outputs,
+                        )
                     else:
                         self.linearize(self._inputs, self._outputs, jac)
                     if self._jacobian is not None:
@@ -421,8 +455,13 @@ class ImplicitComponent(Component):
                         jac[key] = val
             else:
                 if self._discrete_inputs or self._discrete_outputs:
-                    self.linearize(self._inputs, self._outputs, jac,
-                                   self._discrete_inputs, self._discrete_outputs)
+                    self.linearize(
+                        self._inputs,
+                        self._outputs,
+                        jac,
+                        self._discrete_inputs,
+                        self._discrete_outputs,
+                    )
                 else:
                     self.linearize(self._inputs, self._outputs, jac)
 
@@ -438,7 +477,6 @@ class ImplicitComponent(Component):
         self._check_first_linearize()
 
         with JacobianUpdateContext(self) as jac:
-
             if not (self._has_linearize or self._has_approx):
                 return
 
@@ -471,11 +509,11 @@ class ImplicitComponent(Component):
         """
         metadata = super().add_output(name, val, **kwargs)
 
-        metadata['tags'].add('openmdao:allow_desvar')
+        metadata["tags"].add("openmdao:allow_desvar")
 
         return metadata
 
-    def add_residual(self, name, shape=(1,), units=None, desc='', ref=None):
+    def add_residual(self, name, shape=(1,), units=None, desc="", ref=None):
         """
         Add a residual variable to the component.
 
@@ -509,9 +547,10 @@ class ImplicitComponent(Component):
             raise ValueError(f"{self.msginfo}: Residual name '{name}' already exists.")
 
         if self._problem_meta is not None:
-            if self._problem_meta['setup_status'] > _SetupStatus.POST_FINAL_SETUP:
-                raise RuntimeError(f"{self.msginfo}: Can't add residual '{name}' "
-                                   "after final_setup.")
+            if self._problem_meta["setup_status"] > _SetupStatus.POST_FINAL_SETUP:
+                raise RuntimeError(
+                    f"{self.msginfo}: Can't add residual '{name}' after final_setup."
+                )
 
         # check ref shape
         if ref is not None:
@@ -521,13 +560,17 @@ class ImplicitComponent(Component):
                 self._has_resid_scaling |= np.any(ref != 1.0)
 
                 if not isinstance(ref, _allowed_types):
-                    raise TypeError(f'{self.msginfo}: The ref argument should be a '
-                                    'float, list, tuple, ndarray or Iterable')
+                    raise TypeError(
+                        f"{self.msginfo}: The ref argument should be a "
+                        "float, list, tuple, ndarray or Iterable"
+                    )
 
                 it = np.atleast_1d(ref)
                 if it.shape != shape:
-                    raise ValueError(f"{self.msginfo}: When adding residual '{name}', expected "
-                                     f"shape {shape} but got shape {it.shape} for argument 'ref'.")
+                    raise ValueError(
+                        f"{self.msginfo}: When adding residual '{name}', expected "
+                        f"shape {shape} but got shape {it.shape} for argument 'ref'."
+                    )
 
         if units is not None:
             if not isinstance(units, str):
@@ -535,10 +578,10 @@ class ImplicitComponent(Component):
             units = simplify_unit(units, msginfo=self.msginfo)
 
         metadict[name] = meta = {
-            'shape': shape,
-            'units': units,
-            'desc': desc,
-            'ref': format_as_float_or_array('ref', ref, flatten=True, val_if_none=None),
+            "shape": shape,
+            "units": units,
+            "desc": desc,
+            "ref": format_as_float_or_array("ref", ref, flatten=True, val_if_none=None),
         }
 
         return meta
@@ -553,7 +596,7 @@ class ImplicitComponent(Component):
 
     def _resid_name_shape_iter(self):
         for name, meta in self._declared_residuals.items():
-            yield name, meta['shape']
+            yield name, meta["shape"]
 
     def setup_residuals(self):
         """
@@ -617,8 +660,7 @@ class ImplicitComponent(Component):
                     self._jacobian = DictionaryJacobian(self)
 
                 if self._declared_residuals:
-                    self._jac_wrapper = _JacobianWrapper(self._jacobian,
-                                                         self._resid2out_subjac_map)
+                    self._jac_wrapper = _JacobianWrapper(self._jacobian, self._resid2out_subjac_map)
                 else:
                     self._jac_wrapper = self._jacobian
 
@@ -648,18 +690,25 @@ class ImplicitComponent(Component):
             # if we have renamed resids, remap them to use output naming
 
             plen = len(self.pathname) + 1
-            resid_mapper = RangeMapper.create([(n, shape_to_len(meta['shape']))
-                                               for n, meta in self._declared_residuals.items()],
-                                              max_flat_range_size=100)
-            out_mapper = RangeMapper.create([(n[plen:], shape_to_len(meta['shape']))
-                                             for n, meta in self._var_abs2meta['output'].items()],
-                                            max_flat_range_size=100)
+            resid_mapper = RangeMapper.create(
+                [(n, shape_to_len(meta["shape"])) for n, meta in self._declared_residuals.items()],
+                max_flat_range_size=100,
+            )
+            out_mapper = RangeMapper.create(
+                [
+                    (n[plen:], shape_to_len(meta["shape"]))
+                    for n, meta in self._var_abs2meta["output"].items()
+                ],
+                max_flat_range_size=100,
+            )
 
             if resid_mapper.size != out_mapper.size:
-                raise RuntimeError(f"{self.msginfo}: The number of residuals ({resid_mapper.size}) "
-                                   f"doesn't match number of outputs ({out_mapper.size}).  If any "
-                                   "residuals are added using 'add_residuals', their total size "
-                                   "must match the total size of the outputs.")
+                raise RuntimeError(
+                    f"{self.msginfo}: The number of residuals ({resid_mapper.size}) "
+                    f"doesn't match number of outputs ({out_mapper.size}).  If any "
+                    "residuals are added using 'add_residuals', their total size "
+                    "must match the total size of the outputs."
+                )
 
             rmap = self._resid2out_subjac_map
             omap = {}
@@ -678,8 +727,12 @@ class ImplicitComponent(Component):
                         if oname not in omap:
                             omap[oname] = []
 
-                        data = (oname, pattern_meta.copy(),
-                                slice(ostart, ostop), slice(rstart, rstop))
+                        data = (
+                            oname,
+                            pattern_meta.copy(),
+                            slice(ostart, ostop),
+                            slice(rstart, rstop),
+                        )
 
                         rmap[resid].append(data)
                         omap[oname].append(data)
@@ -690,24 +743,26 @@ class ImplicitComponent(Component):
             if pattern_val is not None or pattern_rows is not None:
                 for _, wrts in self._find_wrt_matches(wrt):
                     for w in wrts:
-                        abs_wrts.append(self.pathname + '.' + w)
+                        abs_wrts.append(self.pathname + "." + w)
 
                 wrt_sizes = set()
                 for abs_wrt in abs_wrts:
-                    if abs_wrt in self._var_abs2meta['input']:
-                        wrtsize = shape_to_len(self._var_abs2meta['input'][abs_wrt]['shape'])
+                    if abs_wrt in self._var_abs2meta["input"]:
+                        wrtsize = shape_to_len(self._var_abs2meta["input"][abs_wrt]["shape"])
                     else:
-                        wrtsize = shape_to_len(self._var_abs2meta['output'][abs_wrt]['shape'])
+                        wrtsize = shape_to_len(self._var_abs2meta["output"][abs_wrt]["shape"])
                     wrt_sizes.add(wrtsize)
 
                 if len(wrt_sizes) > 1:
-                    raise ValueError(f"{self.msginfo}: declared residual partial ({of}, {wrt}) "
-                                     f"specifies a sub-jacobian value or shape, but it matches "
-                                     f"multiple 'wrt' values that don't all have the same size. "
-                                     f"Sizes found: {sorted(wrt_sizes)}.")
+                    raise ValueError(
+                        f"{self.msginfo}: declared residual partial ({of}, {wrt}) "
+                        f"specifies a sub-jacobian value or shape, but it matches "
+                        f"multiple 'wrt' values that don't all have the same size. "
+                        f"Sizes found: {sorted(wrt_sizes)}."
+                    )
 
             for oname, lst in omap.items():
-                oabs_name = self.pathname + '.' + oname
+                oabs_name = self.pathname + "." + oname
                 existing_metas = []
                 # gather any existing metadata dicts declared for the current output
                 for wabs in abs_wrts:
@@ -716,10 +771,10 @@ class ImplicitComponent(Component):
 
                 if not existing_metas:
                     newmeta = SUBJAC_META_DEFAULTS.copy()
-                    if 'method' in pattern_meta:
-                        method = pattern_meta['method']
-                        if method in ('fd', 'cs'):
-                            newmeta['method'] = method
+                    if "method" in pattern_meta:
+                        method = pattern_meta["method"]
+                        if method in ("fd", "cs"):
+                            newmeta["method"] = method
                     existing_metas.append(newmeta)
 
                 if pattern_rows is not None:
@@ -727,15 +782,17 @@ class ImplicitComponent(Component):
                     cols = []
                     data = []
                     for _, patmeta, oslc, rslc in lst:
-                        if 'rows' in patmeta and patmeta['rows'] is not None:
+                        if "rows" in patmeta and patmeta["rows"] is not None:
                             r, c, d = _get_sparse_slice(patmeta, oslc, rslc)
                             rows.append(r)
                             cols.append(c)
                             if d is not None:
                                 data.append(d)
                         else:
-                            raise RuntimeError("No support currently for sparse and dense resid "
-                                               "subjacs that overlap the same output.")
+                            raise RuntimeError(
+                                "No support currently for sparse and dense resid "
+                                "subjacs that overlap the same output."
+                            )
 
                     rows = np.concatenate(rows)
                     cols = np.concatenate(cols)
@@ -743,9 +800,11 @@ class ImplicitComponent(Component):
                     if data:
                         data = np.concatenate(data)
                         if len(data) != len(rows):
-                            raise ValueError(f"{self.msginfo}: length of data array ({len(data)} "
-                                             f"!= number of rows ({len(rows)} for sparse partial "
-                                             f"({oname}, {wrt}).")
+                            raise ValueError(
+                                f"{self.msginfo}: length of data array ({len(data)} "
+                                f"!= number of rows ({len(rows)} for sparse partial "
+                                f"({oname}, {wrt})."
+                            )
                         val = data
                     else:
                         val = None
@@ -753,30 +812,32 @@ class ImplicitComponent(Component):
                     for meta in existing_metas:
                         v, r, c = _subjac_meta2value(meta)
                         if r is not None:
-                            meta['rows'] = np.concatenate((r, rows))
-                            meta['cols'] = np.concatenate((c, cols))
+                            meta["rows"] = np.concatenate((r, rows))
+                            meta["cols"] = np.concatenate((c, cols))
                             if v is not None:
-                                meta['val'] = np.concatenate((v, val))
+                                meta["val"] = np.concatenate((v, val))
                             else:
-                                meta['val'] = val
+                                meta["val"] = val
                         elif v is not None:
-                            issue_warning(f"{self.msginfo}: The existing subjac value for "
-                                          f"({oname}, {wrt}) is dense, but is being updated with a "
-                                          "sparse value. The combined subjac will be dense.",
-                                          RuntimeWarning)
-                            meta['val'][oslc] = _get_dense_slice_from_sparse(meta, oslc, rslc)
+                            issue_warning(
+                                f"{self.msginfo}: The existing subjac value for "
+                                f"({oname}, {wrt}) is dense, but is being updated with a "
+                                "sparse value. The combined subjac will be dense.",
+                                RuntimeWarning,
+                            )
+                            meta["val"][oslc] = _get_dense_slice_from_sparse(meta, oslc, rslc)
                         else:
-                            meta['rows'] = rows
-                            meta['cols'] = cols
-                            meta['val'] = val
+                            meta["rows"] = rows
+                            meta["cols"] = cols
+                            meta["val"] = val
 
                 else:
-                    outsize = shape_to_len(self._var_abs2meta['output'][oabs_name]['shape'])
+                    outsize = shape_to_len(self._var_abs2meta["output"][oabs_name]["shape"])
                     for meta in existing_metas:
                         if pattern_val is not None:
                             val, r, c = _subjac_meta2value(meta)
                             if val is None:
-                                val = meta['val'] = np.zeros((outsize, wrtsize), dtype=float)
+                                val = meta["val"] = np.zeros((outsize, wrtsize), dtype=float)
 
                             for _, _, oslice, rslice in lst:
                                 val[oslice, :] = pattern_val[rslice, :]
@@ -799,26 +860,31 @@ class ImplicitComponent(Component):
             Local name of the output.
         """
         resmeta = self._declared_residuals[resid]
-        outmeta = self._var_abs2meta['output'][self.pathname + '.' + output]
+        outmeta = self._var_abs2meta["output"][self.pathname + "." + output]
 
-        ref = resmeta['ref']
-        res_ref = outmeta['res_ref']
+        ref = resmeta["ref"]
+        res_ref = outmeta["res_ref"]
 
         if ref is not None and res_ref is not None:
             ref_arr = isinstance(ref, np.ndarray)
             res_ref_arr = isinstance(res_ref, np.ndarray)
-            if (ref_arr != res_ref_arr or (ref_arr and not np.all(ref == res_ref) or
-                                           (not ref_arr and ref != res_ref))):
-                raise ValueError(f"{self.msginfo}: ({ref} != {res_ref}), 'ref' for residual "
-                                 f"'{resid}' != 'res_ref' for output '{output}'.")
+            if ref_arr != res_ref_arr or (
+                ref_arr and not np.all(ref == res_ref) or (not ref_arr and ref != res_ref)
+            ):
+                raise ValueError(
+                    f"{self.msginfo}: ({ref} != {res_ref}), 'ref' for residual "
+                    f"'{resid}' != 'res_ref' for output '{output}'."
+                )
 
-        units = resmeta['units']
-        res_units = outmeta['res_units']
+        units = resmeta["units"]
+        res_units = outmeta["res_units"]
 
         # assume units and res_units are already simplified
         if units is not None and res_units is not None and units != res_units:
-            raise ValueError(f"{self.msginfo}: residual units '{units}' for residual '{resid}' != "
-                             f"output res_units '{res_units}' for output '{output}'.")
+            raise ValueError(
+                f"{self.msginfo}: residual units '{units}' for residual '{resid}' != "
+                f"output res_units '{res_units}' for output '{output}'."
+            )
 
     def _column_iotypes(self):
         """
@@ -829,7 +895,7 @@ class ImplicitComponent(Component):
         tuple of the form ('output', 'input')
             The iotypes that make up columns of the jacobian.
         """
-        return ('output', 'input')
+        return ("output", "input")
 
     def _get_partials_ofs(self, use_resname=False):
         """
@@ -850,8 +916,9 @@ class ImplicitComponent(Component):
 
         return super()._get_partials_ofs()
 
-    def apply_nonlinear(self, inputs, outputs, residuals, discrete_inputs=None,
-                        discrete_outputs=None):
+    def apply_nonlinear(
+        self, inputs, outputs, residuals, discrete_inputs=None, discrete_outputs=None
+    ):
         """
         Compute residuals given inputs and outputs.
 
@@ -873,8 +940,9 @@ class ImplicitComponent(Component):
         if self.compute_primal is None:
             return
 
-        returns = self.compute_primal(*self._get_compute_primal_invals(inputs, outputs,
-                                                                       discrete_inputs))
+        returns = self.compute_primal(
+            *self._get_compute_primal_invals(inputs, outputs, discrete_inputs)
+        )
 
         if not isinstance(returns, _tuplist):
             returns = (returns,)
@@ -902,8 +970,9 @@ class ImplicitComponent(Component):
         if self.nonlinear_solver is not None:
             self.nonlinear_solver.solve()
 
-    def guess_nonlinear(self, inputs, outputs, residuals,
-                        discrete_inputs=None, discrete_outputs=None):
+    def guess_nonlinear(
+        self, inputs, outputs, residuals, discrete_inputs=None, discrete_outputs=None
+    ):
         """
         Provide initial guess for states.
 
@@ -973,7 +1042,7 @@ class ImplicitComponent(Component):
         mode : str
             Either 'fwd' or 'rev'.
         """
-        if mode == 'fwd':
+        if mode == "fwd":
             d_outputs.set_vec(d_residuals)
         else:  # rev
             d_residuals.set_vec(d_outputs)
@@ -1010,7 +1079,7 @@ class ImplicitComponent(Component):
         list
             List of all states.
         """
-        return list(self._resolver.abs_iter('output', local=True))
+        return list(self._resolver.abs_iter("output", local=True))
 
     def _list_states_allprocs(self):
         """
@@ -1055,40 +1124,49 @@ class ImplicitComponent(Component):
 
     def _get_compute_primal_argnames(self):
         if self._valid_name_map:
-            argnames = [self._valid_name_map.get(n, n) for n in self._var_rel_names['input']]
-            argnames.extend(self._valid_name_map.get(n, n) for n in self._var_rel_names['output'])
+            argnames = [self._valid_name_map.get(n, n) for n in self._var_rel_names["input"]]
+            argnames.extend(self._valid_name_map.get(n, n) for n in self._var_rel_names["output"])
             if self._discrete_inputs:
                 argnames.extend(self._valid_name_map.get(n, n) for n in self._discrete_inputs)
             return argnames
         else:
-            return list(chain(self._var_rel_names['input'], self._var_rel_names['output'],
-                              self._discrete_inputs))
+            return list(
+                chain(
+                    self._var_rel_names["input"],
+                    self._var_rel_names["output"],
+                    self._discrete_inputs,
+                )
+            )
 
     def _check_compute_primal_args(self):
         """
         Check that the compute_primal method args are in the correct order.
         """
         args = list(inspect.signature(self._orig_compute_primal).parameters)
-        if args and args[0] == 'self':
+        if args and args[0] == "self":
             args = args[1:]
         compargs = self._get_compute_primal_argnames()
         if args != compargs:
             has_res_primal = any(
-                n in self._valid_name_map and self._valid_name_map[n].startswith('res_')
-                for n in self._var_rel_names['output']
+                n in self._valid_name_map and self._valid_name_map[n].startswith("res_")
+                for n in self._var_rel_names["output"]
             )
             if has_res_primal:
-                msg = (f"{self.msginfo}: compute_primal method args {args} don't match "
-                       f"the args {compargs} mapped from this component's inputs. "
-                       "If you intended to specify the name of the returned residual in "
-                       "compute_primal, use 'res_primal_name' instead of 'primal_name'.")
+                msg = (
+                    f"{self.msginfo}: compute_primal method args {args} don't match "
+                    f"the args {compargs} mapped from this component's inputs. "
+                    "If you intended to specify the name of the returned residual in "
+                    "compute_primal, use 'res_primal_name' instead of 'primal_name'."
+                )
             else:
-                msg = (f"{self.msginfo}: compute_primal method args {args} don't match "
-                       f"the args {compargs} mapped from this component's inputs. To "
-                       "map inputs to the compute_primal method, set the name used in "
-                       "compute_primal to the 'primal_name' arg when calling "
-                       "add_input/add_discrete_input. This is only necessary if the "
-                       "declared component input name is not a valid Python name.")
+                msg = (
+                    f"{self.msginfo}: compute_primal method args {args} don't match "
+                    f"the args {compargs} mapped from this component's inputs. To "
+                    "map inputs to the compute_primal method, set the name used in "
+                    "compute_primal to the 'primal_name' arg when calling "
+                    "add_input/add_discrete_input. This is only necessary if the "
+                    "declared component input name is not a valid Python name."
+                )
             raise RuntimeError(msg)
 
     def _check_compute_primal_returns(self):
@@ -1097,7 +1175,7 @@ class ImplicitComponent(Component):
         """
         retnames = get_return_names(self.compute_primal)
         discrete_outnames = list(self._discrete_outputs)
-        outnames = list(self._var_rel_names['output'])
+        outnames = list(self._var_rel_names["output"])
 
         expected_names = [self._valid_name_map.get(n, n) for n in discrete_outnames]
         for n in outnames:
@@ -1107,8 +1185,10 @@ class ImplicitComponent(Component):
                 expected_names.append(self._valid_name_map.get(n, n))
 
         if len(retnames) != len(expected_names):
-            raise RuntimeError(f"{self.msginfo}: compute_primal method returns {len(retnames)} "
-                               f"values but expected {len(expected_names)}.")
+            raise RuntimeError(
+                f"{self.msginfo}: compute_primal method returns {len(retnames)} "
+                f"values but expected {len(expected_names)}."
+            )
 
         ndiscrete = len(discrete_outnames)
         for i, (expname, rname) in enumerate(zip(expected_names, retnames)):
@@ -1117,26 +1197,32 @@ class ImplicitComponent(Component):
             if i < ndiscrete:
                 # discrete outputs have no residual, so the returned name must match exactly.
                 if rname != expname:
-                    raise RuntimeError(f"{self.msginfo}: compute_primal method returns "
-                                       f"'{rname}' for return value {i} but expected '{expname}' "
-                                       f"for discrete output '{discrete_outnames[i]}'.")
+                    raise RuntimeError(
+                        f"{self.msginfo}: compute_primal method returns "
+                        f"'{rname}' for return value {i} but expected '{expname}' "
+                        f"for discrete output '{discrete_outnames[i]}'."
+                    )
                 continue
             orig_outname = outnames[i - ndiscrete]
             if orig_outname in self._res_primal_name_map:
                 if rname != expname:
-                    raise RuntimeError(f"{self.msginfo}: compute_primal method returns "
-                                       f"'{rname}' for return value {i} but expected '{expname}' "
-                                       "as specified by 'res_primal_name'.")
+                    raise RuntimeError(
+                        f"{self.msginfo}: compute_primal method returns "
+                        f"'{rname}' for return value {i} but expected '{expname}' "
+                        "as specified by 'res_primal_name'."
+                    )
             else:
-                if rname != expname and rname != f'res_{expname}':
-                    raise RuntimeError(f"{self.msginfo}: compute_primal method returns '{rname}' "
-                                       f"for return value {i} but the expected residual name for "
-                                       f"output '{orig_outname}' is '{expname}' or "
-                                       f"'res_{expname}'. To map a different residual name in "
-                                       "compute_primal, set 'res_primal_name' when calling "
-                                       "add_output.")
+                if rname != expname and rname != f"res_{expname}":
+                    raise RuntimeError(
+                        f"{self.msginfo}: compute_primal method returns '{rname}' "
+                        f"for return value {i} but the expected residual name for "
+                        f"output '{orig_outname}' is '{expname}' or "
+                        f"'res_{expname}'. To map a different residual name in "
+                        "compute_primal, set 'res_primal_name' when calling "
+                        "add_output."
+                    )
 
-    def compute_fd_sparsity(self, method='fd', num_full_jacs=2, perturb_size=1e-9):
+    def compute_fd_sparsity(self, method="fd", num_full_jacs=2, perturb_size=1e-9):
         """
         Use finite difference to compute a sparsity matrix.
 
@@ -1156,8 +1242,9 @@ class ImplicitComponent(Component):
             The sparsity matrix.
         """
         jac = _ColSparsityJac(self)
-        for _ in self._perturbation_iter(num_full_jacs, perturb_size,
-                                         (self._inputs, self._outputs), (self._residuals,)):
+        for _ in self._perturbation_iter(
+            num_full_jacs, perturb_size, (self._inputs, self._outputs), (self._residuals,)
+        ):
             self._apply_nonlinear()
             self.compute_fd_jac(jac=jac, method=method)
         return jac.get_sparsity()
@@ -1165,8 +1252,8 @@ class ImplicitComponent(Component):
 
 class _ResidsWrapper(object):
     def __init__(self, vec, name2slice_shape):
-        self.__dict__['_vec'] = vec
-        self.__dict__['_dct'] = name2slice_shape
+        self.__dict__["_vec"] = vec
+        self.__dict__["_dct"] = name2slice_shape
 
     def __getitem__(self, name):
         arr = self._vec.asarray(copy=False)
@@ -1195,10 +1282,9 @@ class _ResidsWrapper(object):
 
 
 class _JacobianWrapper(object):
-
     def __init__(self, jac, res2outmap):
-        self.__dict__['_jac'] = jac
-        self.__dict__['_dct'] = res2outmap
+        self.__dict__["_jac"] = jac
+        self.__dict__["_dct"] = res2outmap
 
     def __getitem__(self, key):
         res, wrt = key
@@ -1237,15 +1323,15 @@ class _JacobianWrapper(object):
 
 
 def _get_sparse_slice(meta, oslc, rslc):
-    r = np.asarray(meta['rows'], dtype=int)
-    c = np.asarray(meta['cols'], dtype=int)
+    r = np.asarray(meta["rows"], dtype=int)
+    c = np.asarray(meta["cols"], dtype=int)
     mask = np.logical_and(r >= rslc.start, r < rslc.stop)
 
-    if 'val' in meta and meta['val'] is not None:
-        if np.isscalar(meta['val']):
-            d = np.full((len(r),), meta['val'], dtype=float)
+    if "val" in meta and meta["val"] is not None:
+        if np.isscalar(meta["val"]):
+            d = np.full((len(r),), meta["val"], dtype=float)
         else:
-            d = np.atleast_1d(meta['val'])
+            d = np.atleast_1d(meta["val"])
         return r[mask] - rslc.start + oslc.start, c[mask], d[mask]
     else:
         return r[mask] - rslc.start + oslc.start, c[mask], None
@@ -1253,5 +1339,5 @@ def _get_sparse_slice(meta, oslc, rslc):
 
 def _get_dense_slice_from_sparse(meta, oslc, rslc):
     r, c, d = _get_sparse_slice(meta, oslc, rslc)
-    coo = coo_matrix((d, (r, c)), shape=(rslc.stop - rslc.start, meta['shape'][1]))
+    coo = coo_matrix((d, (r, c)), shape=(rslc.stop - rslc.start, meta["shape"][1]))
     return coo.toarray()

@@ -45,9 +45,15 @@ class CrossProductComp(ExplicitComponent):
         self._products = []
 
         opt = self.options
-        self.add_product(c_name=opt['c_name'], a_name=opt['a_name'], b_name=opt['b_name'],
-                         c_units=opt['c_units'], a_units=opt['a_units'], b_units=opt['b_units'],
-                         vec_size=opt['vec_size'])
+        self.add_product(
+            c_name=opt["c_name"],
+            a_name=opt["a_name"],
+            b_name=opt["b_name"],
+            c_units=opt["c_units"],
+            a_units=opt["a_units"],
+            b_units=opt["b_units"],
+            vec_size=opt["vec_size"],
+        )
 
         self._no_check_partials = True
 
@@ -55,30 +61,40 @@ class CrossProductComp(ExplicitComponent):
         """
         Declare options.
         """
-        self.options.declare('vec_size', types=int, default=1,
-                             desc='The number of points at which the cross product is computed')
-        self.options.declare('a_name', types=str, default='a',
-                             desc='The variable name for vector a.')
-        self.options.declare('b_name', types=str, default='b',
-                             desc='The variable name for vector b.')
-        self.options.declare('c_name', types=str, default='c',
-                             desc='The variable name for vector c.')
-        self.options.declare('a_units', types=str, default=None, allow_none=True,
-                             desc='The units for vector a.')
-        self.options.declare('b_units', types=str, default=None, allow_none=True,
-                             desc='The units for vector b.')
-        self.options.declare('c_units', types=str, default=None, allow_none=True,
-                             desc='The units for vector c.')
+        self.options.declare(
+            "vec_size",
+            types=int,
+            default=1,
+            desc="The number of points at which the cross product is computed",
+        )
+        self.options.declare(
+            "a_name", types=str, default="a", desc="The variable name for vector a."
+        )
+        self.options.declare(
+            "b_name", types=str, default="b", desc="The variable name for vector b."
+        )
+        self.options.declare(
+            "c_name", types=str, default="c", desc="The variable name for vector c."
+        )
+        self.options.declare(
+            "a_units", types=str, default=None, allow_none=True, desc="The units for vector a."
+        )
+        self.options.declare(
+            "b_units", types=str, default=None, allow_none=True, desc="The units for vector b."
+        )
+        self.options.declare(
+            "c_units", types=str, default=None, allow_none=True, desc="The units for vector c."
+        )
 
-        self._k = np.array([[0, 0, 0, -1, 0, 1],
-                            [0, 1, 0, 0, -1, 0],
-                            [-1, 0, 1, 0, 0, 0]], dtype=float)
+        self._k = np.array(
+            [[0, 0, 0, -1, 0, 1], [0, 1, 0, 0, -1, 0], [-1, 0, 1, 0, 0, 0]], dtype=float
+        )
 
         self._minus_k = -self._k
 
-    def add_product(self, c_name, a_name='a', b_name='b',
-                    c_units=None, a_units=None, b_units=None,
-                    vec_size=1):
+    def add_product(
+        self, c_name, a_name="a", b_name="b", c_units=None, a_units=None, b_units=None, vec_size=1
+    ):
         """
         Add a new output product to the cross product component.
 
@@ -101,15 +117,17 @@ class CrossProductComp(ExplicitComponent):
             should be computed simultaneously.  The shape of
             the output is (vec_size,).
         """
-        self._products.append({
-            'a_name': a_name,
-            'b_name': b_name,
-            'c_name': c_name,
-            'a_units': a_units,
-            'b_units': b_units,
-            'c_units': c_units,
-            'vec_size': vec_size,
-        })
+        self._products.append(
+            {
+                "a_name": a_name,
+                "b_name": b_name,
+                "c_name": c_name,
+                "a_units": a_units,
+                "b_units": b_units,
+                "c_units": c_units,
+                "vec_size": vec_size,
+            }
+        )
 
         # add inputs and outputs for all products
         if self._static_mode:
@@ -123,47 +141,61 @@ class CrossProductComp(ExplicitComponent):
 
         if c_name not in var_rel2meta:
             self.add_output(name=c_name, val=np.ones(shape=shape), units=c_units)
-        elif c_name in var_rel_names['input']:
-            raise NameError(f"{self.msginfo}: '{c_name}' specified as an output, "
-                            "but it has already been defined as an input.")
+        elif c_name in var_rel_names["input"]:
+            raise NameError(
+                f"{self.msginfo}: '{c_name}' specified as an output, "
+                "but it has already been defined as an input."
+            )
         else:
             raise NameError(f"{self.msginfo}: Multiple definition of output '{c_name}'.")
 
         if a_name not in var_rel2meta:
             self.add_input(name=a_name, shape=shape, units=a_units)
-        elif a_name in var_rel_names['output']:
-            raise NameError(f"{self.msginfo}: '{a_name}' specified as an input, "
-                            "but it has already been defined as an output.")
+        elif a_name in var_rel_names["output"]:
+            raise NameError(
+                f"{self.msginfo}: '{a_name}' specified as an input, "
+                "but it has already been defined as an output."
+            )
         else:
             meta = var_rel2meta[a_name]
-            if a_units != meta['units']:
-                raise ValueError(f"{self.msginfo}: Conflicting units '{a_units}' specified "
-                                 f"for input '{a_name}', which has already been defined "
-                                 f"with units '{meta['units']}'.")
+            if a_units != meta["units"]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting units '{a_units}' specified "
+                    f"for input '{a_name}', which has already been defined "
+                    f"with units '{meta['units']}'."
+                )
 
-            meta_shape = meta['shape']
+            meta_shape = meta["shape"]
             if shape != meta_shape:
-                raise ValueError(f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
-                                 f"for input '{a_name}', which has already been defined with "
-                                 f"vec_size={meta_shape[0] if len(meta_shape) > 1 else 1}.")
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
+                    f"for input '{a_name}', which has already been defined with "
+                    f"vec_size={meta_shape[0] if len(meta_shape) > 1 else 1}."
+                )
 
         if b_name not in var_rel2meta:
             self.add_input(name=b_name, shape=shape, units=b_units)
-        elif b_name in var_rel_names['output']:
-            raise NameError(f"{self.msginfo}: '{b_name}' specified as an input, "
-                            "but it has already been defined as an output.")
+        elif b_name in var_rel_names["output"]:
+            raise NameError(
+                f"{self.msginfo}: '{b_name}' specified as an input, "
+                "but it has already been defined as an output."
+            )
         else:
             meta = var_rel2meta[b_name]
-            if b_units != meta['units']:
-                raise ValueError(f"{self.msginfo}: Conflicting units '{b_units}' specified "
-                                 f"for input '{b_name}', which has already been defined "
-                                 f"with units '{meta['units']}'.")
+            if b_units != meta["units"]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting units '{b_units}' specified "
+                    f"for input '{b_name}', which has already been defined "
+                    f"with units '{meta['units']}'."
+                )
 
-            meta_shape = meta['shape']
+            meta_shape = meta["shape"]
             if shape != meta_shape:
-                raise ValueError(f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
-                                 f"for input '{b_name}', which has already been defined with "
-                                 f"vec_size={meta_shape[0] if len(meta_shape) > 1 else 1}.")
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
+                    f"for input '{b_name}', which has already been defined with "
+                    f"vec_size={meta_shape[0] if len(meta_shape) > 1 else 1}."
+                )
 
         row_idxs = np.repeat(np.arange(vec_size * 3, dtype=int), 2)
         col_idxs = np.empty((0,), dtype=int)
@@ -186,9 +218,9 @@ class CrossProductComp(ExplicitComponent):
             Unscaled, dimensional output variables read via outputs[key].
         """
         for product in self._products:
-            a = inputs[product['a_name']]
-            b = inputs[product['b_name']]
-            outputs[product['c_name']] = np.cross(a, b)
+            a = inputs[product["a_name"]]
+            b = inputs[product["b_name"]]
+            outputs[product["c_name"]] = np.cross(a, b)
 
     def compute_partials(self, inputs, partials):
         """
@@ -202,11 +234,13 @@ class CrossProductComp(ExplicitComponent):
             Sub-jac components written to partials[output_name, input_name].
         """
         for product in self._products:
-            a = inputs[product['a_name']]
-            b = inputs[product['b_name']]
+            a = inputs[product["a_name"]]
+            b = inputs[product["b_name"]]
 
             # Use the following for sparse partials
-            partials[product['c_name'], product['a_name']] = \
-                np.einsum('...j,ji->...i', b, self._minus_k).ravel()
-            partials[product['c_name'], product['b_name']] = \
-                np.einsum('...j,ji->...i', a, self._k).ravel()
+            partials[product["c_name"], product["a_name"]] = np.einsum(
+                "...j,ji->...i", b, self._minus_k
+            ).ravel()
+            partials[product["c_name"], product["b_name"]] = np.einsum(
+                "...j,ji->...i", a, self._k
+            ).ravel()

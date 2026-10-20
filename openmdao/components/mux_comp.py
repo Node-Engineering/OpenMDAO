@@ -1,6 +1,5 @@
 """Definition of the Mux Component."""
 
-
 import numpy as np
 
 from openmdao.core.explicitcomponent import ExplicitComponent
@@ -39,10 +38,14 @@ class MuxComp(ExplicitComponent):
         """
         Declare options.
         """
-        self.options.declare('vec_size', types=int, default=2,
-                             desc='The number of elements to be combined into an output.')
+        self.options.declare(
+            "vec_size",
+            types=int,
+            default=2,
+            desc="The number of elements to be combined into an output.",
+        )
 
-    def add_var(self, name, val=1.0, shape=None, units=None, desc='', axis=0):
+    def add_var(self, name, val=1.0, shape=None, units=None, desc="", axis=0):
         """
         Add an output variable to be muxed, and all associated input variables.
 
@@ -65,38 +68,44 @@ class MuxComp(ExplicitComponent):
             The axis along which the elements will be stacked.  Note that N-dimensional inputs
             cannot be stacked along an axis greater than N.
         """
-        self._vars[name] = {'val': val, 'shape': shape, 'units': units, 'desc': desc, 'axis': axis}
+        self._vars[name] = {"val": val, "shape": shape, "units": units, "desc": desc, "axis": axis}
 
         opts = self.options
-        vec_size = opts['vec_size']
+        vec_size = opts["vec_size"]
 
         options = self._vars[name]
 
         kwgs = dict(options)
-        in_shape = np.asarray(options['val']).shape \
-            if options['shape'] is None else options['shape']
+        in_shape = (
+            np.asarray(options["val"]).shape if options["shape"] is None else options["shape"]
+        )
         in_size = shape_to_len(in_shape)
         out_shape = list(in_shape)
-        out_shape.insert(options['axis'], vec_size)
-        kwgs.pop('shape')
-        ax = kwgs.pop('axis')
+        out_shape.insert(options["axis"], vec_size)
+        kwgs.pop("shape")
+        ax = kwgs.pop("axis")
 
         in_dimension = len(in_shape)
 
         if ax > in_dimension:
-            raise ValueError('{3}: Cannot mux a {0}D inputs for {2} along axis greater '
-                             'than {0} ({1})'.format(in_dimension, ax, name, self.msginfo))
+            raise ValueError(
+                "{3}: Cannot mux a {0}D inputs for {2} along axis greater than {0} ({1})".format(
+                    in_dimension, ax, name, self.msginfo
+                )
+            )
 
-        self.add_output(name=name,
-                        val=options['val'],
-                        shape=out_shape,
-                        units=options['units'],
-                        desc=options['desc'])
+        self.add_output(
+            name=name,
+            val=options["val"],
+            shape=out_shape,
+            units=options["units"],
+            desc=options["desc"],
+        )
 
         self._input_names[name] = []
 
         for i in range(vec_size):
-            in_name = '{0}_{1}'.format(name, i)
+            in_name = "{0}_{1}".format(name, i)
             self._input_names[name].append(in_name)
 
             self.add_input(name=in_name, shape=in_shape, **kwgs)
@@ -127,10 +136,10 @@ class MuxComp(ExplicitComponent):
             Unscaled, dimensional output variables read via outputs[key].
         """
         opts = self.options
-        vec_size = opts['vec_size']
+        vec_size = opts["vec_size"]
 
         for var in self._vars:
-            ax = self._vars[var]['axis']
+            ax = self._vars[var]["axis"]
             invar = self._input_names[var]
             vals = [inputs[invar[i]] for i in range(vec_size)]
             outputs[var][...] = np.stack(vals, axis=ax)

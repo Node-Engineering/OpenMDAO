@@ -18,7 +18,7 @@ class UndefinedComparisonVisitor(ast.NodeVisitor):
         """
         if isinstance(node.ops[0], ast.Is) and isinstance(node.comparators[0], ast.Name):
             if node.comparators[0].id == "_UNDEFINED":
-                variable = getattr(node.left, 'id', 'unknown')
+                variable = getattr(node.left, "id", "unknown")
                 line_number = node.lineno
                 self.issues.append(
                     f"Found '{variable} is _UNDEFINED' in {self.file_path} at line {line_number}. "
@@ -34,7 +34,7 @@ def process_file(file_path):
     local_errors = []
     try:
         # Read and parse the file into an AST
-        source = file_path.read_text(encoding='utf-8')
+        source = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(file_path))
 
         # Visit the AST nodes
@@ -58,7 +58,7 @@ class TestUndefinedComparison(unittest.TestCase):
         error_messages = []
 
         # Iterate through all Python files in the directory
-        for file_path in root_dir.rglob('*.py'):
+        for file_path in root_dir.rglob("*.py"):
             error_messages.extend(process_file(file_path))
 
         # Raise assertion error if any violations are found
@@ -66,5 +66,5 @@ class TestUndefinedComparison(unittest.TestCase):
             self.fail("\n".join(error_messages))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

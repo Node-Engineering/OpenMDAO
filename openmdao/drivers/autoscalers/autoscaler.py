@@ -19,7 +19,7 @@ class Autoscaler(AutoscalerBase):
 
     """
 
-    def setup(self, driver: 'Driver'):
+    def setup(self, driver: "Driver"):
         """
         Perform setup of autoscaler during final setup of the problem.
 
@@ -35,29 +35,27 @@ class Autoscaler(AutoscalerBase):
 
         if self.setup_requires_run_model:
             with RecordingDebugging(driver._get_name(), driver.iter_count, self):
-                with driver._problem().model._relevance.nonlinear_active('iter'):
+                with driver._problem().model._relevance.nonlinear_active("iter"):
                     driver._run_solve_nonlinear()
                 driver.iter_count += 1
-        
+
         self._driver_ref = weakref.ref(driver)
-        self._var_meta : dict[str, dict[str, dict]] = {
-            'design_var': driver._designvars,
-            'constraint': driver._cons,
-            'objective': driver._objs
+        self._var_meta: dict[str, dict[str, dict]] = {
+            "design_var": driver._designvars,
+            "constraint": driver._cons,
+            "objective": driver._objs,
         }
 
         self._has_scaling = False
 
-        for voi_type in ['design_var', 'constraint', 'objective']:
+        for voi_type in ["design_var", "constraint", "objective"]:
             for meta in self._var_meta[voi_type].values():
-                scaler, adder = meta['total_scaler'], meta['total_adder']
-                self._has_scaling = self._has_scaling \
-                    or (scaler is not None) \
-                    or (adder is not None)
+                scaler, adder = meta["total_scaler"], meta["total_adder"]
+                self._has_scaling = self._has_scaling or (scaler is not None) or (adder is not None)
 
         # Compute and cache scaled bounds dicts for design vars and constraints
         self._scaled_bounds = {}
-        for voi_type in ['design_var', 'constraint']:
+        for voi_type in ["design_var", "constraint"]:
             self._scaled_bounds[voi_type] = self._compute_scaled_bounds(voi_type)
 
     @property
@@ -71,7 +69,7 @@ class Autoscaler(AutoscalerBase):
             True if any scaling is applied, otherwise False.
         """
         return self._has_scaling
-    
+
     @property
     def setup_requires_run_model(self) -> bool:
         """
@@ -184,22 +182,28 @@ class Autoscaler(AutoscalerBase):
         bounds = BoundMap()
 
         for name, meta in self._var_meta[voi_type].items():
-            if meta.get('discrete', False):
+            if meta.get("discrete", False):
                 continue
-            size = meta.get('global_size', meta.get('size', 0)) \
-                if meta.get('distributed', False) else meta.get('size', 0)
-            adder = meta['total_adder']
-            scaler = meta['total_scaler']
+            size = (
+                meta.get("global_size", meta.get("size", 0))
+                if meta.get("distributed", False)
+                else meta.get("size", 0)
+            )
+            adder = meta["total_adder"]
+            scaler = meta["total_scaler"]
 
-            eq = meta.get('equals') if voi_type == 'constraint' else None
+            eq = meta.get("equals") if voi_type == "constraint" else None
             bounds.set(
                 name,
-                lower=self._scale_bound(meta.get('lower', None), adder, scaler, size,
-                                        is_lower=True),
-                upper=self._scale_bound(meta.get('upper', None), adder, scaler, size,
-                                        is_lower=False),
+                lower=self._scale_bound(
+                    meta.get("lower", None), adder, scaler, size, is_lower=True
+                ),
+                upper=self._scale_bound(
+                    meta.get("upper", None), adder, scaler, size, is_lower=False
+                ),
                 equals=self._scale_bound(eq, adder, scaler, size, is_lower=False)
-                       if eq is not None else None,
+                if eq is not None
+                else None,
             )
 
         return bounds
@@ -228,7 +232,7 @@ class Autoscaler(AutoscalerBase):
         """
         return self._scaled_bounds[voi_type]
 
-    def _apply_vec_unscaling(self, vec: 'OptimizerVector'):
+    def _apply_vec_unscaling(self, vec: "OptimizerVector"):
         """
         Unscale the optmization variables from the optimizer space to the model space, in place.
 
@@ -246,11 +250,11 @@ class Autoscaler(AutoscalerBase):
         """
         if not vec.driver_scaling:
             return vec
-        
+
         for name in vec:
             # Use cached combined scaler/adder - includes both unit conversion and user scaling
-            scaler = self._var_meta[vec.voi_type][name]['total_scaler']
-            adder = self._var_meta[vec.voi_type][name]['total_adder']
+            scaler = self._var_meta[vec.voi_type][name]["total_scaler"]
+            adder = self._var_meta[vec.voi_type][name]["total_adder"]
 
             # Unscale: x_model = x_optimizer / scaler - adder
             if scaler is not None:
@@ -261,7 +265,7 @@ class Autoscaler(AutoscalerBase):
 
         return vec
 
-    def apply_design_var_unscaling(self, vec: 'OptimizerVector'):
+    def apply_design_var_unscaling(self, vec: "OptimizerVector"):
         """
         Unscale the design variables from the optimizer space to the model space.
 
@@ -272,7 +276,7 @@ class Autoscaler(AutoscalerBase):
         """
         self._apply_vec_unscaling(vec)
 
-    def apply_design_var_scaling(self, vec: 'OptimizerVector'):
+    def apply_design_var_scaling(self, vec: "OptimizerVector"):
         """
         Scale the design variables from the model space to the optimizer space.
 
@@ -283,7 +287,7 @@ class Autoscaler(AutoscalerBase):
         """
         self._apply_vec_scaling(vec)
 
-    def apply_constraint_scaling(self, vec: 'OptimizerVector'):
+    def apply_constraint_scaling(self, vec: "OptimizerVector"):
         """
         Scale the constraints from the model space to the optimizer space.
 
@@ -294,7 +298,7 @@ class Autoscaler(AutoscalerBase):
         """
         self._apply_vec_scaling(vec)
 
-    def apply_objective_scaling(self, vec: 'OptimizerVector'):
+    def apply_objective_scaling(self, vec: "OptimizerVector"):
         """
         Scale the objective from the model space to the optimizer space.
 
@@ -312,8 +316,8 @@ class Autoscaler(AutoscalerBase):
             An OptimizerVector with voi_type='objective'.
         """
         self._apply_vec_scaling(vec)
-    
-    def _apply_vec_scaling(self, vec: 'OptimizerVector'):
+
+    def _apply_vec_scaling(self, vec: "OptimizerVector"):
         """
         Scale the vector from the model space to the optimizer space.
 
@@ -323,8 +327,8 @@ class Autoscaler(AutoscalerBase):
             return vec
         for name in vec:
             # Use cached combined scaler/adder - includes both unit conversion and user scaling
-            scaler = self._var_meta[vec.voi_type][name]['total_scaler']
-            adder = self._var_meta[vec.voi_type][name]['total_adder']
+            scaler = self._var_meta[vec.voi_type][name]["total_scaler"]
+            adder = self._var_meta[vec.voi_type][name]["total_adder"]
 
             # Scale: x_optimizer = (x_model + adder) * scaler
             if adder is not None:
@@ -336,79 +340,79 @@ class Autoscaler(AutoscalerBase):
     def apply_mult_unscaling(self, desvar_multipliers, con_multipliers):
         """
         Unscale the Lagrange multipliers from optimizer space to model space.
-        
+
         This method transforms Lagrange multipliers of active constraints (including
-        active design variable bounds) from the scaled optimization space back to 
+        active design variable bounds) from the scaled optimization space back to
         physical (model) space.
-        
+
         At optimality, we assume the KKT stationarity condition holds:
-        
+
             ∇ₓf(x) + ∇ₓg(x)^T λ = 0
-        
+
         where:
             - ∇ₓf is the gradient of the objective
             - ∇ₓg(x)^T is the Jacobian of all active constraints (each row is ∇ₓg_i^T)
             - λ is the vector of Lagrange multipliers (in optimizer-scaled)
-        
+
         The constraint vector g(x) includes:
             - Active design variables (on their bounds, to within some tolerance)
             - Equality constraints (always active)
             - Active inequality constraints (on their bounds, to within some tolerance)
-        
+
         Notes
         -----
         Define scaling transformations that map from unscaled (physical) space to
         scaled (optimizer) space:
-        
+
             x_scaled = T_x(x)         (design variables)
             g_scaled = T_g(g(x))      (constraints)
             f_scaled = T_f(f(x))      (objective)
-        
+
         Applying the chain rule to the scaled stationarity condition:
-        
+
             ∇ₓ_scaled f_scaled + ∇ₓ_scaled g_scaled^T λ_scaled = 0
-        
+
         The gradients in scaled space are:
-        
+
             ∇ₓ_scaled f_scaled = (dTf/df) * ∇ₓf * (dTₓ/dx)^(-1)
             ∇ₓ_scaled g_scaled = (dTg/dg) * ∇ₓg * (dTₓ/dx)^(-1)
-        
+
         Substituting into the scaled stationarity condition and multiplying by (dTₓ/dx)^T:
-        
+
             (dTf/df) * ∇ₓf + (dTg/dg) * ∇ₓg^T * λ_scaled = 0
-        
+
         Dividing by (dTf/df) and comparing with the unscaled condition ∇ₓf + ∇ₓg^T λ = 0:
-        
+
             λ = (dTg/dg) / (dTf/df) * λ_scaled
-        
+
         For the Default autoscaler, we have
-        
+
             T_x(x) = (x + adder_x) * scaler_x
             T_g(g) = (g + adder_g) * scaler_g
             T_f(f) = (f + adder_f) * scaler_f
-        
+
         The derivatives are:
-        
+
             dT_x/dx = scaler_x
             dT_g/dg = scaler_g
             dT_f/df = scaler_f
-        
+
         Therefore:
-        
+
             λ_constraint = (scaler_g / scaler_f) * λ_constraint_scaled
-    
+
             λ_bound = (scaler_x / scaler_f) * λ_bound_scaled
-        
+
         The adder terms do not appear in the multiplier transformation
         because they are constant offsets that vanish under differentiation.
-        
+
         Parameters
         ----------
         desvar_multipliers : dict[str, np.ndarray]
             A dict of optimizer-scaled Lagrange multipliers keyed by each active design variable.
         con_multipliers : dict[str, np.ndarray]
             A dict of optimizer-scaled Lagrange multipliers keyed by each active constraint.
-        
+
         Returns
         -------
         desvar_multipliers : dict[str, np.ndarray]
@@ -422,20 +426,20 @@ class Autoscaler(AutoscalerBase):
             return desvar_multipliers, con_multipliers
 
         # Get the objective scaler from cached combined scalers
-        obj_meta = self._var_meta['objective']
+        obj_meta = self._var_meta["objective"]
         obj_name = list(obj_meta.keys())[0]
-        obj_scaler = obj_meta[obj_name]['total_scaler'] or 1.0
+        obj_scaler = obj_meta[obj_name]["total_scaler"] or 1.0
 
         if desvar_multipliers:
             for name, mult in desvar_multipliers.items():
                 # Get the design variable scaler from cached combined scalers
-                scaler = self._var_meta['design_var'][name]['total_scaler'] or 1.0
+                scaler = self._var_meta["design_var"][name]["total_scaler"] or 1.0
                 mult *= scaler / obj_scaler
 
         if con_multipliers:
             for name, mult in con_multipliers.items():
                 # Get the constraint scaler from cached combined scalers
-                scaler = self._var_meta['constraint'][name]['total_scaler'] or 1.0
+                scaler = self._var_meta["constraint"][name]["total_scaler"] or 1.0
                 mult *= scaler / obj_scaler
 
         return desvar_multipliers, con_multipliers
@@ -481,17 +485,17 @@ class Autoscaler(AutoscalerBase):
                 out_name = key
                 for in_name, block in jac_block.items():
                     # Determine output scaler
-                    if out_name in self._var_meta['objective']:
-                        out_scaler = self._var_meta['objective'][out_name]['total_scaler']
-                    elif out_name in self._var_meta['constraint']:
-                        out_scaler = self._var_meta['constraint'][out_name]['total_scaler']
+                    if out_name in self._var_meta["objective"]:
+                        out_scaler = self._var_meta["objective"][out_name]["total_scaler"]
+                    elif out_name in self._var_meta["constraint"]:
+                        out_scaler = self._var_meta["constraint"][out_name]["total_scaler"]
                     else:
                         # Unknown output, skip scaling this row
                         continue
 
                     # Determine input scaler
-                    if in_name in self._var_meta['design_var']:
-                        in_scaler = self._var_meta['design_var'][in_name]['total_scaler']
+                    if in_name in self._var_meta["design_var"]:
+                        in_scaler = self._var_meta["design_var"][in_name]["total_scaler"]
                     else:
                         # Unknown input, skip scaling this entry
                         continue
@@ -506,17 +510,17 @@ class Autoscaler(AutoscalerBase):
 
             # Handle flat dict format (key is a tuple)
             # Determine output scaler
-            if out_name in self._var_meta['objective']:
-                out_scaler = self._var_meta['objective'][out_name]['total_scaler']
-            elif out_name in self._var_meta['constraint']:
-                out_scaler = self._var_meta['constraint'][out_name]['total_scaler']
+            if out_name in self._var_meta["objective"]:
+                out_scaler = self._var_meta["objective"][out_name]["total_scaler"]
+            elif out_name in self._var_meta["constraint"]:
+                out_scaler = self._var_meta["constraint"][out_name]["total_scaler"]
             else:
                 # Unknown output, skip scaling this entry
                 continue
 
             # Determine input scaler
-            if in_name in self._var_meta['design_var']:
-                in_scaler = self._var_meta['design_var'][in_name]['total_scaler']
+            if in_name in self._var_meta["design_var"]:
+                in_scaler = self._var_meta["design_var"][in_name]["total_scaler"]
             else:
                 # Unknown input, skip scaling this entry
                 continue

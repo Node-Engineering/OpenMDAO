@@ -1,4 +1,5 @@
 """Define a base class for all Drivers in OpenMDAO."""
+
 from fnmatch import fnmatchcase
 import functools
 from itertools import chain
@@ -26,12 +27,17 @@ from openmdao.utils.array_utils import sizes2offsets
 from openmdao.vectors.vector import _full_slice, _flat_full_indexer
 from openmdao.vectors.optimizer_vector import OptimizerVector
 from openmdao.utils.indexer import indexer
-from openmdao.utils.om_warnings import issue_warning, DerivativesWarning, \
-    DriverWarning, OMDeprecationWarning, warn_deprecation
+from openmdao.utils.om_warnings import (
+    issue_warning,
+    DerivativesWarning,
+    DriverWarning,
+    OMDeprecationWarning,
+    warn_deprecation,
+)
 from openmdao.utils.units import convert_units
 
 
-class DriverResult():
+class DriverResult:
     """
     A container that stores information pertaining to the result of a driver execution.
 
@@ -73,7 +79,7 @@ class DriverResult():
         self.model_time = 0.0
         self.deriv_evals = 0
         self.deriv_time = 0.0
-        self.exit_status = 'NOT_RUN'
+        self.exit_status = "NOT_RUN"
         self.success = False
 
     def reset(self):
@@ -86,7 +92,7 @@ class DriverResult():
         self.model_time = 0.0
         self.deriv_evals = 0
         self.deriv_time = 0.0
-        self.exit_status = 'NOT_RUN'
+        self.exit_status = "NOT_RUN"
         self.success = False
 
     def __getitem__(self, s):
@@ -119,16 +125,18 @@ class DriverResult():
         """
         driver = self._driver()
         prob = driver._problem()
-        s = (f'Problem: {prob._name}\n'
-             f'Driver:  {driver.__class__.__name__}\n'
-             f'  success     : {self.success}\n'
-             f'  iterations  : {self.iter_count}\n'
-             f'  runtime     : {self.runtime:-10.4E} s\n'
-             f'  model_evals : {self.model_evals}\n'
-             f'  model_time  : {self.model_time:-10.4E} s\n'
-             f'  deriv_evals : {self.deriv_evals}\n'
-             f'  deriv_time  : {self.deriv_time:-10.4E} s\n'
-             f'  exit_status : {self.exit_status}')
+        s = (
+            f"Problem: {prob._name}\n"
+            f"Driver:  {driver.__class__.__name__}\n"
+            f"  success     : {self.success}\n"
+            f"  iterations  : {self.iter_count}\n"
+            f"  runtime     : {self.runtime:-10.4E} s\n"
+            f"  model_evals : {self.model_evals}\n"
+            f"  model_time  : {self.model_time:-10.4E} s\n"
+            f"  deriv_evals : {self.deriv_evals}\n"
+            f"  deriv_time  : {self.deriv_time:-10.4E} s\n"
+            f"  exit_status : {self.exit_status}"
+        )
         return s
 
     def __bool__(self):
@@ -145,11 +153,13 @@ class DriverResult():
             True if the Driver was NOT successful.
 
         """
-        issue_warning(msg='boolean evaluation of DriverResult is temporarily implemented '
-                      'to mimick the previous `failed` return behavior of run_driver.\n'
-                      'Use the `success` attribute of the returned DriverResult '
-                      'object to test for successful driver completion.',
-                      category=OMDeprecationWarning)
+        issue_warning(
+            msg="boolean evaluation of DriverResult is temporarily implemented "
+            "to mimick the previous `failed` return behavior of run_driver.\n"
+            "Use the `success` attribute of the returned DriverResult "
+            "object to test for successful driver completion.",
+            category=OMDeprecationWarning,
+        )
         return not self.success
 
     @staticmethod
@@ -172,7 +182,7 @@ class DriverResult():
             A wrapped version of the decorated function such that it accumulates the time and
             call count for either the objective or derivatives.
         """
-        if kind not in ('model', 'deriv'):
+        if kind not in ("model", "deriv"):
             raise AttributeError('time_type must be one of "model" or "deriv".')
 
         def _track_time(func):
@@ -183,14 +193,16 @@ class DriverResult():
                 end_time = time.perf_counter()
                 result = args[0].result
 
-                if kind == 'model':
+                if kind == "model":
                     result.model_time += end_time - start_time
                     result.model_evals += 1
                 else:
                     result.deriv_time += end_time - start_time
                     result.deriv_evals += 1
                 return ret
+
             return wrapper
+
         return _track_time
 
 
@@ -300,75 +312,113 @@ class Driver(object, metaclass=DriverMetaclass):
         # Driver options
         self.options = OptionsDictionary(parent_name=type(self).__name__)
 
-        self.options.declare('debug_print', types=list,
-                             values=['desvars', 'nl_cons', 'ln_cons', 'objs', 'totals'],
-                             desc="List of what type of Driver variables to print at each "
-                                  "iteration.",
-                             default=[])
+        self.options.declare(
+            "debug_print",
+            types=list,
+            values=["desvars", "nl_cons", "ln_cons", "objs", "totals"],
+            desc="List of what type of Driver variables to print at each iteration.",
+            default=[],
+        )
 
-        default_desvar_behavior = os.environ.get('OPENMDAO_INVALID_DESVAR_BEHAVIOR', 'warn').lower()
+        default_desvar_behavior = os.environ.get("OPENMDAO_INVALID_DESVAR_BEHAVIOR", "warn").lower()
 
-        self.options.declare('invalid_desvar_behavior', values=('warn', 'raise', 'ignore'),
-                             desc='Behavior of driver if the initial value of a design '
-                                  'variable exceeds its bounds. The default value may be'
-                                  'set using the `OPENMDAO_INVALID_DESVAR_BEHAVIOR` environment '
-                                  'variable to one of the valid options.',
-                             default=default_desvar_behavior)
+        self.options.declare(
+            "invalid_desvar_behavior",
+            values=("warn", "raise", "ignore"),
+            desc="Behavior of driver if the initial value of a design "
+            "variable exceeds its bounds. The default value may be"
+            "set using the `OPENMDAO_INVALID_DESVAR_BEHAVIOR` environment "
+            "variable to one of the valid options.",
+            default=default_desvar_behavior,
+        )
 
         # Case recording options
         self.recording_options = OptionsDictionary(parent_name=type(self).__name__)
 
-        self.recording_options.declare('record_desvars', types=bool, default=True,
-                                       desc='Set to True to record design variables at the '
-                                            'driver level')
-        self.recording_options.declare('record_responses', types=bool, default=False,
-                                       desc='Set True to record constraints and objectives at the '
-                                            'driver level')
-        self.recording_options.declare('record_objectives', types=bool, default=True,
-                                       desc='Set to True to record objectives at the driver level')
-        self.recording_options.declare('record_constraints', types=bool, default=True,
-                                       desc='Set to True to record constraints at the '
-                                            'driver level')
-        self.recording_options.declare('includes', types=list, default=[],
-                                       desc='Patterns for variables to include in recording. '
-                                            'Uses fnmatch wildcards')
-        self.recording_options.declare('excludes', types=list, default=[],
-                                       desc='Patterns for vars to exclude in recording '
-                                            '(processed post-includes). Uses fnmatch wildcards')
-        self.recording_options.declare('record_derivatives', types=bool, default=False,
-                                       desc='Set to True to record derivatives at the driver '
-                                            'level')
-        self.recording_options.declare('record_inputs', types=bool, default=True,
-                                       desc='Set to True to record inputs at the driver level')
-        self.recording_options.declare('record_outputs', types=bool, default=True,
-                                       desc='Set True to record outputs at the '
-                                            'driver level.')
-        self.recording_options.declare('record_residuals', types=bool, default=False,
-                                       desc='Set True to record residuals at the '
-                                            'driver level.')
+        self.recording_options.declare(
+            "record_desvars",
+            types=bool,
+            default=True,
+            desc="Set to True to record design variables at the driver level",
+        )
+        self.recording_options.declare(
+            "record_responses",
+            types=bool,
+            default=False,
+            desc="Set True to record constraints and objectives at the driver level",
+        )
+        self.recording_options.declare(
+            "record_objectives",
+            types=bool,
+            default=True,
+            desc="Set to True to record objectives at the driver level",
+        )
+        self.recording_options.declare(
+            "record_constraints",
+            types=bool,
+            default=True,
+            desc="Set to True to record constraints at the driver level",
+        )
+        self.recording_options.declare(
+            "includes",
+            types=list,
+            default=[],
+            desc="Patterns for variables to include in recording. Uses fnmatch wildcards",
+        )
+        self.recording_options.declare(
+            "excludes",
+            types=list,
+            default=[],
+            desc="Patterns for vars to exclude in recording "
+            "(processed post-includes). Uses fnmatch wildcards",
+        )
+        self.recording_options.declare(
+            "record_derivatives",
+            types=bool,
+            default=False,
+            desc="Set to True to record derivatives at the driver level",
+        )
+        self.recording_options.declare(
+            "record_inputs",
+            types=bool,
+            default=True,
+            desc="Set to True to record inputs at the driver level",
+        )
+        self.recording_options.declare(
+            "record_outputs",
+            types=bool,
+            default=True,
+            desc="Set True to record outputs at the driver level.",
+        )
+        self.recording_options.declare(
+            "record_residuals",
+            types=bool,
+            default=False,
+            desc="Set True to record residuals at the driver level.",
+        )
 
         # What the driver supports.
         self.supports = OptionsDictionary(parent_name=type(self).__name__)
-        self.supports.declare('optimization', types=bool, default=False)
-        self.supports.declare('inequality_constraints', types=bool, default=False)
-        self.supports.declare('equality_constraints', types=bool, default=False)
-        self.supports.declare('linear_constraints', types=bool, default=False)
-        self.supports.declare('linear_only_designvars', types=bool, default=False)
-        self.supports.declare('two_sided_constraints', types=bool, default=False)
-        self.supports.declare('multiple_objectives', types=bool, default=False)
-        self.supports.declare('integer_design_vars', types=bool, default=True)
-        self.supports.declare('gradients', types=bool, default=False)
-        self.supports.declare('active_set', types=bool, default=False)
-        self.supports.declare('simultaneous_derivatives', types=bool, default=False)
-        self.supports.declare('total_jac_sparsity', types=bool, default=False)
-        self.supports.declare('distributed_design_vars', types=bool, default=True)
+        self.supports.declare("optimization", types=bool, default=False)
+        self.supports.declare("inequality_constraints", types=bool, default=False)
+        self.supports.declare("equality_constraints", types=bool, default=False)
+        self.supports.declare("linear_constraints", types=bool, default=False)
+        self.supports.declare("linear_only_designvars", types=bool, default=False)
+        self.supports.declare("two_sided_constraints", types=bool, default=False)
+        self.supports.declare("multiple_objectives", types=bool, default=False)
+        self.supports.declare("integer_design_vars", types=bool, default=True)
+        self.supports.declare("gradients", types=bool, default=False)
+        self.supports.declare("active_set", types=bool, default=False)
+        self.supports.declare("simultaneous_derivatives", types=bool, default=False)
+        self.supports.declare("total_jac_sparsity", types=bool, default=False)
+        self.supports.declare("distributed_design_vars", types=bool, default=True)
 
         self.iter_count = 0
         self.cite = ""
 
         self._coloring_info = coloring_mod.ColoringMeta()
 
-        self._total_jac_format = 'flat_dict'
+        self._total_jac_format = "flat_dict"
         self._con_subjacs = {}
         self._total_jac = None
         self._total_jac_linear = None
@@ -523,7 +573,7 @@ class Driver(object, metaclass=DriverMetaclass):
             Default is True.
         """
         meta = self._designvars
-        desvar_vec = self._vectors['design_var']
+        desvar_vec = self._vectors["design_var"]
 
         if driver_scaling:
             self._autoscaler.apply_design_var_unscaling(desvar_vec)
@@ -532,7 +582,7 @@ class Driver(object, metaclass=DriverMetaclass):
 
         for name in desvar_names:
             value = desvar_vec[name]
-            units = meta[name].get('units')
+            units = meta[name].get("units")
             self._set_design_var(name, value, set_remote=True, units=units)
 
     def _setup_driver(self, problem):
@@ -551,11 +601,14 @@ class Driver(object, metaclass=DriverMetaclass):
         self._total_jac = None
 
         # Determine if any design variables are discrete.
-        self._designvars_discrete = [name for name, meta in self._designvars.items()
-                                     if meta['source'] in model._discrete_outputs]
-        if not self.supports['integer_design_vars'] and len(self._designvars_discrete) > 0:
+        self._designvars_discrete = [
+            name
+            for name, meta in self._designvars.items()
+            if meta["source"] in model._discrete_outputs
+        ]
+        if not self.supports["integer_design_vars"] and len(self._designvars_discrete) > 0:
             msg = "Discrete design variables are not supported by this driver: "
-            msg += '.'.join(self._designvars_discrete)
+            msg += ".".join(self._designvars_discrete)
             raise RuntimeError(msg)
 
         self._split_dvs(model)
@@ -566,29 +619,28 @@ class Driver(object, metaclass=DriverMetaclass):
         self._remote_objs = {}
 
         # Only allow distributed design variables on drivers that support it.
-        if self.supports['distributed_design_vars'] is False:
+        if self.supports["distributed_design_vars"] is False:
             dist_vars = []
-            abs2meta_in = model._var_allprocs_abs2meta['input']
-            discrete_in = model._var_allprocs_discrete['input']
+            abs2meta_in = model._var_allprocs_abs2meta["input"]
+            discrete_in = model._var_allprocs_discrete["input"]
             for dv, meta in self._designvars.items():
-
                 # For Auto-ivcs, we need to check the distributed metadata on the target instead.
-                if meta['source'].startswith('_auto_ivc.'):
-                    for abs_name in model._resolver.absnames(dv, 'input'):
+                if meta["source"].startswith("_auto_ivc."):
+                    for abs_name in model._resolver.absnames(dv, "input"):
                         # we can use abs name to check for discrete vars here because
                         # relative names are absolute names at the model level.
                         if abs_name in discrete_in:
                             # Discrete vars aren't distributed.
                             break
 
-                        if abs2meta_in[abs_name]['distributed']:
+                        if abs2meta_in[abs_name]["distributed"]:
                             dist_vars.append(dv)
                             break
-                elif meta['distributed']:
+                elif meta["distributed"]:
                     dist_vars.append(dv)
 
             if dist_vars:
-                dstr = ', '.join(dist_vars)
+                dstr = ", ".join(dist_vars)
                 msg = "Distributed design variables are not supported by this driver, but the "
                 msg += f"following variables are distributed: [{dstr}]"
                 raise RuntimeError(msg)
@@ -616,8 +668,8 @@ class Driver(object, metaclass=DriverMetaclass):
             # to bcast to others later
             owning_ranks = model._owning_rank
             abs2idx = model._var_allprocs_abs2idx
-            abs2meta_out = model._var_allprocs_abs2meta['output']
-            sizes = model._var_sizes['output']
+            abs2meta_out = model._var_allprocs_abs2meta["output"]
+            sizes = model._var_sizes["output"]
             rank = model.comm.rank
             nprocs = model.comm.size
 
@@ -627,14 +679,13 @@ class Driver(object, metaclass=DriverMetaclass):
             for vname, voimeta in chain(self._responses.items(), self._designvars.items()):
                 # vname may be a promoted name or an alias
 
-                indices = voimeta['indices']
-                vsrc = voimeta['source']
+                indices = voimeta["indices"]
+                vsrc = voimeta["source"]
 
                 meta = abs2meta_out[vsrc]
                 i = abs2idx[vsrc]
 
-                if meta['distributed']:
-
+                if meta["distributed"]:
                     dist_sizes = sizes[:, i]
                     tot_size = np.sum(dist_sizes)
 
@@ -645,9 +696,12 @@ class Driver(object, metaclass=DriverMetaclass):
                         indices = indices.shaped_array()
                         true_sizes = np.zeros(nprocs, dtype=INT_DTYPE)
                         for irank in range(nprocs):
-                            dist_inds = indices[np.logical_and(indices >= offsets[irank],
-                                                               indices < (offsets[irank] +
-                                                                          dist_sizes[irank]))]
+                            dist_inds = indices[
+                                np.logical_and(
+                                    indices >= offsets[irank],
+                                    indices < (offsets[irank] + dist_sizes[irank]),
+                                )
+                            ]
                             true_sizes[irank] = dist_inds.size
                             if irank == rank:
                                 local_indices = dist_inds - offsets[rank]
@@ -656,8 +710,11 @@ class Driver(object, metaclass=DriverMetaclass):
                         ind = indexer(local_indices, src_shape=(tot_size,), flat_src=True)
                         dist_dict[vname] = (ind, true_sizes, distrib_indices)
                     else:
-                        dist_dict[vname] = (_flat_full_indexer, dist_sizes,
-                                            slice(offsets[rank], offsets[rank] + dist_sizes[rank]))
+                        dist_dict[vname] = (
+                            _flat_full_indexer,
+                            dist_sizes,
+                            slice(offsets[rank], offsets[rank] + dist_sizes[rank]),
+                        )
 
                 else:
                     owner = owning_ranks[vsrc]
@@ -680,37 +737,42 @@ class Driver(object, metaclass=DriverMetaclass):
                 self._coloring_info.coloring = None
 
             coloring = self._get_static_coloring()
-            if coloring is not None and self.supports['simultaneous_derivatives']:
+            if coloring is not None and self.supports["simultaneous_derivatives"]:
                 if model._owns_approx_jac:
                     coloring._check_config_partial(model)
                 else:
                     coloring._check_config_total(self, model)
 
                 if not problem.model._use_derivatives:
-                    issue_warning("Derivatives are turned off.  Skipping simul deriv coloring.",
-                                  category=DerivativesWarning)
+                    issue_warning(
+                        "Derivatives are turned off.  Skipping simul deriv coloring.",
+                        category=DerivativesWarning,
+                    )
 
         # Pre-allocate optimizer vectors for all drivers
         try:
-            dv_vec = OptimizerVector.create_from_model(voi_type='design_var',
-                                                       driver=self, driver_scaling=False)
+            dv_vec = OptimizerVector.create_from_model(
+                voi_type="design_var", driver=self, driver_scaling=False
+            )
         except (ValueError, KeyError, TypeError):
             # Some drivers (e.g., DOEDriver) may have unsupported variable types
             dv_vec = None
 
-        con_vec = OptimizerVector.create_from_model(voi_type='constraint',
-                                                        driver=self, driver_scaling=False)
+        con_vec = OptimizerVector.create_from_model(
+            voi_type="constraint", driver=self, driver_scaling=False
+        )
 
         try:
-            obj_vec = OptimizerVector.create_from_model(voi_type='objective',
-                                                        driver=self, driver_scaling=False)
+            obj_vec = OptimizerVector.create_from_model(
+                voi_type="objective", driver=self, driver_scaling=False
+            )
         except (ValueError, KeyError, TypeError):
             obj_vec = None
 
         self._vectors = {
-            'design_var': dv_vec,
-            'constraint': con_vec,
-            'objective': obj_vec,
+            "design_var": dv_vec,
+            "constraint": con_vec,
+            "objective": obj_vec,
         }
 
         self._autoscaler.setup(driver=self)
@@ -727,21 +789,27 @@ class Driver(object, metaclass=DriverMetaclass):
         model : <Group>
             The model being used in the optimization problem.
         """
-        lin_cons = tuple([meta['source'] for meta in self._cons.values() if meta['linear']])
+        lin_cons = tuple([meta["source"] for meta in self._cons.values() if meta["linear"]])
         if lin_cons:
             relevance = model._relevance
-            dvs = tuple([meta['source'] for meta in self._designvars.values()])
+            dvs = tuple([meta["source"] for meta in self._designvars.values()])
 
             with relevance.seeds_active(fwd_seeds=dvs, rev_seeds=lin_cons):
-                self._lin_dvs = {dv: meta for dv, meta in self._designvars.items()
-                                 if relevance.is_relevant(meta['source'])}
+                self._lin_dvs = {
+                    dv: meta
+                    for dv, meta in self._designvars.items()
+                    if relevance.is_relevant(meta["source"])
+                }
 
-            nl_resps = [meta['source'] for meta in self._cons.values() if not meta['linear']]
-            nl_resps.extend([meta['source'] for meta in self._objs.values()])
+            nl_resps = [meta["source"] for meta in self._cons.values() if not meta["linear"]]
+            nl_resps.extend([meta["source"] for meta in self._objs.values()])
 
             with relevance.seeds_active(fwd_seeds=dvs, rev_seeds=tuple(nl_resps)):
-                self._nl_dvs = {dv: meta for dv, meta in self._designvars.items()
-                                if relevance.is_relevant(meta['source'])}
+                self._nl_dvs = {
+                    dv: meta
+                    for dv, meta in self._designvars.items()
+                    if relevance.is_relevant(meta["source"])
+                }
 
         else:
             self._lin_dvs = {}
@@ -759,7 +827,7 @@ class Driver(object, metaclass=DriverMetaclass):
         dict
             Dictionary containing design variables relevant to linear constraints.
         """
-        return self._lin_dvs if self.supports['linear_only_designvars'] else self._designvars
+        return self._lin_dvs if self.supports["linear_only_designvars"] else self._designvars
 
     def _get_nl_dvs(self):
         """
@@ -773,7 +841,7 @@ class Driver(object, metaclass=DriverMetaclass):
         dict
             Dictionary containing design variables relevant to nonlinear constraints.
         """
-        return self._nl_dvs if self.supports['linear_only_designvars'] else self._designvars
+        return self._nl_dvs if self.supports["linear_only_designvars"] else self._designvars
 
     def _check_for_missing_objective(self):
         """
@@ -795,15 +863,15 @@ class Driver(object, metaclass=DriverMetaclass):
 
         These options are case insensitive.
         """
-        if self.options['invalid_desvar_behavior'] != 'ignore':
+        if self.options["invalid_desvar_behavior"] != "ignore":
             invalid_desvar_data = []
             for var, meta in self._designvars.items():
-                _val = self._problem().get_val(var, units=meta['units'], get_remote=True)
+                _val = self._problem().get_val(var, units=meta["units"], get_remote=True)
                 val = np.array([_val]) if np.ndim(_val) == 0 else _val  # Handle discrete desvars
-                idxs = meta['indices']() if meta['indices'] else None
-                flat_idxs = meta['flat_indices']
-                lower = meta['lower']
-                upper = meta['upper']
+                idxs = meta["indices"]() if meta["indices"] else None
+                flat_idxs = meta["flat_indices"]
+                lower = meta["lower"]
+                upper = meta["upper"]
                 flat_val = val.ravel()[idxs] if flat_idxs else val[idxs].ravel()
                 fail_lower = False
                 fail_upper = False
@@ -816,14 +884,19 @@ class Driver(object, metaclass=DriverMetaclass):
                 if fail_lower or fail_upper:
                     invalid_desvar_data.append((var, val, lower, upper))
             if invalid_desvar_data:
-                s = 'The following design variable initial conditions are out of their ' \
-                    'specified bounds:'
+                s = (
+                    "The following design variable initial conditions are out of their "
+                    "specified bounds:"
+                )
                 for var, val, lower, upper in invalid_desvar_data:
-                    s += f'\n  {var}\n    val: {val.ravel()}' \
-                         f'\n    lower: {lower}\n    upper: {upper}'
-                s += '\nSet the initial value of the design variable to a valid value or set ' \
-                     'the driver option[\'invalid_desvar_behavior\'] to \'ignore\'.'
-                if self.options['invalid_desvar_behavior'] == 'raise':
+                    s += (
+                        f"\n  {var}\n    val: {val.ravel()}\n    lower: {lower}\n    upper: {upper}"
+                    )
+                s += (
+                    "\nSet the initial value of the design variable to a valid value or set "
+                    "the driver option['invalid_desvar_behavior'] to 'ignore'."
+                )
+                if self.options["invalid_desvar_behavior"] == "raise":
                     raise ValueError(s)
                 else:
                     issue_warning(s, category=DriverWarning)
@@ -850,8 +923,8 @@ class Driver(object, metaclass=DriverMetaclass):
         problem = self._problem()
         model = problem.model
         resolver = model._resolver
-        incl = recording_options['includes']
-        excl = recording_options['excludes']
+        incl = recording_options["includes"]
+        excl = recording_options["excludes"]
 
         # includes and excludes for outputs are specified using promoted names
         # includes and excludes for inputs are specified using _absolute_ names
@@ -871,49 +944,57 @@ class Driver(object, metaclass=DriverMetaclass):
         myoutputs = set()
         myresiduals = set()
 
-        if recording_options['record_outputs']:
-            match_names.update(resolver.prom_iter('output'))
-            myoutputs = {n for n, prom in resolver.abs2prom_iter('output')
-                         if check_path(prom, incl, excl)}
+        if recording_options["record_outputs"]:
+            match_names.update(resolver.prom_iter("output"))
+            myoutputs = {
+                n for n, prom in resolver.abs2prom_iter("output") if check_path(prom, incl, excl)
+            }
 
-        if recording_options['record_residuals']:
+        if recording_options["record_residuals"]:
             match_names.update(model._residuals)
-            myresiduals = [n for n in model._residuals
-                           if check_path(resolver.abs2prom(n, 'output'), incl, excl)]
+            myresiduals = [
+                n
+                for n in model._residuals
+                if check_path(resolver.abs2prom(n, "output"), incl, excl)
+            ]
 
-        if recording_options['record_desvars']:
+        if recording_options["record_desvars"]:
             myoutputs.update(_src_name_iter(self._designvars))
-        if recording_options['record_objectives'] or recording_options['record_responses']:
+        if recording_options["record_objectives"] or recording_options["record_responses"]:
             myoutputs.update(_src_name_iter(self._objs))
-        if recording_options['record_constraints'] or recording_options['record_responses']:
+        if recording_options["record_constraints"] or recording_options["record_responses"]:
             myoutputs.update(_src_name_iter(self._cons))
 
         # inputs (if in options). inputs use _absolute_ names for includes/excludes
-        if 'record_inputs' in recording_options:
-            if recording_options['record_inputs']:
-                match_names.update(resolver.abs_iter('input'))
-                myinputs = {n for n in resolver.abs_iter('input') if check_path(n, incl, excl)}
+        if "record_inputs" in recording_options:
+            if recording_options["record_inputs"]:
+                match_names.update(resolver.abs_iter("input"))
+                myinputs = {n for n in resolver.abs_iter("input") if check_path(n, incl, excl)}
 
-                match_names.update(model._resolver.prom_iter('input'))
-                for p in model._resolver.prom_iter('input'):
+                match_names.update(model._resolver.prom_iter("input"))
+                for p in model._resolver.prom_iter("input"):
                     if check_path(p, incl, excl):
                         myoutputs.add(model._resolver.source(p))
 
         # check that all exclude/include globs have at least one matching output or input name
         for pattern in excl:
             if not has_match(pattern, match_names):
-                issue_warning(f"{obj.msginfo}: No matches for pattern '{pattern}' in "
-                              "recording_options['excludes'].")
+                issue_warning(
+                    f"{obj.msginfo}: No matches for pattern '{pattern}' in "
+                    "recording_options['excludes']."
+                )
         for pattern in incl:
-            if pattern != '*' and not has_match(pattern, match_names):
-                issue_warning(f"{obj.msginfo}: No matches for pattern '{pattern}' in "
-                              "recording_options['includes'].")
+            if pattern != "*" and not has_match(pattern, match_names):
+                issue_warning(
+                    f"{obj.msginfo}: No matches for pattern '{pattern}' in "
+                    "recording_options['includes']."
+                )
 
         # sort lists to ensure that vars are iterated over in the same order on all procs
         vars2record = {
-            'input': sorted(myinputs),
-            'output': sorted(myoutputs),
-            'residual': sorted(myresiduals)
+            "input": sorted(myinputs),
+            "output": sorted(myoutputs),
+            "residual": sorted(myresiduals),
         }
 
         return vars2record
@@ -940,17 +1021,17 @@ class Driver(object, metaclass=DriverMetaclass):
         problem = self._problem()
         model = problem.model
 
-        if self.supports['optimization'] and problem.options['group_by_pre_opt_post']:
+        if self.supports["optimization"] and problem.options["group_by_pre_opt_post"]:
             if model._pre_components:
-                with model._relevance.nonlinear_active('pre'):
+                with model._relevance.nonlinear_active("pre"):
                     self._run_solve_nonlinear()
 
             with SaveOptResult(self):
-                with model._relevance.nonlinear_active('iter'):
+                with model._relevance.nonlinear_active("iter"):
                     self.result.success = not self.run()
 
             if model._post_components:
-                with model._relevance.nonlinear_active('post'):
+                with model._relevance.nonlinear_active("post"):
                     self._run_solve_nonlinear()
 
         else:
@@ -959,8 +1040,7 @@ class Driver(object, metaclass=DriverMetaclass):
 
         return self.result
 
-    def _get_voi_val(self, name, meta, remote_vois,
-                     get_remote=True, rank=None, driver_units=False):
+    def _get_voi_val(self, name, meta, remote_vois, get_remote=True, rank=None, driver_units=False):
         """
         Get the value of a variable of interest (objective, constraint, or design var).
 
@@ -995,8 +1075,8 @@ class Driver(object, metaclass=DriverMetaclass):
         model = self._problem().model
         comm = model.comm
         get = model._outputs._abs_get_val
-        indices = meta['indices']
-        src_name = meta['source']
+        indices = meta["indices"]
+        src_name = meta["source"]
 
         if MPI:
             distributed = comm.size > 0 and name in self._dist_driver_vars
@@ -1046,25 +1126,28 @@ class Driver(object, metaclass=DriverMetaclass):
                 if name in self._designvars_discrete:
                     # At present, only integers are supported by OpenMDAO drivers.
                     # We check the values here.
-                    if not ((np.isscalar(val) and isinstance(val, (int, np.integer))) or
-                            (isinstance(val, np.ndarray) and np.issubdtype(val[0], np.integer))):
+                    if not (
+                        (np.isscalar(val) and isinstance(val, (int, np.integer)))
+                        or (isinstance(val, np.ndarray) and np.issubdtype(val[0], np.integer))
+                    ):
                         if np.isscalar(val):
                             suffix = f"A value of type '{type(val).__name__}' was specified."
                         elif isinstance(val, np.ndarray):
                             suffix = f"An array of type '{val.dtype.name}' was specified."
                         else:
-                            suffix = ''
-                        raise ValueError("Only integer scalars or ndarrays are supported as values "
-                                         "for discrete variables when used as a design variable. "
-                                         + suffix)
+                            suffix = ""
+                        raise ValueError(
+                            "Only integer scalars or ndarrays are supported as values "
+                            "for discrete variables when used as a design variable. " + suffix
+                        )
             elif indices is None:
                 val = get(src_name, flat=True).copy()
             else:
                 val = get(src_name, flat=True)[indices.as_array()]
 
-        if driver_units and meta['units'] is not None:
-            src_units = model._var_allprocs_abs2meta['output'][src_name]['units']
-            val = convert_units(val, src_units, meta['units'])
+        if driver_units and meta["units"] is not None:
+            src_units = model._var_allprocs_abs2meta["output"][src_name]["units"]
+            val = convert_units(val, src_units, meta["units"])
 
         return val
 
@@ -1077,8 +1160,9 @@ class Driver(object, metaclass=DriverMetaclass):
         int
             Number of objective evaluations made during a driver run.
         """
-        warn_deprecation('get_driver_objective_calls is deprecated. '
-                         'Use `driver.result.model_evals`')
+        warn_deprecation(
+            "get_driver_objective_calls is deprecated. Use `driver.result.model_evals`"
+        )
         return self.result.model_evals
 
     def get_driver_derivative_calls(self):
@@ -1090,8 +1174,9 @@ class Driver(object, metaclass=DriverMetaclass):
         int
             Number of derivative evaluations made during a driver run.
         """
-        warn_deprecation('get_driver_derivative_calls is deprecated. '
-                         'Use `driver.result.deriv_evals`')
+        warn_deprecation(
+            "get_driver_derivative_calls is deprecated. Use `driver.result.deriv_evals`"
+        )
         return self.result.deriv_evals
 
     def get_design_var_values(self, get_remote=True, driver_scaling=True):
@@ -1116,13 +1201,16 @@ class Driver(object, metaclass=DriverMetaclass):
         dict
            Dictionary containing values of each design variable.
         """
-        dv_vec = self._vectors['design_var']
+        dv_vec = self._vectors["design_var"]
         dv_vec.update_from_model(driver=self, driver_scaling=driver_scaling)
 
         dvs = dv_vec._to_dict(get_remote=get_remote)
 
-        discrete_dvs = {n: self._get_voi_val(n, dvmeta, self._remote_dvs, get_remote=get_remote)
-                        for n, dvmeta in self._designvars.items() if dvmeta['discrete']}
+        discrete_dvs = {
+            n: self._get_voi_val(n, dvmeta, self._remote_dvs, get_remote=get_remote)
+            for n, dvmeta in self._designvars.items()
+            if dvmeta["discrete"]
+        }
         dvs.update(discrete_dvs)
         return dvs
 
@@ -1146,14 +1234,18 @@ class Driver(object, metaclass=DriverMetaclass):
         **kwargs : dict
             Used to catch deprecated arguments.
         """
-        warn_deprecation('set_design_var is deprecated. Internally, drivers should use '
-                         '_set_design_vars or _set_design_var as appropriate.\n'
-                         'Users wishing to prescribe units to design variables should use set_val.',
-                         expires='3.45.0')
+        warn_deprecation(
+            "set_design_var is deprecated. Internally, drivers should use "
+            "_set_design_vars or _set_design_var as appropriate.\n"
+            "Users wishing to prescribe units to design variables should use set_val.",
+            expires="3.45.0",
+        )
 
-        if 'driver_scaling' in kwargs:
-            warn_deprecation('set_design_var no longer accepts argument "driver_scaling". '
-                             'Variable is assumed to be in a model-scaled state.')
+        if "driver_scaling" in kwargs:
+            warn_deprecation(
+                'set_design_var no longer accepts argument "driver_scaling". '
+                "Variable is assumed to be in a model-scaled state."
+            )
 
         self._set_design_var(name, value, set_remote, units)
 
@@ -1178,15 +1270,16 @@ class Driver(object, metaclass=DriverMetaclass):
         problem = self._problem()
         meta = self._designvars[name]
 
-        src_name = meta['source']
+        src_name = meta["source"]
 
         # if the value is not local, don't set the value
-        if (src_name in self._remote_dvs and
-                problem.model._owning_rank[src_name] != problem.comm.rank):
+        if (
+            src_name in self._remote_dvs
+            and problem.model._owning_rank[src_name] != problem.comm.rank
+        ):
             return
 
         if name in self._designvars_discrete:
-
             # Note, drivers set values here and generally should know it is setting an integer.
             # However, the DOEdriver may pull a non-integer value from its generator, so we
             # convert it.
@@ -1207,7 +1300,7 @@ class Driver(object, metaclass=DriverMetaclass):
                 loc_idxs, _, dist_idxs = self._dist_driver_vars[name]
                 loc_idxs = loc_idxs()  # don't use indexer here
             else:
-                loc_idxs = meta['indices']
+                loc_idxs = meta["indices"]
                 if loc_idxs is None:
                     loc_idxs = _full_slice
                 else:
@@ -1222,11 +1315,11 @@ class Driver(object, metaclass=DriverMetaclass):
                 desvar[loc_idxs] = np.atleast_1d(value)
 
             if units is not None:
-                src_units = problem.model._var_abs2meta['output'][src_name]['units']
+                src_units = problem.model._var_abs2meta["output"][src_name]["units"]
                 desvar[loc_idxs] = convert_units(desvar[loc_idxs], units, src_units)
-            elif meta['units'] is not None:
-                src_units = problem.model._var_allprocs_abs2meta['output'][src_name]['units']
-                desvar[loc_idxs] = convert_units(desvar[loc_idxs], meta['units'], src_units)
+            elif meta["units"] is not None:
+                src_units = problem.model._var_allprocs_abs2meta["output"][src_name]["units"]
+                desvar[loc_idxs] = convert_units(desvar[loc_idxs], meta["units"], src_units)
 
     def get_objective_values(self, driver_scaling=True):
         """
@@ -1244,18 +1337,20 @@ class Driver(object, metaclass=DriverMetaclass):
         dict
            Dictionary containing values of each objective.
         """
-        obj_vec = self._vectors['objective']
+        obj_vec = self._vectors["objective"]
         obj_vec.update_from_model(driver=self, driver_scaling=driver_scaling)
 
         objs = obj_vec._to_dict()
-        discrete_objs = {n: self._get_voi_val(n, obj_meta, self._remote_dvs, get_remote=True)
-                         for n, obj_meta in self._objs.items() if obj_meta['discrete']}
+        discrete_objs = {
+            n: self._get_voi_val(n, obj_meta, self._remote_dvs, get_remote=True)
+            for n, obj_meta in self._objs.items()
+            if obj_meta["discrete"]
+        }
         objs.update(discrete_objs)
 
         return objs
 
-    def get_constraint_values(self, ctype='all', lintype='all', driver_scaling=True,
-                              viol=False):
+    def get_constraint_values(self, ctype="all", lintype="all", driver_scaling=True, viol=False):
         """
         Return constraint values.
 
@@ -1285,28 +1380,28 @@ class Driver(object, metaclass=DriverMetaclass):
            Dictionary containing values of each constraint.
         """
         # Note we populate the vector in an unscaled state for getting violations
-        con_vec = self._vectors['constraint']
+        con_vec = self._vectors["constraint"]
         con_vec.update_from_model(driver=self, driver_scaling=driver_scaling and not viol)
 
         con_dict = {}
         it = self._cons.items()
-        if lintype == 'linear':
-            it = filter_by_meta(it, 'linear')
-        elif lintype == 'nonlinear':
-            it = filter_by_meta(it, 'linear', exclude=True)
-        if ctype == 'eq':
-            it = filter_by_meta(it, 'equals', chk_none=True)
-        elif ctype == 'ineq':
-            it = filter_by_meta(it, 'equals', chk_none=True, exclude=True)
+        if lintype == "linear":
+            it = filter_by_meta(it, "linear")
+        elif lintype == "nonlinear":
+            it = filter_by_meta(it, "linear", exclude=True)
+        if ctype == "eq":
+            it = filter_by_meta(it, "equals", chk_none=True)
+        elif ctype == "ineq":
+            it = filter_by_meta(it, "equals", chk_none=True, exclude=True)
 
         for name, meta in it:
             if viol:
                 con_val = con_vec[name]
-                if meta['equals'] is not None:
-                    con_val -= meta['equals']
+                if meta["equals"] is not None:
+                    con_val -= meta["equals"]
                 else:
-                    lower = meta['lower']
-                    upper = meta['upper']
+                    lower = meta["lower"]
+                    upper = meta["upper"]
                     has_lower = lower is not None and not np.all(np.isneginf(np.atleast_1d(lower)))
                     has_upper = upper is not None and not np.all(np.isposinf(np.atleast_1d(upper)))
                     if has_lower:
@@ -1320,11 +1415,13 @@ class Driver(object, metaclass=DriverMetaclass):
                     viol_idxs = np.union1d(lower_viol_idxs, upper_viol_idxs)
                     non_viol_idxs = np.setdiff1d(np.arange(len(con_val)), viol_idxs)
                     if has_lower:
-                        con_val[lower_viol_idxs] -= lower if np.isscalar(lower) \
-                            else np.asarray(lower)[lower_viol_idxs]
+                        con_val[lower_viol_idxs] -= (
+                            lower if np.isscalar(lower) else np.asarray(lower)[lower_viol_idxs]
+                        )
                     if has_upper:
-                        con_val[upper_viol_idxs] -= upper if np.isscalar(upper) \
-                            else np.asarray(upper)[upper_viol_idxs]
+                        con_val[upper_viol_idxs] -= (
+                            upper if np.isscalar(upper) else np.asarray(upper)[upper_viol_idxs]
+                        )
                     con_val[non_viol_idxs] = 0.0
 
             con_dict[name] = con_vec[name].copy()
@@ -1349,7 +1446,7 @@ class Driver(object, metaclass=DriverMetaclass):
             The nonlinear response names in order.
         """
         order = list(self._objs)
-        order.extend(n for n, meta in self._cons.items() if not meta['linear'])
+        order.extend(n for n, meta in self._cons.items() if not meta["linear"])
         return order
 
     def _update_voi_meta(self, model, responses, desvars):
@@ -1381,16 +1478,16 @@ class Driver(object, metaclass=DriverMetaclass):
         # driver _responses are keyed by either the alias or the promoted name
         response_size = 0
         for name, meta in responses.items():
-            if meta['type'] == 'con':
+            if meta["type"] == "con":
                 cons[name] = meta
-                if meta['linear']:
+                if meta["linear"]:
                     continue  # don't add to response size
             else:
                 objs[name] = meta
 
-            response_size += meta['global_size']
+            response_size += meta["global_size"]
 
-        desvar_size = sum(meta['global_size'] for meta in desvars.values())
+        desvar_size = sum(meta["global_size"] for meta in desvars.values())
 
         model._setup_driver_units()
 
@@ -1405,7 +1502,7 @@ class Driver(object, metaclass=DriverMetaclass):
         str
             String indicating result of driver run.
         """
-        return 'SUCCESS' if self.result.success else 'FAIL'
+        return "SUCCESS" if self.result.success else "FAIL"
 
     def check_relevance(self):
         """
@@ -1414,15 +1511,15 @@ class Driver(object, metaclass=DriverMetaclass):
         This usually indicates something is wrong with the problem formulation.
         """
         # relevance not relevant if not using derivatives
-        if not self.supports['gradients']:
+        if not self.supports["gradients"]:
             return
 
-        if 'singular_jac_behavior' in self.options:
-            singular_behavior = self.options['singular_jac_behavior']
-            if singular_behavior == 'ignore':
+        if "singular_jac_behavior" in self.options:
+            singular_behavior = self.options["singular_jac_behavior"]
+            if singular_behavior == "ignore":
                 return
         else:
-            singular_behavior = 'warn'
+            singular_behavior = "warn"
 
         problem = self._problem()
 
@@ -1432,23 +1529,28 @@ class Driver(object, metaclass=DriverMetaclass):
             if system._has_approx:
                 return
 
-        bad = {n for n in self._problem().model._relevance._no_dv_responses
-               if n not in self._designvars}
+        bad = {
+            n
+            for n in self._problem().model._relevance._no_dv_responses
+            if n not in self._designvars
+        }
         if bad:
-            bad_conns = [n for n, m in self._cons.items() if m['source'] in bad]
-            bad_objs = [n for n, m in self._objs.items() if m['source'] in bad]
+            bad_conns = [n for n, m in self._cons.items() if m["source"] in bad]
+            bad_objs = [n for n, m in self._objs.items() if m["source"] in bad]
             badmsg = []
             if bad_conns:
                 badmsg.append(f"constraint(s) {bad_conns}")
             if bad_objs:
                 badmsg.append(f"objective(s) {bad_objs}")
-            bad = ' and '.join(badmsg)
+            bad = " and ".join(badmsg)
             # Note: There is a hack in ScipyOptimizeDriver for older versions of COBYLA that
             #       implements bounds on design variables by adding them as constraints.
             #       These design variables as constraints will not appear in the wrt list.
-            msg = f"{self.msginfo}: {bad} do not depend on any " \
-                  "design variables. Please check your problem formulation."
-            if singular_behavior == 'error':
+            msg = (
+                f"{self.msginfo}: {bad} do not depend on any "
+                "design variables. Please check your problem formulation."
+            )
+            if singular_behavior == "error":
                 raise RuntimeError(msg)
             else:
                 issue_warning(msg, category=DriverWarning)
@@ -1475,14 +1577,14 @@ class Driver(object, metaclass=DriverMetaclass):
 
     @property
     def _recording_iter(self):
-        return self._problem()._metadata['recording_iter']
+        return self._problem()._metadata["recording_iter"]
 
-    @DriverResult.track_stats(kind='model')
+    @DriverResult.track_stats(kind="model")
     def _run_solve_nonlinear(self):
         return self._problem().model.run_solve_nonlinear()
 
-    @DriverResult.track_stats(kind='deriv')
-    def _compute_totals(self, of=None, wrt=None, return_format='flat_dict', driver_scaling=True):
+    @DriverResult.track_stats(kind="deriv")
+    def _compute_totals(self, of=None, wrt=None, return_format="flat_dict", driver_scaling=True):
         """
         Compute derivatives of desired quantities with respect to desired inputs.
 
@@ -1510,21 +1612,27 @@ class Driver(object, metaclass=DriverMetaclass):
             Derivatives in form requested by 'return_format'.
         """
         problem = self._problem()
-        debug_print = 'totals' in self.options['debug_print'] and (not MPI or
-                                                                   problem.comm.rank == 0)
+        debug_print = "totals" in self.options["debug_print"] and (
+            not MPI or problem.comm.rank == 0
+        )
 
         if debug_print:
-            header = 'Driver total derivatives for iteration: ' + str(self.iter_count)
+            header = "Driver total derivatives for iteration: " + str(self.iter_count)
             print(header)
-            print(len(header) * '-' + '\n')
+            print(len(header) * "-" + "\n")
 
         if self._total_jac is None:
-            total_jac = _TotalJacInfo(problem, of, wrt, return_format,
-                                      approx=problem.model._owns_approx_jac,
-                                      debug_print=debug_print,
-                                      driver_scaling=driver_scaling)
+            total_jac = _TotalJacInfo(
+                problem,
+                of,
+                wrt,
+                return_format,
+                approx=problem.model._owns_approx_jac,
+                debug_print=debug_print,
+                driver_scaling=driver_scaling,
+            )
 
-            if total_jac.has_lin_cons and self.supports['linear_constraints']:
+            if total_jac.has_lin_cons and self.supports["linear_constraints"]:
                 self._total_jac_linear = total_jac
             else:
                 self._total_jac = total_jac
@@ -1533,7 +1641,7 @@ class Driver(object, metaclass=DriverMetaclass):
 
         totals = total_jac.compute_totals()
 
-        if self.recording_options['record_derivatives']:
+        if self.recording_options["record_derivatives"]:
             self.record_derivatives()
 
         return totals
@@ -1550,14 +1658,16 @@ class Driver(object, metaclass=DriverMetaclass):
         """
         Record an iteration of the current Driver.
         """
-        status = -1 if self._problem is None else self._problem()._metadata['setup_status']
+        status = -1 if self._problem is None else self._problem()._metadata["setup_status"]
         if status >= _SetupStatus.POST_FINAL_SETUP:
             record_iteration(self, self._problem(), self._get_name())
         else:
-            raise RuntimeError(f'{self.msginfo} attempted to record iteration but '
-                               'driver has not been initialized; `run_model()`, '
-                               '`run_driver()`, or `final_setup()` must be called '
-                               'before recording.')
+            raise RuntimeError(
+                f"{self.msginfo} attempted to record iteration but "
+                "driver has not been initialized; `run_model()`, "
+                "`run_driver()`, or `final_setup()` must be called "
+                "before recording."
+            )
 
     def _get_recorder_metadata(self, case_name):
         """
@@ -1586,15 +1696,20 @@ class Driver(object, metaclass=DriverMetaclass):
         """
         return "Driver"
 
-    def declare_coloring(self, num_full_jacs=coloring_mod._DEF_COMP_SPARSITY_ARGS['num_full_jacs'],
-                         tol=coloring_mod._DEF_COMP_SPARSITY_ARGS['tol'],
-                         orders=coloring_mod._DEF_COMP_SPARSITY_ARGS['orders'],
-                         perturb_size=coloring_mod._DEF_COMP_SPARSITY_ARGS['perturb_size'],
-                         min_improve_pct=coloring_mod._DEF_COMP_SPARSITY_ARGS['min_improve_pct'],
-                         show_summary=coloring_mod._DEF_COMP_SPARSITY_ARGS['show_summary'],
-                         show_sparsity=coloring_mod._DEF_COMP_SPARSITY_ARGS['show_sparsity'],
-                         use_scaling=coloring_mod._DEF_COMP_SPARSITY_ARGS['use_scaling'],
-                         randomize_subjacs=True, randomize_seeds=False, direct=True):
+    def declare_coloring(
+        self,
+        num_full_jacs=coloring_mod._DEF_COMP_SPARSITY_ARGS["num_full_jacs"],
+        tol=coloring_mod._DEF_COMP_SPARSITY_ARGS["tol"],
+        orders=coloring_mod._DEF_COMP_SPARSITY_ARGS["orders"],
+        perturb_size=coloring_mod._DEF_COMP_SPARSITY_ARGS["perturb_size"],
+        min_improve_pct=coloring_mod._DEF_COMP_SPARSITY_ARGS["min_improve_pct"],
+        show_summary=coloring_mod._DEF_COMP_SPARSITY_ARGS["show_summary"],
+        show_sparsity=coloring_mod._DEF_COMP_SPARSITY_ARGS["show_sparsity"],
+        use_scaling=coloring_mod._DEF_COMP_SPARSITY_ARGS["use_scaling"],
+        randomize_subjacs=True,
+        randomize_seeds=False,
+        direct=True,
+    ):
         """
         Set options for total deriv coloring.
 
@@ -1652,9 +1767,10 @@ class Driver(object, metaclass=DriverMetaclass):
             A coloring filename or a Coloring object.  If no arg is passed, filename will be
             determined automatically.
         """
-        if self.supports['simultaneous_derivatives']:
-            if coloring_mod._force_dyn_coloring and isinstance(coloring,
-                                                               coloring_mod.STD_COLORING_FNAME):
+        if self.supports["simultaneous_derivatives"]:
+            if coloring_mod._force_dyn_coloring and isinstance(
+                coloring, coloring_mod.STD_COLORING_FNAME
+            ):
                 # force the generation of a dynamic coloring this time
                 self._coloring_info.dynamic = True
                 self._coloring_info.static = None
@@ -1664,8 +1780,9 @@ class Driver(object, metaclass=DriverMetaclass):
 
             self._coloring_info.coloring = None
         else:
-            raise RuntimeError("Driver '%s' does not support simultaneous derivatives." %
-                               self._get_name())
+            raise RuntimeError(
+                "Driver '%s' does not support simultaneous derivatives." % self._get_name()
+            )
 
     def _setup_tot_jac_sparsity(self, coloring=None):
         """
@@ -1706,33 +1823,38 @@ class Driver(object, metaclass=DriverMetaclass):
                 if isinstance(static, str):
                     fname = static
                 else:
-                    fname = self.get_coloring_fname(mode='input')
+                    fname = self.get_coloring_fname(mode="input")
 
                 print(f"loading total coloring from file {fname}")
                 coloring = info.coloring = coloring_mod.Coloring.load(fname)
                 info.update(coloring._meta)
 
-                ofname = self.get_coloring_fname(mode='output')
-                if ((model._full_comm is not None and model._full_comm.rank == 0) or
-                        (model._full_comm is None and model.comm.rank == 0)):
+                ofname = self.get_coloring_fname(mode="output")
+                if (model._full_comm is not None and model._full_comm.rank == 0) or (
+                    model._full_comm is None and model.comm.rank == 0
+                ):
                     coloring.save(ofname)
 
         if coloring is not None and info.static is not None:
             problem = self._problem()
-            if coloring._rev and problem._orig_mode not in ('rev', 'auto'):
+            if coloring._rev and problem._orig_mode not in ("rev", "auto"):
                 revcol = coloring._rev[0][0]
                 if revcol:
-                    raise RuntimeError("Simultaneous coloring does reverse solves but mode has "
-                                       f"been set to '{problem._orig_mode}'")
-            if coloring._fwd and problem._orig_mode not in ('fwd', 'auto'):
+                    raise RuntimeError(
+                        "Simultaneous coloring does reverse solves but mode has "
+                        f"been set to '{problem._orig_mode}'"
+                    )
+            if coloring._fwd and problem._orig_mode not in ("fwd", "auto"):
                 fwdcol = coloring._fwd[0][0]
                 if fwdcol:
-                    raise RuntimeError("Simultaneous coloring does forward solves but mode has "
-                                       f"been set to '{problem._orig_mode}'")
+                    raise RuntimeError(
+                        "Simultaneous coloring does forward solves but mode has "
+                        f"been set to '{problem._orig_mode}'"
+                    )
 
         return coloring
 
-    def get_coloring_fname(self, mode='output'):
+    def get_coloring_fname(self, mode="output"):
         """
         Get the filename for the coloring file.
 
@@ -1748,8 +1870,9 @@ class Driver(object, metaclass=DriverMetaclass):
         """
         return self._problem().model.get_coloring_fname(mode)
 
-    def scaling_report(self, outfile='driver_scaling_report.html', title=None, show_browser=True,
-                       jac=True):
+    def scaling_report(
+        self, outfile="driver_scaling_report.html", title=None, show_browser=True, jac=True
+    ):
         """
         Generate a self-contained html file containing a detailed connection viewer.
 
@@ -1774,34 +1897,38 @@ class Driver(object, metaclass=DriverMetaclass):
         from openmdao.visualization.scaling_viewer.scaling_report import view_driver_scaling
 
         # Run the model if it hasn't been run yet.
-        status = -1 if self._problem is None else self._problem()._metadata['setup_status']
+        status = -1 if self._problem is None else self._problem()._metadata["setup_status"]
         if status < _SetupStatus.POST_FINAL_SETUP:
-            raise RuntimeError("Either 'run_model' or 'final_setup' must be called before the "
-                               "scaling report can be generated.")
+            raise RuntimeError(
+                "Either 'run_model' or 'final_setup' must be called before the "
+                "scaling report can be generated."
+            )
 
         prob = self._problem()
         if prob._run_counter < 0:
             prob.run_model()
 
-        return view_driver_scaling(self, outfile=outfile, show_browser=show_browser, jac=jac,
-                                   title=title)
+        return view_driver_scaling(
+            self, outfile=outfile, show_browser=show_browser, jac=jac, title=title
+        )
 
     def _pre_run_model_debug_print(self):
         """
         Optionally print some debugging information before the model runs.
         """
-        debug_opt = self.options['debug_print']
+        debug_opt = self.options["debug_print"]
         rank = self._problem().comm.rank
-        if not debug_opt or debug_opt == ['totals']:
+        if not debug_opt or debug_opt == ["totals"]:
             return
 
         if not MPI or rank == 0:
-            header = 'Driver debug print for iter coord: {}'.format(
-                self._recording_iter.get_formatted_iteration_coordinate())
+            header = "Driver debug print for iter coord: {}".format(
+                self._recording_iter.get_formatted_iteration_coordinate()
+            )
             print(header)
-            print(len(header) * '-')
+            print(len(header) * "-")
 
-        if 'desvars' in debug_opt:
+        if "desvars" in debug_opt:
             model = self._problem().model
             desvar_vals = {n: model.get_val(n, get_remote=True, rank=0) for n in self._designvars}
             if not MPI or rank == 0:
@@ -1820,8 +1947,8 @@ class Driver(object, metaclass=DriverMetaclass):
         """
         rank = self._problem().comm.rank
 
-        if 'nl_cons' in self.options['debug_print']:
-            cons = self.get_constraint_values(lintype='nonlinear', driver_scaling=False)
+        if "nl_cons" in self.options["debug_print"]:
+            cons = self.get_constraint_values(lintype="nonlinear", driver_scaling=False)
             if not MPI or rank == 0:
                 print("Nonlinear constraints")
                 if cons:
@@ -1830,8 +1957,8 @@ class Driver(object, metaclass=DriverMetaclass):
                     print("None")
                 print()
 
-        if 'ln_cons' in self.options['debug_print']:
-            cons = self.get_constraint_values(lintype='linear', driver_scaling=False)
+        if "ln_cons" in self.options["debug_print"]:
+            cons = self.get_constraint_values(lintype="linear", driver_scaling=False)
             if not MPI or rank == 0:
                 print("Linear constraints")
                 if cons:
@@ -1840,7 +1967,7 @@ class Driver(object, metaclass=DriverMetaclass):
                     print("None")
                 print()
 
-        if 'objs' in self.options['debug_print']:
+        if "objs" in self.options["debug_print"]:
             objs = self.get_objective_values(driver_scaling=False)
             if not MPI or rank == 0:
                 print("Objectives")
@@ -1884,15 +2011,16 @@ class Driver(object, metaclass=DriverMetaclass):
         """
         if coloring_mod._use_total_sparsity:
             if run_model and self._coloring_info.coloring is not None:
-                issue_warning("The 'run_model' argument is ignored because the coloring has "
-                              "already been computed.")
+                issue_warning(
+                    "The 'run_model' argument is ignored because the coloring has "
+                    "already been computed."
+                )
 
             if self._coloring_info.dynamic and self._coloring_info.do_compute_coloring():
-                ofname = self.get_coloring_fname(mode='output')
-                self._coloring_info.coloring = \
-                    coloring_mod.dynamic_total_coloring(self,
-                                                        run_model=run_model,
-                                                        fname=ofname)
+                ofname = self.get_coloring_fname(mode="output")
+                self._coloring_info.coloring = coloring_mod.dynamic_total_coloring(
+                    self, run_model=run_model, fname=ofname
+                )
 
             return self._coloring_info.coloring
 
@@ -1902,7 +2030,7 @@ class Driver(object, metaclass=DriverMetaclass):
         """
         pass
 
-    def _get_active_cons_and_dvs(self, feas_atol=1.e-6, feas_rtol=1.e-6, assume_dvs_active=False):
+    def _get_active_cons_and_dvs(self, feas_atol=1.0e-6, feas_rtol=1.0e-6, assume_dvs_active=False):
         """
         Obtain the constraints and design varaibles which are active.
 
@@ -1944,17 +2072,19 @@ class Driver(object, metaclass=DriverMetaclass):
         dv_vals = self.get_design_var_values(driver_scaling=True)
         con_vals = self.get_constraint_values(driver_scaling=True)
 
-        dv_bounds = self._autoscaler.get_bounds_scaling('design_var')
-        con_bounds = self._autoscaler.get_bounds_scaling('constraint')
+        dv_bounds = self._autoscaler.get_bounds_scaling("design_var")
+        con_bounds = self._autoscaler.get_bounds_scaling("constraint")
 
         for constraint, con_options in constraints.items():
             constraint_value = con_vals[constraint]
-            con_size = con_options['size']
+            con_size = con_options["size"]
 
-            if con_options.get('equals', None) is not None:
+            if con_options.get("equals", None) is not None:
                 # Equality constraint, all indices active
-                active_cons[constraint] = {'indices': np.arange(con_size, dtype=int),
-                                           'active_bounds': np.zeros(con_size, dtype=int)}
+                active_cons[constraint] = {
+                    "indices": np.arange(con_size, dtype=int),
+                    "active_bounds": np.zeros(con_size, dtype=int),
+                }
             else:
                 # Inequality constraint, determine active indices and bounds
                 constraint_upper = con_bounds[constraint].upper
@@ -1963,61 +2093,76 @@ class Driver(object, metaclass=DriverMetaclass):
                 if constraint_upper is None:
                     upper_idxs = np.empty(0, dtype=int)
                 else:
-                    upper_mask = np.logical_or(constraint_value > constraint_upper,
-                                               np.isclose(constraint_value, constraint_upper,
-                                                          atol=feas_atol, rtol=feas_rtol))
+                    upper_mask = np.logical_or(
+                        constraint_value > constraint_upper,
+                        np.isclose(
+                            constraint_value, constraint_upper, atol=feas_atol, rtol=feas_rtol
+                        ),
+                    )
                     upper_idxs = np.where(upper_mask)[0]
 
                 if constraint_lower is None:
                     lower_idxs = np.empty(0, dtype=int)
                 else:
-                    lower_mask = np.logical_or(constraint_value < constraint_lower,
-                                               np.isclose(constraint_value, constraint_lower,
-                                                          atol=feas_atol, rtol=feas_rtol))
+                    lower_mask = np.logical_or(
+                        constraint_value < constraint_lower,
+                        np.isclose(
+                            constraint_value, constraint_lower, atol=feas_atol, rtol=feas_rtol
+                        ),
+                    )
                     lower_idxs = np.where(lower_mask)[0]
 
                 active_idxs = sorted(np.concatenate((upper_idxs, lower_idxs)))
                 active_bounds = [1 if idx in upper_idxs else -1 for idx in active_idxs]
                 if active_idxs:
-                    active_cons[constraint] = {'indices': active_idxs,
-                                               'active_bounds': active_bounds}
+                    active_cons[constraint] = {
+                        "indices": active_idxs,
+                        "active_bounds": active_bounds,
+                    }
 
         for des_var, des_var_options in des_vars.items():
             des_var_value = dv_vals[des_var]
-            des_var_size = des_var_options['size']
+            des_var_size = des_var_options["size"]
 
             des_var_upper = dv_bounds[des_var].upper
             des_var_lower = dv_bounds[des_var].lower
 
             if assume_dvs_active:
-                active_dvs[des_var] = {'indices': np.arange(des_var_size, dtype=int),
-                                       'active_bounds': np.zeros(des_var_size, dtype=int)}
+                active_dvs[des_var] = {
+                    "indices": np.arange(des_var_size, dtype=int),
+                    "active_bounds": np.zeros(des_var_size, dtype=int),
+                }
             else:
                 if des_var_upper is None:
                     upper_idxs = np.empty(0, dtype=int)
                 else:
-                    upper_mask = np.logical_or(des_var_value > des_var_upper,
-                                               np.isclose(des_var_value, des_var_upper,
-                                                          atol=feas_atol, rtol=feas_rtol))
+                    upper_mask = np.logical_or(
+                        des_var_value > des_var_upper,
+                        np.isclose(des_var_value, des_var_upper, atol=feas_atol, rtol=feas_rtol),
+                    )
                     upper_idxs = np.where(upper_mask)[0]
                 if des_var_lower is None:
                     lower_idxs = np.empty(0, dtype=int)
                 else:
-                    lower_mask = np.logical_or(des_var_value < des_var_lower,
-                                               np.isclose(des_var_value, des_var_lower,
-                                                          atol=feas_atol, rtol=feas_rtol))
+                    lower_mask = np.logical_or(
+                        des_var_value < des_var_lower,
+                        np.isclose(des_var_value, des_var_lower, atol=feas_atol, rtol=feas_rtol),
+                    )
                     lower_idxs = np.where(lower_mask)[0]
 
                 active_idxs = sorted(np.concatenate((upper_idxs, lower_idxs)))
                 active_bounds = [1 if idx in upper_idxs else -1 for idx in active_idxs]
                 if active_idxs:
-                    active_dvs[des_var] = {'indices': np.asarray(active_idxs, dtype=int),
-                                           'active_bounds': np.asarray(active_bounds, dtype=int)}
+                    active_dvs[des_var] = {
+                        "indices": np.asarray(active_idxs, dtype=int),
+                        "active_bounds": np.asarray(active_bounds, dtype=int),
+                    }
 
         return active_cons, active_dvs
 
-    def compute_lagrange_multipliers(self, driver_scaling=False, feas_tol=1.0E-6,
-                                     use_sparse_solve=True):
+    def compute_lagrange_multipliers(
+        self, driver_scaling=False, feas_tol=1.0e-6, use_sparse_solve=True
+    ):
         """
         Get the approximated Lagrange multipliers of one or more constraints.
 
@@ -2051,9 +2196,10 @@ class Driver(object, metaclass=DriverMetaclass):
             For each active constraint, the corresponding dictionary
             provides the 'multipliers', active 'indices', and 'active_bounds'.
         """
-        if not self.supports['optimization']:
-            raise NotImplementedError('Lagrange multipliers are only available for '
-                                      'drivers which support optimization.')
+        if not self.supports["optimization"]:
+            raise NotImplementedError(
+                "Lagrange multipliers are only available for drivers which support optimization."
+            )
 
         prob = self._problem()
 
@@ -2063,15 +2209,14 @@ class Driver(object, metaclass=DriverMetaclass):
 
         of_totals = {obj_name, *constraints.keys()}
 
-        active_cons, active_dvs = self._get_active_cons_and_dvs(feas_atol=feas_tol,
-                                                                feas_rtol=feas_tol)
+        active_cons, active_dvs = self._get_active_cons_and_dvs(
+            feas_atol=feas_tol, feas_rtol=feas_tol
+        )
 
         # Active cons and dvs provide the active indices in the design vars and constraints.
         # But these design vars and constraints may themselves be indices of a larger
         # variable.
-        totals = prob.compute_totals(list(of_totals),
-                                     list(des_vars),
-                                     driver_scaling=True)
+        totals = prob.compute_totals(list(of_totals), list(des_vars), driver_scaling=True)
 
         grad_f = {inp: totals[obj_name, inp] for inp in des_vars.keys()}
 
@@ -2081,7 +2226,7 @@ class Driver(object, metaclass=DriverMetaclass):
         offset = 0
         for grad_f_val in grad_f.values():
             inp_size = grad_f_val.size
-            grad_f_vec[offset:offset + inp_size] = grad_f_val
+            grad_f_vec[offset : offset + inp_size] = grad_f_val
             offset += inp_size
 
         active_jac_blocks = []
@@ -2089,35 +2234,43 @@ class Driver(object, metaclass=DriverMetaclass):
         if not active_cons and not active_dvs:
             return {}, {}
 
-        for (dv_name, active_meta) in active_dvs.items():
+        for dv_name, active_meta in active_dvs.items():
             # For active design variable bounds, the constraint gradient
             # wrt des vars is just an identity matrix sized by the number of
             # active elements in the design variable.
-            active_idxs = active_meta['indices']
+            active_idxs = active_meta["indices"]
 
-            size = des_vars[dv_name]['size']
-            con_grad = {(dv_name, inp): np.eye(size)[active_idxs, ...] if inp == dv_name
-                        else np.zeros((size, dv_meta['size']))[active_idxs, ...]
-                        for (inp, dv_meta) in des_vars.items()}
+            size = des_vars[dv_name]["size"]
+            con_grad = {
+                (dv_name, inp): np.eye(size)[active_idxs, ...]
+                if inp == dv_name
+                else np.zeros((size, dv_meta["size"]))[active_idxs, ...]
+                for (inp, dv_meta) in des_vars.items()
+            }
 
             if use_sparse_solve:
                 active_jac_blocks.append([sp.csr_matrix(cg) for cg in con_grad.values()])
             else:
                 active_jac_blocks.append(list(con_grad.values()))
 
-        for (con_name, active_meta) in active_cons.items():
+        for con_name, active_meta in active_cons.items():
             # If the constraint is a design variable, the constraint gradient
             # wrt des vars is just an identity matrix sized by the number of
             # active elements in the design variable.
-            active_idxs = active_meta['indices']
+            active_idxs = active_meta["indices"]
             if con_name in des_vars.keys():
-                size = des_vars[con_name]['size']
-                con_grad = {(con_name, inp): np.eye(size)[active_idxs, ...] if inp == con_name
-                            else np.zeros((size, dv_meta['size']))[active_idxs, ...]
-                            for (inp, dv_meta) in des_vars.items()}
+                size = des_vars[con_name]["size"]
+                con_grad = {
+                    (con_name, inp): np.eye(size)[active_idxs, ...]
+                    if inp == con_name
+                    else np.zeros((size, dv_meta["size"]))[active_idxs, ...]
+                    for (inp, dv_meta) in des_vars.items()
+                }
             else:
-                con_grad = {(con_name, inp): totals[con_name, inp][active_idxs, ...]
-                            for inp in des_vars.keys()}
+                con_grad = {
+                    (con_name, inp): totals[con_name, inp][active_idxs, ...]
+                    for inp in des_vars.keys()
+                }
             if use_sparse_solve:
                 active_jac_blocks.append([sp.csr_matrix(cg) for cg in con_grad.values()])
             else:
@@ -2142,17 +2295,17 @@ class Driver(object, metaclass=DriverMetaclass):
         con_vals = self.get_constraint_values()
 
         for desvar, act_info in active_dvs.items():
-            act_idxs = act_info['indices']
+            act_idxs = act_info["indices"]
             active_size = len(act_idxs)
-            mult_vals = multipliers_vec[offset:offset + active_size]
+            mult_vals = multipliers_vec[offset : offset + active_size]
             dv_multipliers[desvar] = np.zeros_like(dv_vals[desvar])
             dv_multipliers[desvar].flat[act_idxs] = mult_vals
             offset += active_size
 
         for constraint, act_info in active_cons.items():
-            act_idxs = act_info['indices']
+            act_idxs = act_info["indices"]
             active_size = len(act_idxs)
-            mult_vals = multipliers_vec[offset:offset + active_size]
+            mult_vals = multipliers_vec[offset : offset + active_size]
             if constraint in des_vars:
                 con_multipliers[constraint] = np.zeros_like(dv_vals[constraint])
             else:
@@ -2161,14 +2314,15 @@ class Driver(object, metaclass=DriverMetaclass):
             offset += active_size
 
         if not driver_scaling:
-            dv_multipliers, con_multipliers = self._autoscaler.apply_mult_unscaling(dv_multipliers,
-                                                                                    con_multipliers)
+            dv_multipliers, con_multipliers = self._autoscaler.apply_mult_unscaling(
+                dv_multipliers, con_multipliers
+            )
 
         for key, val in dv_multipliers.items():
-            active_dvs[key]['multipliers'] = val
+            active_dvs[key]["multipliers"] = val
 
         for key, val in con_multipliers.items():
-            active_cons[key]['multipliers'] = val
+            active_cons[key]["multipliers"] = val
 
         return active_dvs, active_cons
 
@@ -2203,8 +2357,8 @@ class Driver(object, metaclass=DriverMetaclass):
         i = 0
         for name in desvar_names:
             meta = self._designvars[name]
-            size = meta['size']
-            self._set_design_var(name, x_new[i:i + size])
+            size = meta["size"]
+            self._set_design_var(name, x_new[i : i + size])
             i += size
 
     def _compute_con_viol(self, x_new, desvar_names, driver_scaling=True):
@@ -2229,7 +2383,7 @@ class Driver(object, metaclass=DriverMetaclass):
             A flat vector of constraint violations, ordered with the linear constraints first.
         """
         model = self._problem().model
-        dv_vec = self._vectors['design_var']
+        dv_vec = self._vectors["design_var"]
 
         try:
             # Pass in new inputs
@@ -2242,30 +2396,34 @@ class Driver(object, metaclass=DriverMetaclass):
 
             with RecordingDebugging(self._get_name(), self.iter_count, self):
                 self.iter_count += 1
-                with model._relevance.nonlinear_active('iter'):
+                with model._relevance.nonlinear_active("iter"):
                     self._run_solve_nonlinear()
 
             # Sort the constraints with the linear contributions first to make it easier to
             # apply the cached linear constraint gradient.
-            lin_con_viol_dict = self.get_constraint_values(lintype='linear',
-                                                           driver_scaling=driver_scaling,
-                                                           viol=True)
+            lin_con_viol_dict = self.get_constraint_values(
+                lintype="linear", driver_scaling=driver_scaling, viol=True
+            )
 
-            nl_con_viol_dict = self.get_constraint_values(lintype='nonlinear',
-                                                          driver_scaling=driver_scaling,
-                                                          viol=True)
+            nl_con_viol_dict = self.get_constraint_values(
+                lintype="nonlinear", driver_scaling=driver_scaling, viol=True
+            )
 
-            return np.concatenate([v.ravel() for v in
-                                   list(lin_con_viol_dict.values()) +
-                                   list(nl_con_viol_dict.values())])
+            return np.concatenate(
+                [
+                    v.ravel()
+                    for v in list(lin_con_viol_dict.values()) + list(nl_con_viol_dict.values())
+                ]
+            )
 
         except Exception:
             if self._exc_info is None:  # only record the first one
                 self._exc_info = sys.exc_info()
-            return np.zeros(np.sum([c['size'] for c in self._cons.values()], dtype=int))
+            return np.zeros(np.sum([c["size"] for c in self._cons.values()], dtype=int))
 
-    def _compute_con_viol_grad(self, x_new, desvar_names, con_row_map,
-                               driver_scaling=True, lin_con_grad=None):
+    def _compute_con_viol_grad(
+        self, x_new, desvar_names, con_row_map, driver_scaling=True, lin_con_grad=None
+    ):
         """
         Compute the jacobian of the constraint violations wrt the design variables.
 
@@ -2289,15 +2447,15 @@ class Driver(object, metaclass=DriverMetaclass):
         jac : array-like
             A 2D array of the sensitivities of the constraints wrt the design variables.
         """
-        nlcons = [name for name, meta in self._cons.items() if not meta.get('linear')]
+        nlcons = [name for name, meta in self._cons.items() if not meta.get("linear")]
 
         # only need the gradient of the active constraints
-        active_cons, _ = self._get_active_cons_and_dvs(feas_atol=1.0E-8, feas_rtol=1.0E-8)
+        active_cons, _ = self._get_active_cons_and_dvs(feas_atol=1.0e-8, feas_rtol=1.0e-8)
 
         if nlcons:
-            nl_con_grad = self._compute_totals(of=nlcons, wrt=desvar_names,
-                                               return_format='array',
-                                               driver_scaling=driver_scaling)
+            nl_con_grad = self._compute_totals(
+                of=nlcons, wrt=desvar_names, return_format="array", driver_scaling=driver_scaling
+            )
         else:
             nl_con_grad = np.empty((0, x_new.size))
 
@@ -2310,10 +2468,23 @@ class Driver(object, metaclass=DriverMetaclass):
 
         return g
 
-    def _find_feasible(self, driver_scaling=True, exclude_desvars=None,
-                       method='trf', ftol=1e-08, xtol=1e-08, gtol=1e-08,
-                       x_scale=1., loss='linear', loss_tol=1.0E-8, f_scale=1.0,
-                       max_nfev=None, tr_solver=None, tr_options=None, iprint=1):
+    def _find_feasible(
+        self,
+        driver_scaling=True,
+        exclude_desvars=None,
+        method="trf",
+        ftol=1e-08,
+        xtol=1e-08,
+        gtol=1e-08,
+        x_scale=1.0,
+        loss="linear",
+        loss_tol=1.0e-8,
+        f_scale=1.0,
+        max_nfev=None,
+        tr_solver=None,
+        tr_options=None,
+        iprint=1,
+    ):
         """
         Attempt to find design variable values which minimize the constraint violation.
 
@@ -2392,53 +2563,62 @@ class Driver(object, metaclass=DriverMetaclass):
 
         self._check_for_invalid_desvar_values()
 
-        exclude_desvars = [exclude_desvars] if isinstance(exclude_desvars, str) \
-            else exclude_desvars or []
+        exclude_desvars = (
+            [exclude_desvars] if isinstance(exclude_desvars, str) else exclude_desvars or []
+        )
 
-        status = -1 if problem is None else problem._metadata['setup_status']
+        status = -1 if problem is None else problem._metadata["setup_status"]
         if status < _SetupStatus.POST_FINAL_SETUP:
             problem.final_setup()
 
-        desvar_vals = {dv: val for dv, val in self.get_design_var_values().items()
-                       if not any(fnmatchcase(dv, pat) for pat in exclude_desvars)}
+        desvar_vals = {
+            dv: val
+            for dv, val in self.get_design_var_values().items()
+            if not any(fnmatchcase(dv, pat) for pat in exclude_desvars)
+        }
 
         # Size Problem
         ndesvar = 0
         for name in desvar_vals.keys():
             meta = self._designvars[name]
-            size = meta['global_size'] if meta['distributed'] else meta['size']
+            size = meta["global_size"] if meta["distributed"] else meta["size"]
             ndesvar += size
         x_init = np.empty(ndesvar)
 
         if ndesvar == 0:
-            raise RuntimeError('Problem has no design variables or '
-                               'all design variables are excluded.')
+            raise RuntimeError(
+                "Problem has no design variables or all design variables are excluded."
+            )
 
         i = 0
         for name, val in desvar_vals.items():
             meta = self._designvars[name]
-            size = meta['global_size'] if meta['distributed'] else meta['size']
-            x_init[i:i + size] = val
+            size = meta["global_size"] if meta["distributed"] else meta["size"]
+            x_init[i : i + size] = val
             i += size
 
         # Initial Design Vars bounds
-        if method == 'lm':
+        if method == "lm":
             bounds = (-np.inf, np.inf)
 
-            if any((meta['lower'] is not None and np.any(np.atleast_1d(meta['lower']) > -1.0E16)) or
-                   (meta['upper'] is not None and np.any(np.atleast_1d(meta['upper']) < 1.0E16))
-                   for meta in self._designvars.values()):
-                issue_warning("find_feasible method is 'lm' which ignores bounds "
-                              "but one or more design variables have bounds.")
+            if any(
+                (meta["lower"] is not None and np.any(np.atleast_1d(meta["lower"]) > -1.0e16))
+                or (meta["upper"] is not None and np.any(np.atleast_1d(meta["upper"]) < 1.0e16))
+                for meta in self._designvars.values()
+            ):
+                issue_warning(
+                    "find_feasible method is 'lm' which ignores bounds "
+                    "but one or more design variables have bounds."
+                )
         else:
             i = 0
             bounds = []
 
-            dv_bounds = self._autoscaler.get_bounds_scaling('design_var')
+            dv_bounds = self._autoscaler.get_bounds_scaling("design_var")
 
             for name, val in desvar_vals.items():
                 meta = self._designvars[name]
-                size = meta['global_size'] if meta['distributed'] else meta['size']
+                size = meta["global_size"] if meta["distributed"] else meta["size"]
 
                 meta_low = dv_bounds[name].lower
                 meta_high = dv_bounds[name].upper
@@ -2448,12 +2628,11 @@ class Driver(object, metaclass=DriverMetaclass):
 
                     # If lower and upper are equal at any indices, add some slack
                     if p_low is not None and p_high is not None:
-                        equal_idxs = np.where(
-                            np.atleast_1d(np.abs(p_high - p_low)) < 1.0E-16)[0]
+                        equal_idxs = np.where(np.atleast_1d(np.abs(p_high - p_low)) < 1.0e-16)[0]
                         if np.isscalar(p_high):
-                            p_high += 1.0E-16
+                            p_high += 1.0e-16
                         else:
-                            p_high[equal_idxs] += 1.0E-16
+                            p_high[equal_idxs] += 1.0e-16
 
                     bounds.append((p_low, p_high))
 
@@ -2461,66 +2640,82 @@ class Driver(object, metaclass=DriverMetaclass):
             lower, upper = old_bound_to_new(bounds)  # tuple, tuple
             bounds = Bounds(lb=lower, ub=upper, keep_feasible=[True] * x_init.size)
 
-        lincons = {name: meta for name, meta in self._cons.items() if meta.get('linear')}
-        nl_cons = {name: meta for name, meta in self._cons.items() if not meta.get('linear')}
+        lincons = {name: meta for name, meta in self._cons.items() if meta.get("linear")}
+        nl_cons = {name: meta for name, meta in self._cons.items() if not meta.get("linear")}
 
         # Save the rows in the constraint vector that apply to each constrained output
         con_row_map = {}
         i = 0
         for name, meta in chain(lincons.items(), nl_cons.items()):
-            size = meta['global_size'] if meta['distributed'] else meta['size']
+            size = meta["global_size"] if meta["distributed"] else meta["size"]
             con_row_map[name] = slice(i, i + size)
             i += size
 
         # Compute and save the gradient of the linear constraints
         if lincons:
-            lincongrad_cache = self._compute_totals(of=list(lincons.keys()),
-                                                    wrt=desvar_vals.keys(),
-                                                    driver_scaling=driver_scaling,
-                                                    return_format='array')
+            lincongrad_cache = self._compute_totals(
+                of=list(lincons.keys()),
+                wrt=desvar_vals.keys(),
+                driver_scaling=driver_scaling,
+                return_format="array",
+            )
         else:
             lincongrad_cache = np.empty((0, x_init.size))
 
         # Provide the jac with cached linear grad and mapping of constraint names to rows.
-        jacfun = functools.partial(self._compute_con_viol_grad, desvar_names=desvar_vals.keys(),
-                                   driver_scaling=driver_scaling, lin_con_grad=lincongrad_cache,
-                                   con_row_map=con_row_map)
+        jacfun = functools.partial(
+            self._compute_con_viol_grad,
+            desvar_names=desvar_vals.keys(),
+            driver_scaling=driver_scaling,
+            lin_con_grad=lincongrad_cache,
+            con_row_map=con_row_map,
+        )
 
         # Wrap the actual least squares call so that we don't need to duplicate calls below'
         if MPI and problem.comm.rank != 0:
             iprint = 0
 
-        f_lsq = functools.partial(least_squares, self._compute_con_viol,
-                                  kwargs={'driver_scaling': driver_scaling,
-                                          'desvar_names': list(desvar_vals.keys())},
-                                  x0=x_init, bounds=bounds, verbose=2 if iprint == 2 else 0,
-                                  method=method, ftol=ftol, xtol=xtol, gtol=gtol,
-                                  x_scale=x_scale, loss=loss, max_nfev=max_nfev,
-                                  f_scale=f_scale, tr_solver=tr_solver,
-                                  tr_options=tr_options or {},
-                                  jac=jacfun)
+        f_lsq = functools.partial(
+            least_squares,
+            self._compute_con_viol,
+            kwargs={"driver_scaling": driver_scaling, "desvar_names": list(desvar_vals.keys())},
+            x0=x_init,
+            bounds=bounds,
+            verbose=2 if iprint == 2 else 0,
+            method=method,
+            ftol=ftol,
+            xtol=xtol,
+            gtol=gtol,
+            x_scale=x_scale,
+            loss=loss,
+            max_nfev=max_nfev,
+            f_scale=f_scale,
+            tr_solver=tr_solver,
+            tr_options=tr_options or {},
+            jac=jacfun,
+        )
 
         if self._exc_info is not None:
             self._reraise()
 
         if iprint == 2:
             print()
-            print('-------------------------')
-            print('Finding feasible point...')
+            print("-------------------------")
+            print("Finding feasible point...")
 
         self.result.reset()
-        if problem.options['group_by_pre_opt_post']:
+        if problem.options["group_by_pre_opt_post"]:
             if model._pre_components:
-                with model._relevance.nonlinear_active('pre'):
+                with model._relevance.nonlinear_active("pre"):
                     self._run_solve_nonlinear()
 
             with SaveOptResult(self):
-                with model._relevance.nonlinear_active('iter'):
+                with model._relevance.nonlinear_active("iter"):
                     res = f_lsq()
                     self.result.success = res.success and res.cost <= loss_tol
 
             if model._post_components:
-                with model._relevance.nonlinear_active('post'):
+                with model._relevance.nonlinear_active("post"):
                     self._run_solve_nonlinear()
 
         else:
@@ -2531,23 +2726,23 @@ class Driver(object, metaclass=DriverMetaclass):
         if iprint >= 1:
             if res.success:
                 if res.cost <= loss_tol:
-                    print('--------------------')
-                    print('Feasible point found')
-                    print('--------------------')
+                    print("--------------------")
+                    print("Feasible point found")
+                    print("--------------------")
                 else:
-                    print('-------------------------')
-                    print('Infeasibilities minimized')
-                    print('-------------------------')
+                    print("-------------------------")
+                    print("Infeasibilities minimized")
+                    print("-------------------------")
             else:
-                print('----------------------------------')
-                print('Failed to minimize infeasibilities')
-                print('----------------------------------')
+                print("----------------------------------")
+                print("Failed to minimize infeasibilities")
+                print("----------------------------------")
 
-            print(f'    loss({loss}): {res.cost:.8f}')
-            print(f'    iterations: {self.result.iter_count}')
-            print(f'    model evals: {res.nfev}')
-            print(f'    gradient evals: {res.njev}')
-            print(f'    elapsed time: {self.result.model_time + self.result.deriv_time:.8f} s')
+            print(f"    loss({loss}): {res.cost:.8f}")
+            print(f"    iterations: {self.result.iter_count}")
+            print(f"    model evals: {res.nfev}")
+            print(f"    gradient evals: {res.njev}")
+            print(f"    elapsed time: {self.result.model_time + self.result.deriv_time:.8f} s")
             if not res.success or res.cost >= loss_tol:
                 max_idx = np.argmax(np.abs(res.fun))
                 max_viol = res.fun[max_idx]
@@ -2559,13 +2754,13 @@ class Driver(object, metaclass=DriverMetaclass):
                 else:
                     max_viol_con = con_name
                     max_viol_idx_in_con = -1
-                max_viol_str = f'{max_viol_con}[{max_viol_idx_in_con}] = {max_viol:.8f}'
+                max_viol_str = f"{max_viol_con}[{max_viol_idx_in_con}] = {max_viol:.8f}"
             else:
-                max_viol_str = 'N/A'
+                max_viol_str = "N/A"
 
-            print(f'    max violation: {max_viol_str}')
+            print(f"    max violation: {max_viol_str}")
             if not res.success:
-                print(f'    message: {res.message}')
+                print(f"    message: {res.message}")
             print()
 
         self.result.exit_status = res.message
@@ -2705,37 +2900,38 @@ def record_iteration(requester, prob, case_name):
     discrete_outputs = model._discrete_outputs
 
     opts = requester.recording_options
-    data = {'input': {}, 'output': {}, 'residual': {}}
+    data = {"input": {}, "output": {}, "residual": {}}
     filt = requester._filtered_vars_to_record
     if filt is None:  # recorder is not initialized
         # this will raise the proper exception
         rec_mgr.record_iteration(requester, data, requester._get_recorder_metadata(case_name))
         return
 
-    if opts['record_inputs'] and (inputs._names or len(discrete_inputs) > 0):
-        data['input'] = model._retrieve_data_of_kind(filt, 'input', 'nonlinear', local)
+    if opts["record_inputs"] and (inputs._names or len(discrete_inputs) > 0):
+        data["input"] = model._retrieve_data_of_kind(filt, "input", "nonlinear", local)
 
-    if opts['record_outputs'] and (outputs._names or len(discrete_outputs) > 0):
-        data['output'] = model._retrieve_data_of_kind(filt, 'output', 'nonlinear', local)
+    if opts["record_outputs"] and (outputs._names or len(discrete_outputs) > 0):
+        data["output"] = model._retrieve_data_of_kind(filt, "output", "nonlinear", local)
 
-    if opts['record_residuals'] and residuals._names:
-        data['residual'] = model._retrieve_data_of_kind(filt, 'residual', 'nonlinear', local)
+    if opts["record_residuals"] and residuals._names:
+        data["residual"] = model._retrieve_data_of_kind(filt, "residual", "nonlinear", local)
 
     from openmdao.core.problem import Problem
+
     if isinstance(requester, Problem):
         # Record total derivatives
-        if opts['record_derivatives'] and prob.driver._designvars and prob.driver._responses:
-            data['totals'] = requester.compute_totals(return_format='flat_dict_structured_key')
+        if opts["record_derivatives"] and prob.driver._designvars and prob.driver._responses:
+            data["totals"] = requester.compute_totals(return_format="flat_dict_structured_key")
 
         # Record solver info
-        if opts['record_abs_error'] or opts['record_rel_error']:
+        if opts["record_abs_error"] or opts["record_rel_error"]:
             norm = residuals.get_norm()
-        if opts['record_abs_error']:
-            data['abs'] = norm
-        if opts['record_rel_error']:
+        if opts["record_abs_error"]:
+            data["abs"] = norm
+        if opts["record_rel_error"]:
             solver = model.nonlinear_solver
             norm0 = solver._norm0 if solver._norm0 != 0.0 else 1.0  # runonce never sets _norm0
-            data['rel'] = norm / norm0
+            data["rel"] = norm / norm0
 
     rec_mgr.record_iteration(requester, data, requester._get_recorder_metadata(case_name))
 

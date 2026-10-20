@@ -112,8 +112,18 @@ class _HookMeta(object):
         If we're a 'None' inst_id hook, keep track of our child hooks.
     """
 
-    def __init__(self, class_name, inst_id, hook, ncalls=None, exit=False, pass_args=False,
-                 pass_return=False, predicate=None, **kwargs):
+    def __init__(
+        self,
+        class_name,
+        inst_id,
+        hook,
+        ncalls=None,
+        exit=False,
+        pass_args=False,
+        pass_return=False,
+        predicate=None,
+        **kwargs,
+    ):
         global _hook_counter
         self._stamp = _hook_counter
         _hook_counter += 1
@@ -130,8 +140,10 @@ class _HookMeta(object):
         self.children = []  # if we're a 'None' inst_id hook, keep track of our child hooks
 
     def __repr__(self):
-        return f"<_HookMeta {self.class_name} {self.inst_id} {self.hook} {self.ncalls} "\
-               f"{self.exit} {self.reg_kwargs}>"
+        return (
+            f"<_HookMeta {self.class_name} {self.inst_id} {self.hook} {self.ncalls} "
+            f"{self.exit} {self.reg_kwargs}>"
+        )
 
     def __call__(self, inst, args, kwargs, ret=None):
         """
@@ -224,9 +236,17 @@ class _HookMeta(object):
         _HookMeta
             A copy of this _HookMeta.
         """
-        hm = self.__class__(self.class_name, self.inst_id, self.hook, self.ncalls,
-                            self.exit, self.pass_args, self.pass_return, self.predicate,
-                            **self.reg_kwargs)
+        hm = self.__class__(
+            self.class_name,
+            self.inst_id,
+            self.hook,
+            self.ncalls,
+            self.exit,
+            self.pass_args,
+            self.pass_return,
+            self.predicate,
+            **self.reg_kwargs,
+        )
         # keep the same stamp so that the order of hooks doesn't change
         hm._stamp = self._stamp
         if self.inst_id is None:
@@ -387,13 +407,14 @@ def _setup_hooks(obj):
     # happen until _setup_procs because that's the earliest point where the component/group has a
     # valid pathname.
     if use_hooks:
-
         # any object where we register hooks must define the '_get_inst_id' method.
         ident = obj._get_inst_id()
 
         if ident is None:
-            raise RuntimeError(f"Object {obj} must define a '_get_inst_id' method that returns "
-                               "a unique identifier for the object.")
+            raise RuntimeError(
+                f"Object {obj} must define a '_get_inst_id' method that returns "
+                "a unique identifier for the object."
+            )
 
         all_hooks = {}
 
@@ -427,8 +448,19 @@ def _setup_hooks(obj):
                 setattr(obj, funcname, _HookDecorator(obj, method, hooks))
 
 
-def _register_hook(fname, class_name, inst_id=None, pre=None, post=None, ncalls=None, exit=False,
-                   pass_args=False, pass_return=False, predicate=None, **kwargs):
+def _register_hook(
+    fname,
+    class_name,
+    inst_id=None,
+    pre=None,
+    post=None,
+    ncalls=None,
+    exit=False,
+    pass_args=False,
+    pass_return=False,
+    predicate=None,
+    **kwargs,
+):
     """
     Register a hook function.
 
@@ -486,17 +518,33 @@ def _register_hook(fname, class_name, inst_id=None, pre=None, post=None, ncalls=
     else:
         pre_exit = exit if post is None else False
         klass = _hook_class_factory(pass_args, False)
-        pre_hook = klass(class_name, inst_id, pre, ncalls=ncalls, exit=pre_exit,
-                         pass_args=pass_args, pass_return=pass_return,
-                         predicate=predicate, **kwargs)
+        pre_hook = klass(
+            class_name,
+            inst_id,
+            pre,
+            ncalls=ncalls,
+            exit=pre_exit,
+            pass_args=pass_args,
+            pass_return=pass_return,
+            predicate=predicate,
+            **kwargs,
+        )
 
     if post is None:
         post_hook = None
     else:
         klass = _hook_class_factory(pass_args, pass_return)
-        post_hook = klass(class_name, inst_id, post, ncalls=ncalls, exit=exit,
-                          pass_args=pass_args, pass_return=pass_return,
-                          predicate=predicate, **kwargs)
+        post_hook = klass(
+            class_name,
+            inst_id,
+            post,
+            ncalls=ncalls,
+            exit=exit,
+            pass_args=pass_args,
+            pass_return=pass_return,
+            predicate=predicate,
+            **kwargs,
+        )
 
     imeta[fname].append((pre_hook, post_hook))
 
@@ -556,5 +604,7 @@ def _unregister_hook(fname, class_name, inst_id=None, pre=True, post=True):
                 _deactivate_hook(pre, pre_hook)
                 _deactivate_hook(post, post_hook)
         else:
-            warnings.warn(f"No hook found for method '{fname}' for class '{class_name}' and "
-                          f"instance '{inst_id}'.")
+            warnings.warn(
+                f"No hook found for method '{fname}' for class '{class_name}' and "
+                f"instance '{inst_id}'."
+            )

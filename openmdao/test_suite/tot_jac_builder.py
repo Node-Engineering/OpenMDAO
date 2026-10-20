@@ -50,7 +50,7 @@ class TotJacBuilder(object):
 
     def add_block(self, block, start_row, start_col):
         rows, cols = block.shape
-        self.J[start_row:start_row + rows, start_col:start_col + cols] = block
+        self.J[start_row : start_row + rows, start_col : start_col + cols] = block
 
     def add_block_diag(self, shapes, start_row, start_col, density=1.0):
         row_idx = start_row
@@ -61,7 +61,7 @@ class TotJacBuilder(object):
             row_idx += shape[0]
             col_idx += shape[1]
 
-    def color(self, mode='auto', fname=None, direct=True):
+    def color(self, mode="auto", fname=None, direct=True):
         self.coloring = _compute_coloring(self.J, mode, direct=direct)
         if self.coloring is not None and fname is not None:
             self.coloring.save(fname)
@@ -114,8 +114,16 @@ class TotJacBuilder(object):
         return shapes, row_size, col_size
 
     @staticmethod
-    def make_jac(n_dense_rows=0, row_density=1.0, n_dense_cols=0, col_density=1.0,
-                 n_blocks=0, min_shape=(1,1), max_shape=(2,2), n_random_pts=0):
+    def make_jac(
+        n_dense_rows=0,
+        row_density=1.0,
+        n_dense_cols=0,
+        col_density=1.0,
+        n_blocks=0,
+        min_shape=(1, 1),
+        max_shape=(2, 2),
+        n_random_pts=0,
+    ):
         if n_blocks > 0:
             shapes, nrows, ncols = TotJacBuilder.make_blocks(n_blocks, min_shape, max_shape)
             builder = TotJacBuilder(nrows + n_dense_rows, ncols + n_dense_cols)
@@ -174,15 +182,21 @@ def rand_jac(minrows=(1, 10), mincols=(1, 10)):
     minr = rnd(*minrows)
     minc = rnd(*mincols)
 
-    return  TotJacBuilder.make_jac(n_dense_rows=rnd(5), row_density=np.random.rand(),
-                                   n_dense_cols=rnd(5), col_density=np.random.rand(),
-                                   n_blocks=rnd(3,8),
-                                   min_shape=(minr,minc),
-                                   max_shape=(minr+rnd(10),minc+rnd(10)),
-                                   n_random_pts=rnd(15))
+    return TotJacBuilder.make_jac(
+        n_dense_rows=rnd(5),
+        row_density=np.random.rand(),
+        n_dense_cols=rnd(5),
+        col_density=np.random.rand(),
+        n_blocks=rnd(3, 8),
+        min_shape=(minr, minc),
+        max_shape=(minr + rnd(10), minc + rnd(10)),
+        n_random_pts=rnd(15),
+    )
 
 
-def check_sparsity_tot_coloring(sparsity, direct=True, tolerance=1e-15, tol_type='rel', mode='auto'):
+def check_sparsity_tot_coloring(
+    sparsity, direct=True, tolerance=1e-15, tol_type="rel", mode="auto"
+):
     """
     Check total derivatives of a top level SparsityComp with and without total coloring.
 
@@ -199,27 +213,27 @@ def check_sparsity_tot_coloring(sparsity, direct=True, tolerance=1e-15, tol_type
     # compute totals without coloring
     p = om.Problem()
     model = p.model
-    model.add_subsystem('comp', SparsityComp(sparsity))
-    model.add_design_var('comp.x')
-    model.add_constraint('comp.y')
+    model.add_subsystem("comp", SparsityComp(sparsity))
+    model.add_design_var("comp.x")
+    model.add_constraint("comp.y")
     p.driver = om.ScipyOptimizeDriver()
-    p.driver.options['optimizer'] = 'SLSQP'
+    p.driver.options["optimizer"] = "SLSQP"
     p.setup(mode=mode)
     p.run_model()
-    J = p.compute_totals(of=['comp.y'], wrt=['comp.x'], return_format='array')
+    J = p.compute_totals(of=["comp.y"], wrt=["comp.x"], return_format="array")
 
     # compute totals with coloring
     p = om.Problem()
     model = p.model
-    model.add_subsystem('comp', SparsityComp(sparsity))
-    model.add_design_var('comp.x')
-    model.add_constraint('comp.y')
+    model.add_subsystem("comp", SparsityComp(sparsity))
+    model.add_design_var("comp.x")
+    model.add_constraint("comp.y")
     p.driver = om.ScipyOptimizeDriver()
-    p.driver.options['optimizer'] = 'SLSQP'
+    p.driver.options["optimizer"] = "SLSQP"
     p.driver.declare_coloring(direct=direct)
     p.setup(mode=mode)
     p.run_model()
-    Jcolor = p.compute_totals(of=['comp.y'], wrt=['comp.x'], return_format='array')
+    Jcolor = p.compute_totals(of=["comp.y"], wrt=["comp.x"], return_format="array")
 
     # make sure totals match for both cases
     try:
@@ -239,23 +253,44 @@ def check_sparsity_tot_coloring(sparsity, direct=True, tolerance=1e-15, tol_type
         raise
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
     import pickle
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-e", "--eisenstat",
-                        help="Build an Eisenstat's example matrix of size n+1 x n.",
-                        action="store", type=int, default=-1, dest="eisenstat")
-    parser.add_argument("-m", "--mode", type=str, dest="mode",
-                        help="Direction of coloring (default is auto).",
-                        default="auto")
-    parser.add_argument('-s', '--save', dest="save", default=None,
-                        help="Output file for jacobian so it can be reloaded and colored using"
-                        " various methods for comparison.")
-    parser.add_argument('-l', '--load', dest="load", default=None,
-                        help="Input file for jacobian so it can be reloaded and colored using"
-                        " various methods for comparison.")
+    parser.add_argument(
+        "-e",
+        "--eisenstat",
+        help="Build an Eisenstat's example matrix of size n+1 x n.",
+        action="store",
+        type=int,
+        default=-1,
+        dest="eisenstat",
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        type=str,
+        dest="mode",
+        help="Direction of coloring (default is auto).",
+        default="auto",
+    )
+    parser.add_argument(
+        "-s",
+        "--save",
+        dest="save",
+        default=None,
+        help="Output file for jacobian so it can be reloaded and colored using"
+        " various methods for comparison.",
+    )
+    parser.add_argument(
+        "-l",
+        "--load",
+        dest="load",
+        default=None,
+        help="Input file for jacobian so it can be reloaded and colored using"
+        " various methods for comparison.",
+    )
 
     options = parser.parse_args()
 

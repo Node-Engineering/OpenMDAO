@@ -7,17 +7,17 @@ import openmdao.api as om
 
 class TwoDArrayAdder(om.ExplicitComponent):
     def initialize(self):
-        self.options.declare('n0')
-        self.options.declare('n1')
+        self.options.declare("n0")
+        self.options.declare("n1")
 
     def setup(self):
-        n0 = self.options['n0']
-        n1 = self.options['n1']
-        self.add_input('x', shape=((n0, n1)), distributed=True)
-        self.add_output('x_sum', shape=((n0, n1)), distributed=True)
+        n0 = self.options["n0"]
+        n1 = self.options["n1"]
+        self.add_input("x", shape=((n0, n1)), distributed=True)
+        self.add_output("x_sum", shape=((n0, n1)), distributed=True)
 
     def compute(self, inputs, outputs):
-        outputs['x_sum'] = np.sum(inputs['x'], axis=0)
+        outputs["x_sum"] = np.sum(inputs["x"], axis=0)
 
 
 @unittest.skipUnless(MPI, "MPI is required.")
@@ -38,11 +38,11 @@ class GlobalShapeErr(unittest.TestCase):
         prob = om.Problem()
         n0 = 3
         n1 = 100 if prob.comm.rank == 0 else 100 * n1_test_multiple
-        ivc = prob.model.add_subsystem('ivc',om.IndepVarComp())
-        ivc.add_output('x', val = np.ones((n0, n1)), distributed=True)
+        ivc = prob.model.add_subsystem("ivc", om.IndepVarComp())
+        ivc.add_output("x", val=np.ones((n0, n1)), distributed=True)
 
-        prob.model.add_subsystem('adder',TwoDArrayAdder(n0=n0, n1=n1))
-        prob.model.connect('ivc.x','adder.x')
+        prob.model.add_subsystem("adder", TwoDArrayAdder(n0=n0, n1=n1))
+        prob.model.connect("ivc.x", "adder.x")
 
         if expect_error:
             with self.assertRaises(RuntimeError):
@@ -58,5 +58,6 @@ class GlobalShapeErr(unittest.TestCase):
     def test_global_shape_failure(self):
         self.check_global_shape(2, True)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

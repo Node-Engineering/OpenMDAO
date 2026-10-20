@@ -6,7 +6,7 @@ original function.
 """
 
 try:
-    import numba         # noqa: F401
+    import numba  # noqa: F401
     from numba import *  # noqa: F403
 except ImportError:
     numba = None

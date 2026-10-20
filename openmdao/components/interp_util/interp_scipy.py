@@ -50,10 +50,12 @@ class InterpScipy(InterpAlgorithm):
         """
         try:
             from scipy.interpolate._bsplines import make_interp_spline
+
             self._make_interp_spline = make_interp_spline
         except ImportError as e:
-            raise ImportError('scipy.interpolate._bsplines.make_interp_spline '
-                              'is not available.') from e
+            raise ImportError(
+                "scipy.interpolate._bsplines.make_interp_spline is not available."
+            ) from e
 
         self.options = OptionsDictionary(parent_name=type(self).__name__)
         self.initialize()
@@ -61,7 +63,7 @@ class InterpScipy(InterpAlgorithm):
 
         self._vectorized = True
 
-        interp_method = self.options['interp_method']
+        interp_method = self.options["interp_method"]
         self._name = interp_method
         self._supports_d_dvalues = True
         self._full_slice = None
@@ -84,9 +86,12 @@ class InterpScipy(InterpAlgorithm):
         """
         Declare options.
         """
-        self.options.declare('interp_method', default='scipy_slinear',
-                             values=["scipy_slinear", "scipy_cubic", "scipy_quintic"],
-                             desc='Interpolation method to use for scipy.')
+        self.options.declare(
+            "interp_method",
+            default="scipy_slinear",
+            values=["scipy_slinear", "scipy_cubic", "scipy_quintic"],
+            desc="Interpolation method to use for scipy.",
+        )
 
     def check_config(self):
         """
@@ -200,11 +205,9 @@ class InterpScipy(InterpAlgorithm):
         # last variable of xi. This provides one dimension of the entire
         # gradient output array.
         i = n - 1
-        first_values, first_derivs = self._do_spline_fit(self.grid[i],
-                                                         data_values,
-                                                         xi[:, i],
-                                                         ki[i],
-                                                         compute_gradients)
+        first_values, first_derivs = self._do_spline_fit(
+            self.grid[i], data_values, xi[:, i], ki[i], compute_gradients
+        )
 
         # the rest of the dimensions have to be on a per point-in-xi basis
         for j, x in enumerate(xi):
@@ -223,30 +226,25 @@ class InterpScipy(InterpAlgorithm):
                     # Interpolate and collect gradients for each 1D in this
                     # last dimensions. This collapses each 1D sequence into a
                     # scalar.
-                    values, local_derivs = self._do_spline_fit(self.grid[i],
-                                                               values,
-                                                               x[i],
-                                                               ki[i],
-                                                               compute_gradients)
+                    values, local_derivs = self._do_spline_fit(
+                        self.grid[i], values, x[i], ki[i], compute_gradients
+                    )
 
                 # Chain rule: to compute gradients of the output w.r.t. xi
                 # across the dimensions, apply interpolation to the collected
                 # gradients. This is equivalent to multiplication by
                 # dResults/dValues at each level.
                 if compute_gradients:
-                    gradient[i] = self._evaluate_splines(local_derivs,
-                                                         x[: i],
-                                                         ki,
-                                                         compute_gradients=False).item()
+                    gradient[i] = self._evaluate_splines(
+                        local_derivs, x[:i], ki, compute_gradients=False
+                    ).item()
 
             # All values have been folded down to a single dimensional array
             # compute the final interpolated results, and gradient w.r.t. the
             # first dimension
-            output_value, gradient[0] = self._do_spline_fit(self.grid[0],
-                                                            values,
-                                                            x[0],
-                                                            ki[0],
-                                                            compute_gradients)
+            output_value, gradient[0] = self._do_spline_fit(
+                self.grid[0], values, x[0], ki[0], compute_gradients
+            )
 
             if compute_gradients:
                 all_gradients[j] = gradient

@@ -1,4 +1,3 @@
-
 import unittest
 
 import openmdao.api as om
@@ -47,7 +46,7 @@ class BM(unittest.TestCase):
         prob.final_setup()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     prob = _build_comp(1, 2000)
     prob.setup()
     prob.final_setup()

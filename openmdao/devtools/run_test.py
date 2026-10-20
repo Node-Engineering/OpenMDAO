@@ -32,16 +32,18 @@ def run_test():
     """
     if len(sys.argv) > 1:
         testspec = sys.argv[1]
-        parts = testspec.split(':')
+        parts = testspec.split(":")
 
     if len(sys.argv) != 2 or len(parts) != 2:
-        print('Usage: run_test my_mod_path:my_test_case.test_func_name\n'
-              '            OR\n'
-              '       run_test my_mod_path:test_func_name')
+        print(
+            "Usage: run_test my_mod_path:my_test_case.test_func_name\n"
+            "            OR\n"
+            "       run_test my_mod_path:test_func_name"
+        )
         sys.exit(-1)
 
     modpath, funcpath = parts
-    if modpath.endswith('.py'):
+    if modpath.endswith(".py"):
         modpath = get_module_path(modpath)
         if modpath is None:
             modpath = parts[0]
@@ -51,15 +53,15 @@ def run_test():
 
     mod = importlib.import_module(modpath)
 
-    parts = funcpath.split('.', 1)
+    parts = funcpath.split(".", 1)
     if len(parts) == 2:
         tcase_name, method_name = parts
         testcase = getattr(mod, tcase_name)(methodName=method_name)
-        setup = getattr(testcase, 'setUp', None)
+        setup = getattr(testcase, "setUp", None)
         if setup is not None:
             setup()
         getattr(testcase, method_name)()
-        teardown = getattr(testcase, 'tearDown', None)
+        teardown = getattr(testcase, "tearDown", None)
         if teardown:
             teardown()
     else:
@@ -67,5 +69,5 @@ def run_test():
         getattr(mod, funcname)()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_test()

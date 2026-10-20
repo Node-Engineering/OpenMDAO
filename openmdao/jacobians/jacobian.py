@@ -1,4 +1,5 @@
 """Define the base Jacobian class."""
+
 import numpy as np
 
 from openmdao.utils.iter_utils import meta2range_iter
@@ -14,8 +15,8 @@ from openmdao.matrices.csr_matrix import CSRMatrix
 
 def _get_vec_slices(system, iotype, subset=None):
     return {
-        name: slice(start, end) for name, start, end in
-        meta2range_iter(system._var_abs2meta[iotype].items(), subset=subset)
+        name: slice(start, end)
+        for name, start, end in meta2range_iter(system._var_abs2meta[iotype].items(), subset=subset)
     }
 
 
@@ -87,8 +88,8 @@ class Jacobian(object):
         self._col_mapper = None
         self._problem_meta = system._problem_meta
         self._resolver = system._resolver
-        self._output_slices = _get_vec_slices(system, 'output')
-        self._input_slices = _get_vec_slices(system, 'input')
+        self._output_slices = _get_vec_slices(system, "output")
+        self._input_slices = _get_vec_slices(system, "input")
         self._has_approx = system._has_approx
         self._is_explicitcomp = system.is_explicit(is_comp=True)
         self._ordered_subjac_keys = None
@@ -165,10 +166,21 @@ class Jacobian(object):
 
         return self._subjac_from_meta(abs_key, meta, row_slice, col_slice, wrt_is_input, dtype)
 
-    def _subjac_from_meta(self, key, meta, row_slice, col_slice, wrt_is_input, dtype,
-                          src_inds_list=None, factor=None, src=None):
-        return Subjac.get_subjac_class(meta)(key, meta, row_slice, col_slice, wrt_is_input,
-                                             dtype, src_inds_list, factor, src)
+    def _subjac_from_meta(
+        self,
+        key,
+        meta,
+        row_slice,
+        col_slice,
+        wrt_is_input,
+        dtype,
+        src_inds_list=None,
+        factor=None,
+        src=None,
+    ):
+        return Subjac.get_subjac_class(meta)(
+            key, meta, row_slice, col_slice, wrt_is_input, dtype, src_inds_list, factor, src
+        )
 
     def _get_subjacs(self, system=None):
         """
@@ -217,7 +229,7 @@ class Jacobian(object):
         """
         relevance = None
         try:
-            relevance = self._problem_meta['relevance']
+            relevance = self._problem_meta["relevance"]
             is_relevant = relevance.is_relevant
             active = system.linear_solver is None or system.linear_solver.use_relevance()
             if not active or not relevance._active:
@@ -270,7 +282,7 @@ class Jacobian(object):
         try:
             return self._subjacs_info[self._get_abs_key(key)]
         except KeyError:
-            raise KeyError(f'Variable name pair {key} not found.')
+            raise KeyError(f"Variable name pair {key} not found.")
 
     def __contains__(self, key):
         """
@@ -304,16 +316,16 @@ class Jacobian(object):
         """
         abs_key = self._get_abs_key(key)
         if abs_key is None:
-            raise KeyError(f'Variable name pair {key} not found.')
+            raise KeyError(f"Variable name pair {key} not found.")
 
         try:
-            return self._subjacs[abs_key].info['val']
+            return self._subjacs[abs_key].info["val"]
         except KeyError:
             # key might exist in _subjacs_info but not in _subjacs because it's not relevant
             if abs_key in self._irrelevant_subjacs:
-                return self._irrelevant_subjacs[abs_key].info['val']
+                return self._irrelevant_subjacs[abs_key].info["val"]
             else:
-                raise KeyError(f'Variable name pair {key} must first be declared.')
+                raise KeyError(f"Variable name pair {key} must first be declared.")
 
     def __setitem__(self, key, subjac):
         """
@@ -328,7 +340,7 @@ class Jacobian(object):
         """
         abs_key = self._get_abs_key(key)
         if abs_key is None:
-            raise KeyError(f'Variable name pair {key} not found.')
+            raise KeyError(f"Variable name pair {key} not found.")
 
         # You can only set declared subjacobians.
         try:
@@ -338,7 +350,7 @@ class Jacobian(object):
             if abs_key in self._irrelevant_subjacs:
                 self._irrelevant_subjacs[abs_key].set_val(subjac)
             else:
-                raise KeyError(f'Variable name pair {key} must first be declared.')
+                raise KeyError(f"Variable name pair {key} must first be declared.")
         except ValueError as err:
             raise ValueError(f"For subjacobian {key}: {err}")
 
@@ -371,7 +383,7 @@ class Jacobian(object):
         str
         """
         for key, subjac in self._subjacs.items():
-            yield key, subjac.info['val']
+            yield key, subjac.info["val"]
 
     def is_relevant(self, key):
         """
@@ -391,8 +403,8 @@ class Jacobian(object):
 
     @property
     def _randgen(self):
-        if self._problem_meta['randomize_subjacs']:
-            return self._problem_meta['coloring_randgen']
+        if self._problem_meta["randomize_subjacs"]:
+            return self._problem_meta["coloring_randgen"]
 
     def _apply(self, system, d_inputs, d_outputs, d_residuals, mode):
         """
@@ -465,11 +477,11 @@ class Jacobian(object):
                 key = (of, wrt)
                 if key in self._subjacs_info:
                     subjac = self.get_metadata(key)
-                    if subjac['cols'] is None:  # dense
-                        subjac['val'][:, :] = wjac[start:end, :].toarray()
+                    if subjac["cols"] is None:  # dense
+                        subjac["val"][:, :] = wjac[start:end, :].toarray()
                     else:  # our COO format
                         subj = wjac[start:end, :]
-                        subjac['val'][:] = subj[subjac['rows'], subjac['cols']]
+                        subjac["val"][:] = subj[subjac["rows"], subjac["cols"]]
 
     def set_dense_jac(self, system, jac):
         """
@@ -494,11 +506,11 @@ class Jacobian(object):
                 key = (of, wrt)
                 if key in self._subjacs_info:
                     subjac = self.get_metadata(key)
-                    if subjac['cols'] is None:  # dense
-                        subjac['val'][:, :] = jac[start:end, wstart:wend]
+                    if subjac["cols"] is None:  # dense
+                        subjac["val"][:, :] = jac[start:end, wstart:wend]
                     else:  # our COO format
                         subj = jac[start:end, wstart:wend]
-                        subjac['val'][:] = subj[subjac['rows'], subjac['cols']]
+                        subjac["val"][:] = subj[subjac["rows"], subjac["cols"]]
 
     def _reset_subjacs(self, system):
         """
@@ -528,7 +540,7 @@ class Jacobian(object):
         """
         relevance = None
         if self._ordered_subjac_keys is None:
-            relevance = self._problem_meta['relevance']
+            relevance = self._problem_meta["relevance"]
             is_relevant = relevance.is_relevant
             active = system.linear_solver is None or system.linear_solver.use_relevance()
             if not active or not relevance._active:
@@ -540,21 +552,22 @@ class Jacobian(object):
             # only if we're under MPI with comm size > 1 and the given system is a Group that
             # computes its derivatives using finite difference or complex step.
             if system.pathname and system.comm.size > 1 and system._owns_approx_jac:
-                ofnames = system._var_allprocs_abs2meta['output']
+                ofnames = system._var_allprocs_abs2meta["output"]
                 wrtnames = system._var_allprocs_abs2meta
             else:
-                ofnames = system._var_abs2meta['output']
+                ofnames = system._var_abs2meta["output"]
                 wrtnames = system._var_abs2meta
 
             with relevance.active(active) if relevance else do_nothing_context():
                 with relevance.all_seeds_active() if relevance else do_nothing_context():
                     for of in ofnames:
-                        for type_ in ('output', 'input'):
+                        for type_ in ("output", "input"):
                             for wrt in wrtnames[type_]:
                                 key = (of, wrt)
                                 if key in subjacs_info:
-                                    if relevance is not None and (not is_relevant(wrt) or
-                                                                  not is_relevant(of)):
+                                    if relevance is not None and (
+                                        not is_relevant(wrt) or not is_relevant(of)
+                                    ):
                                         continue
                                     keys.append(key)
 
@@ -767,14 +780,14 @@ class SplitJacobian(Jacobian):
         tuple
             Tuple of dr/do and dr/di dictionaries.
         """
-        is_top = system.pathname == ''
+        is_top = system.pathname == ""
 
         if not self._initialized:
             dtype = system._outputs.dtype
             self._dr_do_subjacs = {}
             dr_di_subjacs = {}
-            abs2meta_out = system._var_abs2meta['output']
-            abs2meta_in = system._var_abs2meta['input']
+            abs2meta_out = system._var_abs2meta["output"]
+            abs2meta_in = system._var_abs2meta["input"]
             is_explicit_comp = system.is_explicit(is_comp=True)
 
             try:
@@ -789,8 +802,9 @@ class SplitJacobian(Jacobian):
                 wrt = abs_key[1]
                 factor = None
                 if wrt in output_slices and not is_explicit_comp:
-                    self._dr_do_subjacs[abs_key] = \
-                        self.create_dr_do_subjac(conns, abs_key, wrt, meta, dtype)
+                    self._dr_do_subjacs[abs_key] = self.create_dr_do_subjac(
+                        conns, abs_key, wrt, meta, dtype
+                    )
                 elif wrt in input_slices:
                     if wrt in conns:  # internally connected input (only can happen in Groups)
                         # For the subjacs that make up the dr/do jacobian, the column entries
@@ -806,18 +820,18 @@ class SplitJacobian(Jacobian):
                         meta_out = abs2meta_out[src]
 
                         # calculate unit conversion if any between the input and its source
-                        in_units = meta_in['units']
-                        out_units = meta_out['units']
+                        in_units = meta_in["units"]
+                        out_units = meta_out["units"]
                         if in_units and out_units and in_units != out_units:
                             factor, _ = unit_conversion(out_units, in_units)
                             if factor == 1.0:
                                 factor = None
 
-                        src_inds_list = abs2meta_in[wrt]['src_inds_list']
+                        src_inds_list = abs2meta_in[wrt]["src_inds_list"]
 
-                        self._dr_do_subjacs[abs_key] = \
-                            self.create_dr_do_subjac(conns, abs_key, src, meta, dtype,
-                                                     src_inds_list, factor)
+                        self._dr_do_subjacs[abs_key] = self.create_dr_do_subjac(
+                            conns, abs_key, src, meta, dtype, src_inds_list, factor
+                        )
                     elif not is_top:  # input is connected to something outside current system
                         dr_di_subjacs[abs_key] = self.create_subjac(abs_key, meta, dtype)
 
@@ -850,8 +864,9 @@ class SplitJacobian(Jacobian):
             matrixobj._update_from_submat(subjac, randgen)
         matrixobj._post_update()
 
-    def create_dr_do_subjac(self, conns, abs_key, src, meta, dtype, src_inds_list=None,
-                            factor=None):
+    def create_dr_do_subjac(
+        self, conns, abs_key, src, meta, dtype, src_inds_list=None, factor=None
+    ):
         """
         Create a subjacobian for a square internal jacobian (d(residual)/d(source)).
 
@@ -886,8 +901,9 @@ class SplitJacobian(Jacobian):
             src = conns[wrt]
             col_slice = out_slices[src]
 
-        return self._subjac_from_meta(abs_key, meta, out_slices[of], col_slice, False,
-                                      dtype, src_inds_list, factor, src)
+        return self._subjac_from_meta(
+            abs_key, meta, out_slices[of], col_slice, False, dtype, src_inds_list, factor, src
+        )
 
     def _apply(self, system, d_inputs, d_outputs, d_residuals, mode):
         """
@@ -913,7 +929,7 @@ class SplitJacobian(Jacobian):
         with system._unscaled_context(outputs=(d_outputs,), residuals=(d_residuals,)):
             dresids = d_residuals.asarray()
 
-            if mode == 'fwd':
+            if mode == "fwd":
                 if d_outputs._names:
                     if self._is_explicitcomp:
                         # dr/do = -I
@@ -922,8 +938,9 @@ class SplitJacobian(Jacobian):
                         dresids += self._dr_do_mtx._prod(d_outputs.asarray(), mode)
 
                 if d_inputs._names and drdi_mtx is not None:
-                    dresids += drdi_mtx._prod(d_inputs.asarray(), mode,
-                                              self._get_mask(d_inputs, mode))
+                    dresids += drdi_mtx._prod(
+                        d_inputs.asarray(), mode, self._get_mask(d_inputs, mode)
+                    )
 
             else:  # rev
                 if d_outputs._names:
@@ -1136,8 +1153,9 @@ class GroupJacobianUpdateContext:
             The jacobian that is being updated.
         """
         if self.group._owns_approx_jac:
-            if self.group._tot_jac is not None and not isinstance(self.group._jacobian,
-                                                                  _ColSparsityJac):
+            if self.group._tot_jac is not None and not isinstance(
+                self.group._jacobian, _ColSparsityJac
+            ):
                 self.jac = self.group._jacobian = self.group._tot_jac
             else:
                 self.jac = self.group._jacobian = self.group._get_jacobian()

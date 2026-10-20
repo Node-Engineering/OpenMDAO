@@ -1,4 +1,3 @@
-
 # pylint: disable-msg=C0111,C0103
 
 import importlib.metadata as ilmd
@@ -11,12 +10,15 @@ from openmdao.api import KrigingSurrogate
 from openmdao.utils.assert_utils import assert_near_equal
 
 
-scipy_version = tuple([int(s) for s in ilmd.version('scipy').split('.')])
+scipy_version = tuple([int(s) for s in ilmd.version("scipy").split(".")])
 
 
 def branin(x):
-    y = (x[1] - (5.1 / (4. * np.pi ** 2.)) * x[0] ** 2. + 5. * x[0] / np.pi - 6.) ** 2. \
-        + 10. * (1. - 1. / (8. * np.pi)) * np.cos(x[0]) + 10.
+    y = (
+        (x[1] - (5.1 / (4.0 * np.pi**2.0)) * x[0] ** 2.0 + 5.0 * x[0] / np.pi - 6.0) ** 2.0
+        + 10.0 * (1.0 - 1.0 / (8.0 * np.pi)) * np.cos(x[0])
+        + 10.0
+    )
     return y
 
 
@@ -25,12 +27,11 @@ def branin_1d(x):
 
 
 class TestKrigingSurrogate(unittest.TestCase):
-
     def test_1d_training(self):
 
         x = np.array([[0.0], [2.0], [3.0], [4.0], [6.0]])
         y = np.array([[branin_1d(case)] for case in x])
-        surrogate = KrigingSurrogate(nugget=0., eval_rmse=True)
+        surrogate = KrigingSurrogate(nugget=0.0, eval_rmse=True)
         surrogate.train(x, y)
 
         for x0, y0 in zip(x, y):
@@ -50,12 +51,12 @@ class TestKrigingSurrogate(unittest.TestCase):
 
         assert_near_equal(mu, [[branin_1d(new_x)]], 1e-1)
         # Relaxed tolerance for gesdd driver which is less precise for this case
-        sigma_tol = 3e-2 if surrogate.options['lapack_driver'] == 'gesdd' else 1e-2
+        sigma_tol = 3e-2 if surrogate.options["lapack_driver"] == "gesdd" else 1e-2
         assert_near_equal(sigma, [[0.07101449]], sigma_tol)
 
     def test_1d_ill_conditioned(self):
         # Test for least squares solver utilization when ill-conditioned
-        x = np.array([[case] for case in np.linspace(0., 1., 40)])
+        x = np.array([[case] for case in np.linspace(0.0, 1.0, 40)])
         y = np.sin(x)
         surrogate = KrigingSurrogate(eval_rmse=True)
         surrogate.train(x, y)
@@ -65,23 +66,35 @@ class TestKrigingSurrogate(unittest.TestCase):
         # gesdd with the improved nugget and regularization gives:
         #   sigma ~5.6e-5, mu error ~2.3e-5
         # gesvd gives tighter tolerances
-        if surrogate.options['lapack_driver'] == 'gesdd':
-            sigma_tol = 1.e-4
-            mu_tol = 1.e-4
+        if surrogate.options["lapack_driver"] == "gesdd":
+            sigma_tol = 1.0e-4
+            mu_tol = 1.0e-4
         else:
-            sigma_tol = 1.e-5
-            mu_tol = 1.e-5
+            sigma_tol = 1.0e-5
+            mu_tol = 1.0e-5
         self.assertTrue(sigma < sigma_tol)
         assert_near_equal(mu, [[np.sin(0.5)]], mu_tol)
 
     def test_2d(self):
 
-        x = np.array([[-2., 0.], [-0.5, 1.5], [1., 3.], [8.5, 4.5],
-                      [-3.5, 6.], [4., 7.5], [-5., 9.], [5.5, 10.5],
-                      [10., 12.], [7., 13.5], [2.5, 15.]])
+        x = np.array(
+            [
+                [-2.0, 0.0],
+                [-0.5, 1.5],
+                [1.0, 3.0],
+                [8.5, 4.5],
+                [-3.5, 6.0],
+                [4.0, 7.5],
+                [-5.0, 9.0],
+                [5.5, 10.5],
+                [10.0, 12.0],
+                [7.0, 13.5],
+                [2.5, 15.0],
+            ]
+        )
         y = np.array([[branin(case)] for case in x])
 
-        surrogate = KrigingSurrogate(nugget=0., eval_rmse=True)
+        surrogate = KrigingSurrogate(nugget=0.0, eval_rmse=True)
         surrogate.train(x, y)
 
         for x0, y0 in zip(x, y):
@@ -89,7 +102,7 @@ class TestKrigingSurrogate(unittest.TestCase):
             assert_near_equal(mu, [y0], 1e-9)
             assert_near_equal(sigma, [[0]], 1e-4)
 
-        mu, sigma = surrogate.predict([5., 5.])
+        mu, sigma = surrogate.predict([5.0, 5.0])
 
         assert_near_equal(mu, [[16.72]], 1e-1)
         assert_near_equal(sigma, [[15.27]], 1e-2)
@@ -98,30 +111,29 @@ class TestKrigingSurrogate(unittest.TestCase):
         surrogate = KrigingSurrogate()
 
         try:
-            surrogate.predict([0., 1.])
+            surrogate.predict([0.0, 1.0])
         except RuntimeError as err:
-            self.assertEqual(str(err),
-                             "KrigingSurrogate has not been trained, "
-                             "so no prediction can be made.")
+            self.assertEqual(
+                str(err), "KrigingSurrogate has not been trained, so no prediction can be made."
+            )
         else:
             self.fail("RuntimeError Expected")
 
     def test_one_pt(self):
         surrogate = KrigingSurrogate()
-        x = [[0.]]
-        y = [[1.]]
+        x = [[0.0]]
+        y = [[1.0]]
 
         with self.assertRaises(ValueError) as cm:
             surrogate.train(x, y)
 
-        self.assertEqual(str(cm.exception), 'KrigingSurrogate requires at least'
-                                            ' 2 training points.')
+        self.assertEqual(str(cm.exception), "KrigingSurrogate requires at least 2 training points.")
 
     def test_vector_input(self):
-        surrogate = KrigingSurrogate(nugget=0., eval_rmse=True)
+        surrogate = KrigingSurrogate(nugget=0.0, eval_rmse=True)
 
-        x = np.array([[0., 0., 0.], [1., 1., 1.]])
-        y = np.array([[0.], [3.]])
+        x = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
+        y = np.array([[0.0], [3.0]])
 
         surrogate.train(x, y)
 
@@ -131,10 +143,10 @@ class TestKrigingSurrogate(unittest.TestCase):
             assert_near_equal(sigma, [[0]], 1e-6)
 
     def test_vector_output(self):
-        surrogate = KrigingSurrogate(nugget=0., eval_rmse=True)
+        surrogate = KrigingSurrogate(nugget=0.0, eval_rmse=True)
 
-        y = np.array([[0., 0.], [1., 1.], [2., 0.]])
-        x = np.array([[0.], [2.], [4.]])
+        y = np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
+        x = np.array([[0.0], [2.0], [4.0]])
 
         surrogate.train(x, y)
 
@@ -144,37 +156,50 @@ class TestKrigingSurrogate(unittest.TestCase):
             assert_near_equal(sigma, [[0, 0]], 1e-6)
 
     def test_scalar_derivs(self):
-        surrogate = KrigingSurrogate(nugget=0.)
+        surrogate = KrigingSurrogate(nugget=0.0)
 
-        x = np.array([[0.], [1.], [2.], [3.], [4.]])
+        x = np.array([[0.0], [1.0], [2.0], [3.0], [4.0]])
         y = x.copy()
 
         surrogate.train(x, y)
-        jac = surrogate.linearize(np.array([[0.]]))
+        jac = surrogate.linearize(np.array([[0.0]]))
 
-        assert_near_equal(jac[0][0], 1., 5e-3)
+        assert_near_equal(jac[0][0], 1.0, 5e-3)
 
     def test_vector_derivs(self):
         surrogate = KrigingSurrogate()
         n = 15
-        x = np.array([[a, b] for a, b in
-                      itertools.product(np.linspace(0, 1, n), repeat=2)])
-        y = np.array([[a+b, a-b, a+2*b] for a, b in x])
+        x = np.array([[a, b] for a, b in itertools.product(np.linspace(0, 1, n), repeat=2)])
+        y = np.array([[a + b, a - b, a + 2 * b] for a, b in x])
 
         surrogate.train(x, y)
         jac = surrogate.linearize(np.array([[0.5, 0.5]]))
         assert_near_equal(jac, np.array([[1, 1], [1, -1], [1, 2]]), 1e-3)
 
     def test_cache(self):
-        x = np.array([[-2., 0.], [-0.5, 1.5], [1., 3.], [8.5, 4.5],
-                      [-3.5, 6.], [4., 7.5], [-5., 9.], [5.5, 10.5],
-                      [10., 12.], [7., 13.5], [2.5, 15.]])
+        x = np.array(
+            [
+                [-2.0, 0.0],
+                [-0.5, 1.5],
+                [1.0, 3.0],
+                [8.5, 4.5],
+                [-3.5, 6.0],
+                [4.0, 7.5],
+                [-5.0, 9.0],
+                [5.5, 10.5],
+                [10.0, 12.0],
+                [7.0, 13.5],
+                [2.5, 15.0],
+            ]
+        )
         y = np.array([[branin(case)] for case in x])
 
-        surrogate_before = KrigingSurrogate(nugget=0., eval_rmse=True, training_cache='test_cache.npz')
+        surrogate_before = KrigingSurrogate(
+            nugget=0.0, eval_rmse=True, training_cache="test_cache.npz"
+        )
         surrogate_before.train(x, y)
 
-        surrogate = KrigingSurrogate(nugget=0., eval_rmse=True, training_cache='test_cache.npz')
+        surrogate = KrigingSurrogate(nugget=0.0, eval_rmse=True, training_cache="test_cache.npz")
         surrogate.train(x, y)
 
         for x0, y0 in zip(x, y):
@@ -182,12 +207,12 @@ class TestKrigingSurrogate(unittest.TestCase):
             assert_near_equal(mu, [y0], 1e-9)
             assert_near_equal(sigma, [[0]], 1e-4)
 
-        mu, sigma = surrogate.predict([5., 5.])
+        mu, sigma = surrogate.predict([5.0, 5.0])
 
         assert_near_equal(mu, [[16.72]], 1e-1)
         assert_near_equal(sigma, [[15.27]], 1e-2)
 
-        os.unlink('test_cache.npz')
+        os.unlink("test_cache.npz")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 """
 Definition of the SqliteCaseReader.
 """
+
 import pathlib
 import sqlite3
 from collections import OrderedDict
@@ -64,26 +65,25 @@ class UnknownType:
 
 # don't allow these functions when unpickling
 _unsafe = (
-    ('builtins', 'eval'),
-    ('builtins', 'exec'),
-    ('posix', 'system'),
-    ('nt', 'system'),
+    ("builtins", "eval"),
+    ("builtins", "exec"),
+    ("posix", "system"),
+    ("nt", "system"),
 )
 
 
 class _RestrictedUnpicklerForCaseReader(pickle.Unpickler):
-
-    def __init__(self, file, *, fix_imports=True, encoding="ASCII",
-                 errors="strict", buffers=None):
-        super().__init__(file, fix_imports=fix_imports, encoding=encoding,
-                         errors=errors, buffers=buffers)
-        self.error_strings = ''  # Used to document which classes are not available
+    def __init__(self, file, *, fix_imports=True, encoding="ASCII", errors="strict", buffers=None):
+        super().__init__(
+            file, fix_imports=fix_imports, encoding=encoding, errors=errors, buffers=buffers
+        )
+        self.error_strings = ""  # Used to document which classes are not available
 
     def find_class(self, module, name):
         # Disallow some unsafe function calls during unpickling.
         if (module, name) in _unsafe:
             if self.error_strings:
-                self.error_strings += ', '
+                self.error_strings += ", "
             self.error_strings += f"Error unpickling global, '{module}.{name}' is forbidden"
             return UnknownType
 
@@ -91,7 +91,7 @@ class _RestrictedUnpicklerForCaseReader(pickle.Unpickler):
             return super().find_class(module, name)
         except ModuleNotFoundError as e:
             if self.error_strings:
-                self.error_strings += ', '
+                self.error_strings += ", "
             self.error_strings += str(e)
 
         # Returning this acts as a kind of flag to indicate that the unpickler can't
@@ -116,9 +116,10 @@ def _safer_unpickle(s, desc, compressed=False):
     data, errs = _RestrictedUnpicklerForCaseReader(i).loads_and_return_errors()
 
     if errs:
-        issue_warning(f"While reading {desc} from case recorder, the "
-                      f"following errors occurred: {errs}",
-                      category=RuntimeWarning)
+        issue_warning(
+            f"While reading {desc} from case recorder, the following errors occurred: {errs}",
+            category=RuntimeWarning,
+        )
 
     return data
 
@@ -197,12 +198,13 @@ class SqliteCaseReader(BaseCaseReader):
             # If separate metadata not specified, check the current db
             # to make sure it's there
             if metadata_filename is None:
-                cur.execute("SELECT count(name) FROM sqlite_master "
-                            "WHERE type='table' AND name='metadata'")
+                cur.execute(
+                    "SELECT count(name) FROM sqlite_master WHERE type='table' AND name='metadata'"
+                )
 
                 # If not, take a guess at the filename:
                 if cur.fetchone()[0] == 0:
-                    metadata_filename = re.sub(r'^(.*)_(\d+)', r'\1_meta', filename)
+                    metadata_filename = re.sub(r"^(.*)_(\d+)", r"\1_meta", filename)
                     check_valid_sqlite3_db(metadata_filename)
                 else:
                     metadata_filename = filename
@@ -238,22 +240,48 @@ class SqliteCaseReader(BaseCaseReader):
 
         # create helper objects for accessing cases from the three iteration tables and
         # the problem cases table
-        var_info = self.problem_metadata['variables']
-        self._driver_cases = DriverCases(filename, self._format_version, self._global_iterations,
-                                         self._prom2abs, self._abs2prom, self._abs2meta,
-                                         self._conns, var_info)
-        self._system_cases = SystemCases(filename, self._format_version, self._global_iterations,
-                                         self._prom2abs, self._abs2prom, self._abs2meta,
-                                         self._conns, var_info)
-        self._solver_cases = SolverCases(filename, self._format_version, self._global_iterations,
-                                         self._prom2abs, self._abs2prom, self._abs2meta,
-                                         self._conns, var_info)
+        var_info = self.problem_metadata["variables"]
+        self._driver_cases = DriverCases(
+            filename,
+            self._format_version,
+            self._global_iterations,
+            self._prom2abs,
+            self._abs2prom,
+            self._abs2meta,
+            self._conns,
+            var_info,
+        )
+        self._system_cases = SystemCases(
+            filename,
+            self._format_version,
+            self._global_iterations,
+            self._prom2abs,
+            self._abs2prom,
+            self._abs2meta,
+            self._conns,
+            var_info,
+        )
+        self._solver_cases = SolverCases(
+            filename,
+            self._format_version,
+            self._global_iterations,
+            self._prom2abs,
+            self._abs2prom,
+            self._abs2meta,
+            self._conns,
+            var_info,
+        )
         if self._format_version >= 2:
-            self._problem_cases = ProblemCases(filename,
-                                               self._format_version,
-                                               self._global_iterations,
-                                               self._prom2abs, self._abs2prom, self._abs2meta,
-                                               self._conns, var_info)
+            self._problem_cases = ProblemCases(
+                filename,
+                self._format_version,
+                self._global_iterations,
+                self._prom2abs,
+                self._abs2prom,
+                self._abs2meta,
+                self._conns,
+                var_info,
+            )
 
         # if requested, load all the iteration data into memory
         if pre_load:
@@ -272,70 +300,74 @@ class SqliteCaseReader(BaseCaseReader):
         cur : sqlite3.Cursor
             Database cursor to use for reading the data.
         """
-        cur.execute('select * from metadata')
+        cur.execute("select * from metadata")
 
         row = cur.fetchone()
 
-        self._format_version = version = row['format_version']
+        self._format_version = version = row["format_version"]
 
         if version >= 13:
-            self._openmdao_version = row['openmdao_version']
+            self._openmdao_version = row["openmdao_version"]
 
         if version not in range(1, format_version + 1):
-            raise ValueError('SqliteCaseReader encountered an unhandled '
-                             'format version: {0}'.format(self._format_version))
+            raise ValueError(
+                "SqliteCaseReader encountered an unhandled format version: {0}".format(
+                    self._format_version
+                )
+            )
 
         if version >= 11:
             # Auto-IVC
             if version >= 14:
-                self._conns = json_loads(zlib.decompress(row['conns']).decode('ascii'))
+                self._conns = json_loads(zlib.decompress(row["conns"]).decode("ascii"))
             else:
-                self._conns = json_loads(row['conns'])
+                self._conns = json_loads(row["conns"])
 
         # add metadata for VOIs (des vars, objective, constraints) to problem metadata
         if version >= 4:
             if version >= 14:
-                self.problem_metadata['variables'] = \
-                    json_loads(zlib.decompress(row['var_settings']).decode('ascii'))
+                self.problem_metadata["variables"] = json_loads(
+                    zlib.decompress(row["var_settings"]).decode("ascii")
+                )
             else:
-                self.problem_metadata['variables'] = json_loads(row['var_settings'])
+                self.problem_metadata["variables"] = json_loads(row["var_settings"])
         else:
-            self.problem_metadata['variables'] = None
+            self.problem_metadata["variables"] = None
 
         # get variable name maps and metadata for all variables
         if version >= 3:
             if version >= 14:
-                self._abs2prom = json_loads(zlib.decompress(row['abs2prom']).decode('ascii'))
-                self._prom2abs = json_loads(zlib.decompress(row['prom2abs']).decode('ascii'))
-                self._abs2meta = json_loads(zlib.decompress(row['abs2meta']).decode('ascii'))
+                self._abs2prom = json_loads(zlib.decompress(row["abs2prom"]).decode("ascii"))
+                self._prom2abs = json_loads(zlib.decompress(row["prom2abs"]).decode("ascii"))
+                self._abs2meta = json_loads(zlib.decompress(row["abs2meta"]).decode("ascii"))
             else:
-                self._abs2prom = json_loads(row['abs2prom'])
-                self._prom2abs = json_loads(row['prom2abs'])
-                self._abs2meta = json_loads(row['abs2meta'])
+                self._abs2prom = json_loads(row["abs2prom"])
+                self._prom2abs = json_loads(row["prom2abs"])
+                self._abs2meta = json_loads(row["abs2meta"])
 
             # need to convert bounds to numpy arrays
             for meta in self._abs2meta.values():
-                if 'lower' in meta and meta['lower'] is not None:
-                    meta['lower'] = np.resize(np.array(meta['lower']), meta['shape'])
-                if 'upper' in meta and meta['upper'] is not None:
-                    meta['upper'] = np.resize(np.array(meta['upper']), meta['shape'])
+                if "lower" in meta and meta["lower"] is not None:
+                    meta["lower"] = np.resize(np.array(meta["lower"]), meta["shape"])
+                if "upper" in meta and meta["upper"] is not None:
+                    meta["upper"] = np.resize(np.array(meta["upper"]), meta["shape"])
 
         elif version in (1, 2):
-            abs2prom = row['abs2prom']
-            prom2abs = row['prom2abs']
-            abs2meta = row['abs2meta']
+            abs2prom = row["abs2prom"]
+            prom2abs = row["prom2abs"]
+            abs2meta = row["abs2meta"]
 
             try:
-                self._abs2prom = _safer_unpickle(abs2prom, 'abs2prom dictionary')
-                self._prom2abs = _safer_unpickle(prom2abs, 'prom2abs dictionary')
-                self._abs2meta = _safer_unpickle(abs2meta, 'abs2meta dictionary')
+                self._abs2prom = _safer_unpickle(abs2prom, "abs2prom dictionary")
+                self._prom2abs = _safer_unpickle(prom2abs, "prom2abs dictionary")
+                self._abs2meta = _safer_unpickle(abs2meta, "abs2meta dictionary")
             except TypeError:
                 # Reading in a python 2 pickle recorded pre-OpenMDAO 2.4.
-                self._abs2prom = _safer_unpickle(abs2prom.encode(), 'abs2prom dictionary')
-                self._prom2abs = _safer_unpickle(prom2abs.encode(), 'prom2abs dictionary')
-                self._abs2meta = _safer_unpickle(abs2meta.encode(), 'abs2meta dictionary')
+                self._abs2prom = _safer_unpickle(abs2prom.encode(), "abs2prom dictionary")
+                self._prom2abs = _safer_unpickle(prom2abs.encode(), "prom2abs dictionary")
+                self._abs2meta = _safer_unpickle(abs2meta.encode(), "abs2meta dictionary")
 
-        self.problem_metadata['abs2prom'] = self._abs2prom
+        self.problem_metadata["abs2prom"] = self._abs2prom
 
     def _collect_driver_metadata(self, cur):
         """
@@ -355,7 +387,7 @@ class SqliteCaseReader(BaseCaseReader):
             if self._format_version >= 3:
                 driver_metadata = json_loads(row[0])
             elif self._format_version in (1, 2):
-                driver_metadata = _safer_unpickle(row[0], 'driver metadata')
+                driver_metadata = _safer_unpickle(row[0], "driver metadata")
 
             self.problem_metadata.update(driver_metadata)
 
@@ -377,8 +409,8 @@ class SqliteCaseReader(BaseCaseReader):
             opt = self._system_options[id] = {}
             cmp = self._format_version >= 14
 
-            opt['scaling_factors'] = _safer_unpickle(row[1], f'{id} scaling factors', cmp)
-            opt['component_options'] = _safer_unpickle(row[2], f'{id} component options', cmp)
+            opt["scaling_factors"] = _safer_unpickle(row[1], f"{id} scaling factors", cmp)
+            opt["component_options"] = _safer_unpickle(row[2], f"{id} component options", cmp)
 
     def _collect_solver_metadata(self, cur):
         """
@@ -396,8 +428,8 @@ class SqliteCaseReader(BaseCaseReader):
             id = row[0]
             cmp = self._format_version >= 14
             self.solver_metadata[id] = {
-                'solver_options': _safer_unpickle(row[1], f'{id} solver options', cmp),
-                'solver_class': row[2]
+                "solver_options": _safer_unpickle(row[1], f"{id} solver options", cmp),
+                "solver_class": row[2],
             }
 
     def _get_global_iterations(self, cur):
@@ -414,7 +446,7 @@ class SqliteCaseReader(BaseCaseReader):
         list
             List of global iterations and the table and row where the associated case is found.
         """
-        cur.execute('select * from global_iterations')
+        cur.execute("select * from global_iterations")
         return cur.fetchall()
 
     def _load_cases(self):
@@ -457,15 +489,23 @@ class SqliteCaseReader(BaseCaseReader):
         if out_stream:
             if notebook and out_stream is _DEFAULT_OUT_STREAM:
                 from IPython.display import display, HTML
-                display(HTML(str(generate_table([[s] for s in sources], headers=['Sources'],
-                                                tablefmt='html'))))
+
+                display(
+                    HTML(
+                        str(
+                            generate_table(
+                                [[s] for s in sources], headers=["Sources"], tablefmt="html"
+                            )
+                        )
+                    )
+                )
             else:
                 if out_stream is _DEFAULT_OUT_STREAM:
                     out_stream = sys.stdout
                 elif not isinstance(out_stream, TextIOBase):
                     raise TypeError("Invalid output stream specified for 'out_stream'.")
                 for source in sources:
-                    out_stream.write('{}\n'.format(source))
+                    out_stream.write("{}\n".format(source))
 
         return sources
 
@@ -487,17 +527,17 @@ class SqliteCaseReader(BaseCaseReader):
             {'inputs':[key list], 'outputs':[key list], 'residuals':[key list]}. No recurse.
         """
         dct = {
-            'inputs': [],
-            'outputs': [],
-            'residuals': [],
+            "inputs": [],
+            "outputs": [],
+            "residuals": [],
         }
 
         case = None
 
-        if source == 'problem':
+        if source == "problem":
             if self._problem_cases.count() > 0:
                 case = self._problem_cases.get_case(0)
-        elif source == 'driver':
+        elif source == "driver":
             if self._driver_cases.count() > 0:
                 case = self._driver_cases.get_case(0)
         elif source in self._system_cases.list_sources():
@@ -507,17 +547,17 @@ class SqliteCaseReader(BaseCaseReader):
             source_cases = self._solver_cases.list_cases(source)
             case = self._solver_cases.get_case(source_cases[0])
         else:
-            raise RuntimeError('Source not found: %s' % source)
+            raise RuntimeError("Source not found: %s" % source)
 
         if case is None:
-            raise RuntimeError('No cases recorded for %s' % source)
+            raise RuntimeError("No cases recorded for %s" % source)
 
         if case.inputs:
-            dct['inputs'] = list(case.inputs)
+            dct["inputs"] = list(case.inputs)
         if case.outputs:
-            dct['outputs'] = list(case.outputs)
+            dct["outputs"] = list(case.outputs)
         if case.residuals:
-            dct['residuals'] = list(case.residuals)
+            dct["residuals"] = list(case.residuals)
 
         if out_stream:
             write_source_table(dct, out_stream)
@@ -543,14 +583,14 @@ class SqliteCaseReader(BaseCaseReader):
             List of pathnames of systems.
         """
         if tree is None:
-            tree = self.problem_metadata['tree']
+            tree = self.problem_metadata["tree"]
 
-        path = '.'.join([path, tree['name']]) if path else tree['name']
+        path = ".".join([path, tree["name"]]) if path else tree["name"]
         paths.append(path)
 
-        if 'children' in tree:
-            for child in tree['children']:
-                if child['type'] == 'subsystem':
+        if "children" in tree:
+            for child in tree["children"]:
+                if child["type"] == "subsystem":
                     self.systems(child, path, paths)
 
         return paths
@@ -587,7 +627,7 @@ class SqliteCaseReader(BaseCaseReader):
 
         # need to handle edge case for v11 recording
         if self._format_version < 12:
-            SEP = '_'
+            SEP = "_"
         else:
             SEP = META_KEY_SEP
 
@@ -599,7 +639,6 @@ class SqliteCaseReader(BaseCaseReader):
                 num = 0
 
             if (system is None or system == name) and (run_number == int(num)):
-
                 if out_stream:
                     if num_header != num:
                         out_stream.write(f"Run Number: {num}\n")
@@ -609,7 +648,7 @@ class SqliteCaseReader(BaseCaseReader):
 
                 dct[name] = {}
 
-                comp_options = self._system_options[key]['component_options']
+                comp_options = self._system_options[key]["component_options"]
 
                 for opt, val in comp_options.items():
                     dct[name][opt] = val
@@ -657,7 +696,6 @@ class SqliteCaseReader(BaseCaseReader):
                 num = 0
 
             if (solver is None or solver == name) and (run_number == int(num)):
-
                 if out_stream:
                     if num_header != num:
                         out_stream.write(f"Run Number: {num}\n")
@@ -667,7 +705,7 @@ class SqliteCaseReader(BaseCaseReader):
 
                 dct[name] = {}
 
-                comp_options = self.solver_metadata[key]['solver_options']
+                comp_options = self.solver_metadata[key]["solver_options"]
 
                 for opt, val in comp_options.items():
                     dct[name][opt] = val
@@ -702,37 +740,42 @@ class SqliteCaseReader(BaseCaseReader):
         # if source was not specified, return all cases
         if source is None:
             if flat:
-                source = ''
+                source = ""
             else:
                 if self._driver_cases.count() > 0:
-                    source = 'driver'
-                elif 'root' in self._system_cases.list_sources():
-                    source = 'root'
+                    source = "driver"
+                elif "root" in self._system_cases.list_sources():
+                    source = "root"
                 else:
                     # if there are no driver or model cases, then we need
                     # another starting point to build the nested dict.
-                    raise RuntimeError("A nested dictionary of all cases was requested, but "
-                                       "neither the driver or the model was recorded. Please "
-                                       "specify another source (system or solver) for the cases "
-                                       "you want to see.")
+                    raise RuntimeError(
+                        "A nested dictionary of all cases was requested, but "
+                        "neither the driver or the model was recorded. Please "
+                        "specify another source (system or solver) for the cases "
+                        "you want to see."
+                    )
 
         if not isinstance(source, str):
-            raise TypeError("Source parameter must be a string, %s is type %s." %
-                            (source, type(source).__name__))
+            raise TypeError(
+                "Source parameter must be a string, %s is type %s."
+                % (source, type(source).__name__)
+            )
 
         if not source:
             cases = self._list_cases_recurse_flat(out_stream=None)
 
-        elif source == 'problem':
+        elif source == "problem":
             if self._format_version >= 2:
                 cases = self._problem_cases.list_cases()
             else:
-                raise RuntimeError('No problem cases recorded (data format = %d).' %
-                                   self._format_version)
+                raise RuntimeError(
+                    "No problem cases recorded (data format = %d)." % self._format_version
+                )
 
         else:
             # figure out which table has cases from the source
-            if source == 'driver':
+            if source == "driver":
                 case_table = self._driver_cases
             elif source in self._system_cases.list_sources():
                 case_table = self._system_cases
@@ -758,7 +801,7 @@ class SqliteCaseReader(BaseCaseReader):
                     for case in source_cases:
                         cases.update(self._list_cases_recurse_nested(case.name))
                     return cases
-            elif '|' in source:
+            elif "|" in source:
                 # source is a coordinate
                 if recurse:
                     if flat:
@@ -766,7 +809,7 @@ class SqliteCaseReader(BaseCaseReader):
                     else:
                         return self._list_cases_recurse_nested(source)
             else:
-                raise RuntimeError('Source not found: %s' % source)
+                raise RuntimeError("Source not found: %s" % source)
 
         if out_stream:
             if not source:
@@ -805,7 +848,7 @@ class SqliteCaseReader(BaseCaseReader):
 
         if not coord:
             # will return all cases
-            coord = ''
+            coord = ""
             parent_case_counter = len(global_iters)
         elif coord in driver_cases:
             parent_case_counter = self._driver_cases.get_case(coord).counter
@@ -816,11 +859,11 @@ class SqliteCaseReader(BaseCaseReader):
         elif coord in problem_cases:
             parent_case_counter = self._problem_cases.get_case(coord).counter
         else:
-            raise RuntimeError('Case not found for coordinate:', coord)
+            raise RuntimeError("Case not found for coordinate:", coord)
 
         cases = []
 
-        self.source_cases_table = {'solver': [], 'system': [], 'driver': [], 'problem': []}
+        self.source_cases_table = {"solver": [], "system": [], "driver": [], "problem": []}
         source_cases = []
 
         # return all cases in the global iteration table that precede the given case
@@ -831,16 +874,16 @@ class SqliteCaseReader(BaseCaseReader):
         for i in range(0, parent_case_counter):
             global_iter = global_iters[i]
             table, row = global_iter[1], global_iter[2]
-            if table == 'solver':
+            if table == "solver":
                 case_coord = solver_cases[row - 1]
-            elif table == 'system':
+            elif table == "system":
                 case_coord = system_cases[row - 1]
-            elif table == 'driver':
+            elif table == "driver":
                 case_coord = driver_cases[row - 1]
-            elif table == 'problem':
+            elif table == "problem":
                 case_coord = problem_cases[row - 1]
             else:
-                raise RuntimeError('Unexpected table name in global iterations:', table)
+                raise RuntimeError("Unexpected table name in global iterations:", table)
 
             if case_coord.startswith(coord):
                 cases.append(case_coord)
@@ -890,7 +933,7 @@ class SqliteCaseReader(BaseCaseReader):
         elif coord in solver_cases:
             parent_case = self._solver_cases.get_case(coord)
         else:
-            raise RuntimeError('Case not found for coordinate:', coord)
+            raise RuntimeError("Case not found for coordinate:", coord)
 
         cases = OrderedDict()
         children = OrderedDict()
@@ -901,16 +944,16 @@ class SqliteCaseReader(BaseCaseReader):
         for i in range(0, parent_case.counter - 1):
             global_iter = global_iters[i]
             table, row = global_iter[1], global_iter[2]
-            if table == 'solver':
+            if table == "solver":
                 case_coord = solver_cases[row - 1]
                 if case_coord.startswith(coord):
-                    parent_coord = '|'.join(case_coord.split('|')[:-2])
+                    parent_coord = "|".join(case_coord.split("|")[:-2])
                     if parent_coord == coord:
                         children.update(self._list_cases_recurse_nested(case_coord))
-            elif table == 'system':
+            elif table == "system":
                 case_coord = system_cases[row - 1]
                 if case_coord.startswith(coord):
-                    parent_coord = '|'.join(case_coord.split('|')[:-2])
+                    parent_coord = "|".join(case_coord.split("|")[:-2])
                     if parent_coord == coord:
                         children.update(self._list_cases_recurse_nested(case_coord))
 
@@ -990,13 +1033,13 @@ class SqliteCaseReader(BaseCaseReader):
                 raise IndexError("Invalid index into available cases:", case_id)
             global_iter = global_iters[case_id]
             table, row = global_iter[1], global_iter[2]
-            if table == 'solver':
+            if table == "solver":
                 solver_cases = self._solver_cases.list_cases()
                 case_id = solver_cases[row - 1]
-            elif table == 'system':
+            elif table == "system":
                 system_cases = self._system_cases.list_cases()
                 case_id = system_cases[row - 1]
-            elif table == 'driver':
+            elif table == "driver":
                 driver_cases = self._driver_cases.list_cases()
                 case_id = driver_cases[row - 1]
 
@@ -1012,7 +1055,7 @@ class SqliteCaseReader(BaseCaseReader):
             if case:
                 return case
 
-        raise RuntimeError('Case not found:', case_id)
+        raise RuntimeError("Case not found:", case_id)
 
 
 class CaseTable(object):
@@ -1074,8 +1117,9 @@ class CaseTable(object):
         List of iteration cases and the table and row in which they are found.
     """
 
-    def __init__(self, fname, ver, table, index, giter, prom2abs, abs2prom, abs2meta, conns,
-                 var_info):
+    def __init__(
+        self, fname, ver, table, index, giter, prom2abs, abs2prom, abs2meta, conns, var_info
+    ):
         """
         Initialize.
         """
@@ -1131,8 +1175,7 @@ class CaseTable(object):
         if not self._keys:
             with sqlite3.connect(self._filename) as con:
                 cur = con.cursor()
-                cur.execute(f"SELECT {self._index_name} FROM {self._table_name}"
-                            " ORDER BY id ASC")  # nosec trusted input
+                cur.execute(f"SELECT {self._index_name} FROM {self._table_name} ORDER BY id ASC")  # nosec trusted input
                 rows = cur.fetchall()
 
             con.close()
@@ -1143,7 +1186,7 @@ class CaseTable(object):
         if not source:
             # return all cases
             return self._keys
-        elif '|' in source:
+        elif "|" in source:
             # source is a coordinate
             return [key for key in self._keys if key.startswith(source)]
         else:
@@ -1175,7 +1218,7 @@ class CaseTable(object):
         if not source:
             # return all cases
             return [self.get_case(key) for key in self._keys]
-        elif '|' in source:
+        elif "|" in source:
             # source is a coordinate
             if recurse and not flat:
                 cases = OrderedDict()
@@ -1190,9 +1233,14 @@ class CaseTable(object):
             if recurse:
                 if flat:
                     # return all cases under the source system
-                    source_sys = source.replace('.nonlinear_solver', '')
-                    return list([self.get_case(key) for key in self._keys
-                                 if get_source_system(key).startswith(source_sys)])
+                    source_sys = source.replace(".nonlinear_solver", "")
+                    return list(
+                        [
+                            self.get_case(key)
+                            for key in self._keys
+                            if get_source_system(key).startswith(source_sys)
+                        ]
+                    )
                 else:
                     cases = OrderedDict()
                     for key in self._keys:
@@ -1201,8 +1249,7 @@ class CaseTable(object):
                             cases[key] = self.get_cases(key, recurse, flat)
                     return cases
             else:
-                return [self.get_case(key) for key in self._keys
-                        if self._get_source(key) == source]
+                return [self.get_case(key) for key in self._keys if self._get_source(key) == source]
 
     def get_case(self, case_id, cache=False):
         """
@@ -1232,8 +1279,11 @@ class CaseTable(object):
         with sqlite3.connect(self._filename) as con:
             con.row_factory = sqlite3.Row
             cur = con.cursor()
-            cur.execute(f"SELECT * FROM {self._table_name} "  # nosec: trusted input
-                        f"WHERE {self._index_name}=?", (case_id, ))
+            cur.execute(
+                f"SELECT * FROM {self._table_name} "  # nosec: trusted input
+                f"WHERE {self._index_name}=?",
+                (case_id,),
+            )
             row = cur.fetchone()
 
         con.close()
@@ -1241,19 +1291,29 @@ class CaseTable(object):
         # if found, extract the data and optionally cache the Case
         if row is not None:
             if self._format_version >= 5:
-                source = self._get_row_source(row['id'])
+                source = self._get_row_source(row["id"])
 
                 # check for situations where parsing the iter coord doesn't work correctly
                 iter_source = self._get_source(row[self._index_name])
                 if iter_source != source:
-                    msg = f'Mismatched source for {row["id"]}: {row[self._index_name]} = ' \
-                          f'{iter_source} vs {source}'
+                    msg = (
+                        f"Mismatched source for {row['id']}: {row[self._index_name]} = "
+                        f"{iter_source} vs {source}"
+                    )
                     issue_warning(msg, category=CaseRecorderWarning)
             else:
                 source = self._get_source(row[self._index_name])
 
-            case = Case(source, row, self._prom2abs, self._abs2prom, self._abs2meta,
-                        self._conns, self._var_info, self._format_version)
+            case = Case(
+                source,
+                row,
+                self._prom2abs,
+                self._abs2prom,
+                self._abs2meta,
+                self._conns,
+                self._var_info,
+                self._format_version,
+            )
 
             # cache it if requested
             if cache:
@@ -1304,8 +1364,16 @@ class CaseTable(object):
             for row in cur:
                 case_id = row[self._index_name]
                 source = self._get_source(case_id)
-                case = Case(source, row, self._prom2abs, self._abs2prom, self._abs2meta,
-                            self._conns, self._var_info, self._format_version)
+                case = Case(
+                    source,
+                    row,
+                    self._prom2abs,
+                    self._abs2prom,
+                    self._abs2meta,
+                    self._conns,
+                    self._var_info,
+                    self._format_version,
+                )
                 if cache:
                     self._cases[case_id] = case
                 yield case
@@ -1330,13 +1398,13 @@ class CaseTable(object):
         """
         if self._sources is None:
             if self._format_version >= 5:
-                table = self._table_name.split('_')[0]  # remove "_iterations" from table name
+                table = self._table_name.split("_")[0]  # remove "_iterations" from table name
                 sources = set()
                 for global_iter in self._global_iterations:
                     record_type, source = global_iter[1], global_iter[3]
                     if record_type == table:
-                        if not source.startswith('root'):
-                            sources.add('root.' + source)
+                        if not source.startswith("root"):
+                            sources.add("root." + source)
                         else:
                             sources.add(source)
                 self._sources = sources
@@ -1375,7 +1443,7 @@ class CaseTable(object):
         str
             The source of the case.
         """
-        table = self._table_name.partition('_')[0]  # remove "_iterations" from table name
+        table = self._table_name.partition("_")[0]  # remove "_iterations" from table name
 
         for global_iter in self._global_iterations:
             record_type, row, source = global_iter[1], global_iter[2], global_iter[3]
@@ -1429,14 +1497,24 @@ class DriverCases(CaseTable):
         Dictionary with information about variables (scaling, indices, execution order).
     """
 
-    def __init__(self, filename, format_version, giter, prom2abs, abs2prom, abs2meta, conns,
-                 var_info):
+    def __init__(
+        self, filename, format_version, giter, prom2abs, abs2prom, abs2meta, conns, var_info
+    ):
         """
         Initialize.
         """
-        super().__init__(filename, format_version,
-                         'driver_iterations', 'iteration_coordinate', giter,
-                         prom2abs, abs2prom, abs2meta, conns, var_info)
+        super().__init__(
+            filename,
+            format_version,
+            "driver_iterations",
+            "iteration_coordinate",
+            giter,
+            prom2abs,
+            abs2prom,
+            abs2meta,
+            conns,
+            var_info,
+        )
 
     def cases(self, cache=False):
         """
@@ -1462,17 +1540,27 @@ class DriverCases(CaseTable):
             for row in rows:
                 if self._format_version > 1:
                     # fetch associated derivative data, if available
-                    cur.execute("SELECT * FROM driver_derivatives WHERE iteration_coordinate=?",
-                                (row['iteration_coordinate'], ))
+                    cur.execute(
+                        "SELECT * FROM driver_derivatives WHERE iteration_coordinate=?",
+                        (row["iteration_coordinate"],),
+                    )
                     derivs_row = cur.fetchone()
 
                     if derivs_row:
                         # convert row to a regular dict and add jacobian
                         row = dict(zip(row.keys(), row))
-                        row['jacobian'] = derivs_row['derivatives']
+                        row["jacobian"] = derivs_row["derivatives"]
 
-                case = Case('driver', row, self._prom2abs, self._abs2prom, self._abs2meta,
-                            self._conns, self._var_info, self._format_version)
+                case = Case(
+                    "driver",
+                    row,
+                    self._prom2abs,
+                    self._abs2prom,
+                    self._abs2meta,
+                    self._conns,
+                    self._var_info,
+                    self._format_version,
+                )
 
                 if cache:
                     self._cases[case.name] = case
@@ -1511,28 +1599,39 @@ class DriverCases(CaseTable):
             cur = con.cursor()
 
             # fetch driver iteration data
-            cur.execute("SELECT * FROM driver_iterations WHERE "
-                        "iteration_coordinate=:iteration_coordinate",
-                        {"iteration_coordinate": case_id})
+            cur.execute(
+                "SELECT * FROM driver_iterations WHERE iteration_coordinate=:iteration_coordinate",
+                {"iteration_coordinate": case_id},
+            )
             row = cur.fetchone()
 
             # fetch associated derivative data, if available
             if row and self._format_version > 1:
-                cur.execute("SELECT * FROM driver_derivatives WHERE "
-                            "iteration_coordinate=:iteration_coordinate",
-                            {"iteration_coordinate": case_id})
+                cur.execute(
+                    "SELECT * FROM driver_derivatives WHERE "
+                    "iteration_coordinate=:iteration_coordinate",
+                    {"iteration_coordinate": case_id},
+                )
                 derivs_row = cur.fetchone()
 
                 if derivs_row:
                     # convert row to a regular dict and add jacobian
                     row = dict(zip(row.keys(), row))
-                    row['jacobian'] = derivs_row['derivatives']
+                    row["jacobian"] = derivs_row["derivatives"]
         con.close()
 
         # if found, create Case object (and cache it if requested) else return None
         if row:
-            case = Case('driver', row, self._prom2abs, self._abs2prom, self._abs2meta,
-                        self._conns, self._var_info, self._format_version)
+            case = Case(
+                "driver",
+                row,
+                self._prom2abs,
+                self._abs2prom,
+                self._abs2meta,
+                self._conns,
+                self._var_info,
+                self._format_version,
+            )
             if cache:
                 self._cases[case_id] = case
             return case
@@ -1548,7 +1647,7 @@ class DriverCases(CaseTable):
         list
             List of sources.
         """
-        return ['driver']
+        return ["driver"]
 
     def _get_source(self, iteration_coordinate):
         """
@@ -1564,7 +1663,7 @@ class DriverCases(CaseTable):
         str
             'driver' (all cases in this table come from the driver).
         """
-        return 'driver'
+        return "driver"
 
     def _get_row_source(self, row_id):
         """
@@ -1580,7 +1679,7 @@ class DriverCases(CaseTable):
         str
             The source of the case.
         """
-        return 'driver'
+        return "driver"
 
 
 class SystemCases(CaseTable):
@@ -1607,14 +1706,24 @@ class SystemCases(CaseTable):
         Dictionary with information about variables (scaling, indices, execution order).
     """
 
-    def __init__(self, filename, format_version, giter, prom2abs, abs2prom, abs2meta, conns,
-                 var_info):
+    def __init__(
+        self, filename, format_version, giter, prom2abs, abs2prom, abs2meta, conns, var_info
+    ):
         """
         Initialize.
         """
-        super().__init__(filename, format_version,
-                         'system_iterations', 'iteration_coordinate', giter,
-                         prom2abs, abs2prom, abs2meta, conns, var_info)
+        super().__init__(
+            filename,
+            format_version,
+            "system_iterations",
+            "iteration_coordinate",
+            giter,
+            prom2abs,
+            abs2prom,
+            abs2meta,
+            conns,
+            var_info,
+        )
 
 
 class SolverCases(CaseTable):
@@ -1641,14 +1750,24 @@ class SolverCases(CaseTable):
         Dictionary with information about variables (scaling, indices, execution order).
     """
 
-    def __init__(self, filename, format_version, giter, prom2abs, abs2prom, abs2meta, conns,
-                 var_info):
+    def __init__(
+        self, filename, format_version, giter, prom2abs, abs2prom, abs2meta, conns, var_info
+    ):
         """
         Initialize.
         """
-        super().__init__(filename, format_version,
-                         'solver_iterations', 'iteration_coordinate', giter,
-                         prom2abs, abs2prom, abs2meta, conns, var_info)
+        super().__init__(
+            filename,
+            format_version,
+            "solver_iterations",
+            "iteration_coordinate",
+            giter,
+            prom2abs,
+            abs2prom,
+            abs2meta,
+            conns,
+            var_info,
+        )
 
     def _get_source(self, iteration_coordinate):
         """
@@ -1666,15 +1785,15 @@ class SolverCases(CaseTable):
         """
         source_system = get_source_system(iteration_coordinate)
 
-        system_solve = source_system.split('.')[-1] + '._solve_nonlinear'
+        system_solve = source_system.split(".")[-1] + "._solve_nonlinear"
         system_coord_len = iteration_coordinate.index(system_solve) + len(system_solve)
-        system_coord_nodes = len(iteration_coordinate[:system_coord_len].split('|')) + 1
-        num_coord_nodes = iteration_coordinate.count('|') + 1
+        system_coord_nodes = len(iteration_coordinate[:system_coord_len].split("|")) + 1
+        num_coord_nodes = iteration_coordinate.count("|") + 1
 
         if num_coord_nodes == system_coord_nodes + 2:
-            return source_system + '.nonlinear_solver'
+            return source_system + ".nonlinear_solver"
         elif num_coord_nodes == system_coord_nodes + 4:
-            return source_system + '.nonlinear_solver.linesearch'
+            return source_system + ".nonlinear_solver.linesearch"
         else:
             raise RuntimeError("Can't parse solver iteration coordinate: %s" % iteration_coordinate)
 
@@ -1703,14 +1822,24 @@ class ProblemCases(CaseTable):
         Dictionary with information about variables (scaling, indices, execution order).
     """
 
-    def __init__(self, filename, format_version, giter, prom2abs, abs2prom, abs2meta, conns,
-                 var_info):
+    def __init__(
+        self, filename, format_version, giter, prom2abs, abs2prom, abs2meta, conns, var_info
+    ):
         """
         Initialize.
         """
-        super().__init__(filename, format_version,
-                         'problem_cases', 'case_name', giter,
-                         prom2abs, abs2prom, abs2meta, conns, var_info)
+        super().__init__(
+            filename,
+            format_version,
+            "problem_cases",
+            "case_name",
+            giter,
+            prom2abs,
+            abs2prom,
+            abs2meta,
+            conns,
+            var_info,
+        )
 
     def list_sources(self):
         """
@@ -1721,7 +1850,7 @@ class ProblemCases(CaseTable):
         list
             List of sources.
         """
-        return ['problem']
+        return ["problem"]
 
     def _get_source(self, iteration_coordinate):
         """
@@ -1737,7 +1866,7 @@ class ProblemCases(CaseTable):
         str
             'problem' (all cases in this table come from the problem).
         """
-        return 'problem'
+        return "problem"
 
     def _get_row_source(self, row_id):
         """
@@ -1753,4 +1882,4 @@ class ProblemCases(CaseTable):
         str
             The source of the case.
         """
-        return 'problem'
+        return "problem"

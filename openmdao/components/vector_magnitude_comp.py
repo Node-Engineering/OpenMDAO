@@ -1,6 +1,5 @@
 """Definition of the Vector Magnitude Component."""
 
-
 import numpy as np
 
 from openmdao.core.explicitcomponent import ExplicitComponent
@@ -36,8 +35,13 @@ class VectorMagnitudeComp(ExplicitComponent):
         self._magnitudes = []
 
         opt = self.options
-        self.add_magnitude(mag_name=opt['mag_name'], in_name=opt['in_name'], units=opt['units'],
-                           vec_size=opt['vec_size'], length=opt['length'])
+        self.add_magnitude(
+            mag_name=opt["mag_name"],
+            in_name=opt["in_name"],
+            units=opt["units"],
+            vec_size=opt["vec_size"],
+            length=opt["length"],
+        )
 
         self._no_check_partials = True
 
@@ -45,16 +49,27 @@ class VectorMagnitudeComp(ExplicitComponent):
         """
         Declare options.
         """
-        self.options.declare('vec_size', types=int, default=1,
-                             desc='The number of points at which the vector magnitude is computed')
-        self.options.declare('length', types=int, default=3,
-                             desc='The length of the input vector at each point')
-        self.options.declare('in_name', types=str, default='a',
-                             desc='The variable name for input vector.')
-        self.options.declare('units', types=str, default=None, allow_none=True,
-                             desc='The units of the input vector.')
-        self.options.declare('mag_name', types=str, default='a_mag',
-                             desc='The variable name for output vector magnitude.')
+        self.options.declare(
+            "vec_size",
+            types=int,
+            default=1,
+            desc="The number of points at which the vector magnitude is computed",
+        )
+        self.options.declare(
+            "length", types=int, default=3, desc="The length of the input vector at each point"
+        )
+        self.options.declare(
+            "in_name", types=str, default="a", desc="The variable name for input vector."
+        )
+        self.options.declare(
+            "units", types=str, default=None, allow_none=True, desc="The units of the input vector."
+        )
+        self.options.declare(
+            "mag_name",
+            types=str,
+            default="a_mag",
+            desc="The variable name for output vector magnitude.",
+        )
 
     def add_magnitude(self, mag_name, in_name, units=None, vec_size=1, length=3):
         """
@@ -76,13 +91,15 @@ class VectorMagnitudeComp(ExplicitComponent):
             The length of the vectors a and b.  Their shapes are
             (vec_size, length).
         """
-        self._magnitudes.append({
-            'in_name': in_name,
-            'mag_name': mag_name,
-            'units': units,
-            'vec_size': vec_size,
-            'length': length
-        })
+        self._magnitudes.append(
+            {
+                "in_name": in_name,
+                "mag_name": mag_name,
+                "units": units,
+                "vec_size": vec_size,
+                "length": length,
+            }
+        )
 
         # add inputs and outputs for all products
         if self._static_mode:
@@ -94,37 +111,46 @@ class VectorMagnitudeComp(ExplicitComponent):
 
         if mag_name not in var_rel2meta:
             self.add_output(name=mag_name, shape=(vec_size,), units=units)
-        elif mag_name in var_rel_names['input']:
-            raise NameError(f"{self.msginfo}: '{mag_name}' specified as an output, "
-                            "but it has already been defined as an input.")
+        elif mag_name in var_rel_names["input"]:
+            raise NameError(
+                f"{self.msginfo}: '{mag_name}' specified as an output, "
+                "but it has already been defined as an input."
+            )
         else:
             raise NameError(f"{self.msginfo}: Multiple definition of output '{mag_name}'.")
 
         if in_name not in var_rel2meta:
             self.add_input(name=in_name, shape=(vec_size, length), units=units)
-        elif in_name in var_rel_names['output']:
-            raise NameError(f"{self.msginfo}: '{in_name}' specified as an input, "
-                            "but it has already been defined as an output.")
+        elif in_name in var_rel_names["output"]:
+            raise NameError(
+                f"{self.msginfo}: '{in_name}' specified as an input, "
+                "but it has already been defined as an output."
+            )
         else:
             # declaring a duplicate magnitude with a different output name?  okay...
             meta = var_rel2meta[in_name]
-            if units != meta['units']:
-                raise ValueError(f"{self.msginfo}: Conflicting units '{units}' specified for "
-                                 f"input '{in_name}', which has already been defined with units "
-                                 f"'{meta['units']}'.")
-            if vec_size != meta['shape'][0]:
-                raise ValueError(f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
-                                 f"for input '{in_name}', which has already been defined with "
-                                 f"vec_size={meta['shape'][0]}.")
-            if length != meta['shape'][1]:
-                raise ValueError(f"{self.msginfo}: Conflicting length={length} specified "
-                                 f"for input '{in_name}', which has already been defined with "
-                                 f"length={meta['shape'][0]}.")
+            if units != meta["units"]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting units '{units}' specified for "
+                    f"input '{in_name}', which has already been defined with units "
+                    f"'{meta['units']}'."
+                )
+            if vec_size != meta["shape"][0]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
+                    f"for input '{in_name}', which has already been defined with "
+                    f"vec_size={meta['shape'][0]}."
+                )
+            if length != meta["shape"][1]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting length={length} specified "
+                    f"for input '{in_name}', which has already been defined with "
+                    f"length={meta['shape'][0]}."
+                )
 
         row_idxs = np.repeat(np.arange(vec_size), length)
         col_idxs = np.arange(vec_size * length)
-        self.declare_partials(of=mag_name, wrt=in_name,
-                              rows=row_idxs, cols=col_idxs)
+        self.declare_partials(of=mag_name, wrt=in_name, rows=row_idxs, cols=col_idxs)
 
     def compute(self, inputs, outputs):
         """
@@ -138,8 +164,8 @@ class VectorMagnitudeComp(ExplicitComponent):
             Unscaled, dimensional output variables read via outputs[key].
         """
         for magnitude in self._magnitudes:
-            a = inputs[magnitude['in_name']]
-            outputs[magnitude['mag_name']] = np.sqrt(np.einsum('ni,ni->n', a, a))
+            a = inputs[magnitude["in_name"]]
+            outputs[magnitude["mag_name"]] = np.sqrt(np.einsum("ni,ni->n", a, a))
 
     def compute_partials(self, inputs, partials):
         """
@@ -153,8 +179,9 @@ class VectorMagnitudeComp(ExplicitComponent):
             Sub-jac components written to partials[output_name, input_name]..
         """
         for magnitude in self._magnitudes:
-            a = inputs[magnitude['in_name']]
+            a = inputs[magnitude["in_name"]]
 
             # Use the following for sparse partials
-            partials[magnitude['mag_name'], magnitude['in_name']] = \
-                a.ravel() / np.repeat(np.sqrt(np.einsum('ni,ni->n', a, a)), magnitude['length'])
+            partials[magnitude["mag_name"], magnitude["in_name"]] = a.ravel() / np.repeat(
+                np.sqrt(np.einsum("ni,ni->n", a, a)), magnitude["length"]
+            )

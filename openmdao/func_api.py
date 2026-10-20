@@ -24,28 +24,77 @@ from openmdao.utils.code_utils import get_return_names
 
 
 _allowed_add_input_args = {
-    'val', 'shape', 'units', 'desc', 'tags', 'shape_by_conn', 'copy_shape', 'compute_shape',
-    'distributed', 'new_style_idx'
+    "val",
+    "shape",
+    "units",
+    "desc",
+    "tags",
+    "shape_by_conn",
+    "copy_shape",
+    "compute_shape",
+    "distributed",
+    "new_style_idx",
 }
 
 _allowed_add_output_args = {
-    'val', 'shape', 'units', 'res_units', 'desc', 'lower', 'upper', 'ref', 'ref0', 'res_ref',
-    'tags', 'shape_by_conn', 'copy_shape', 'compute_shape', 'distributed', 'resid'
+    "val",
+    "shape",
+    "units",
+    "res_units",
+    "desc",
+    "lower",
+    "upper",
+    "ref",
+    "ref0",
+    "res_ref",
+    "tags",
+    "shape_by_conn",
+    "copy_shape",
+    "compute_shape",
+    "distributed",
+    "resid",
 }
 
 _allowed_declare_options_args = {
-    'default', 'values', 'types', 'desc', 'upper', 'lower', 'check_valid', 'allow_none',
-    'recordable', 'deprecation'
+    "default",
+    "values",
+    "types",
+    "desc",
+    "upper",
+    "lower",
+    "check_valid",
+    "allow_none",
+    "recordable",
+    "deprecation",
 }
 
 _allowed_declare_partials_args = {
-    'of', 'wrt', 'dependent', 'rows', 'cols', 'val', 'method', 'step', 'form', 'step_calc',
-    'minimum_step'
+    "of",
+    "wrt",
+    "dependent",
+    "rows",
+    "cols",
+    "val",
+    "method",
+    "step",
+    "form",
+    "step_calc",
+    "minimum_step",
 }
 
 _allowed_declare_coloring_args = {
-    'wrt', 'method', 'form', 'step', 'per_instance', 'num_full_jacs', 'tol', 'orders',
-    'perturb_size', 'min_improve_pct', 'show_summary', 'show_sparsity'
+    "wrt",
+    "method",
+    "form",
+    "step",
+    "per_instance",
+    "num_full_jacs",
+    "tol",
+    "orders",
+    "perturb_size",
+    "min_improve_pct",
+    "show_summary",
+    "show_sparsity",
 }
 
 
@@ -83,15 +132,17 @@ class OMWrappedFunc(object):
         Initialize attributes.
         """
         self._f = func
-        self._input_defaults = {'val': 1.0, 'shape': ()}
-        self._output_defaults = {'val': 1.0, 'shape': ()}
+        self._input_defaults = {"val": 1.0, "shape": ()}
+        self._output_defaults = {"val": 1.0, "shape": ()}
         self._partials_defaults = {}
         self._coloring_defaults = {}
 
         # populate _inputs dict with input names based on function signature so we can error
         # check vs. inputs added via add_input
-        self._inputs = {n: {'val': None if p.default is inspect._empty else p.default}
-                        for n, p in inspect.signature(func).parameters.items()}
+        self._inputs = {
+            n: {"val": None if p.default is inspect._empty else p.default}
+            for n, p in inspect.signature(func).parameters.items()
+        }
         self._outputs = {}
         self._declare_partials = []
         self._declare_coloring = None
@@ -133,14 +184,18 @@ class OMWrappedFunc(object):
         partials_kwargs = _filter_dict(kwargs, _allowed_declare_partials_args)
         coloring_kwargs = _filter_dict(kwargs, _allowed_declare_coloring_args)
 
-        combined = (set(input_kwargs)
-                    .union(output_kwargs)
-                    .union(partials_kwargs)
-                    .union(coloring_kwargs))
+        combined = (
+            set(input_kwargs).union(output_kwargs).union(partials_kwargs).union(coloring_kwargs)
+        )
 
         if len(kwargs) > len(combined):
-            invalids = (set(kwargs) - _allowed_add_input_args - _allowed_add_output_args -
-                        _allowed_declare_partials_args - _allowed_declare_coloring_args)
+            invalids = (
+                set(kwargs)
+                - _allowed_add_input_args
+                - _allowed_add_output_args
+                - _allowed_declare_partials_args
+                - _allowed_declare_coloring_args
+            )
             raise NameError(f"In defaults, metadata names {sorted(invalids)} are not allowed.")
 
         self._input_defaults.update(input_kwargs)
@@ -166,9 +221,11 @@ class OMWrappedFunc(object):
         meta = self._inputs[name]
         for kw in kwargs:
             if kw in meta and meta[kw] is not None:
-                raise RuntimeError(f"In add_input, metadata '{kw}' has already been added to "
-                                   f"function for input '{name}'.")
-        _check_kwargs(kwargs, _allowed_add_input_args, 'add_input')
+                raise RuntimeError(
+                    f"In add_input, metadata '{kw}' has already been added to "
+                    f"function for input '{name}'."
+                )
+        _check_kwargs(kwargs, _allowed_add_input_args, "add_input")
         meta.update(kwargs)
         return self
 
@@ -198,17 +255,17 @@ class OMWrappedFunc(object):
             Keyword args to store.
         """
         if name in self._inputs:
-            if 'resid' in kwargs:
-                self._inputs[name]['resid'] = kwargs['resid']
-                if 'val' in kwargs:
-                    self._inputs[name]['shape'] = np.asarray(kwargs['val']).shape
-                elif 'shape' in kwargs:
-                    self._inputs[name]['shape'] = kwargs['shape']
+            if "resid" in kwargs:
+                self._inputs[name]["resid"] = kwargs["resid"]
+                if "val" in kwargs:
+                    self._inputs[name]["shape"] = np.asarray(kwargs["val"]).shape
+                elif "shape" in kwargs:
+                    self._inputs[name]["shape"] = kwargs["shape"]
             else:
                 raise RuntimeError(f"In add_output, '{name}' already registered as an input.")
         if name in self._outputs:
             raise RuntimeError(f"In add_output, '{name}' already registered as an output.")
-        _check_kwargs(kwargs, _allowed_add_output_args, 'add_output')
+        _check_kwargs(kwargs, _allowed_add_output_args, "add_output")
         self._outputs[name] = kwargs
         return self
 
@@ -254,13 +311,13 @@ class OMWrappedFunc(object):
         **kwargs : dict
             Keyword args to store.
         """
-        _check_kwargs(kwargs, _allowed_declare_options_args, 'declare_option')
-        del self._inputs[name]['val']  # 'val' isn't a valid arg to declare_option
+        _check_kwargs(kwargs, _allowed_declare_options_args, "declare_option")
+        del self._inputs[name]["val"]  # 'val' isn't a valid arg to declare_option
         self._inputs[name].update(kwargs)
-        self._inputs[name]['is_option'] = True
+        self._inputs[name]["is_option"] = True
         return self
 
-    def declare_partials(self, of=('*',), wrt=('*',), **kwargs):
+    def declare_partials(self, of=("*",), wrt=("*",), **kwargs):
         r"""
         Collect args to be passed to declare_partials on an OpenMDAO component.
 
@@ -275,14 +332,15 @@ class OMWrappedFunc(object):
         **kwargs : dict
             Keyword args to store.
         """
-        _check_kwargs(kwargs, _allowed_declare_partials_args, 'declare_partials')
+        _check_kwargs(kwargs, _allowed_declare_partials_args, "declare_partials")
         _update_from_defaults(kwargs, self._partials_defaults)
 
         jaxerr = False
-        if 'method' in kwargs and kwargs['method'] == 'jax':
+        if "method" in kwargs and kwargs["method"] == "jax":
             if jax is None:
-                raise RuntimeError("jax is not installed. "
-                                   "Try 'pip install openmdao[jax]' with Python>=3.8.")
+                raise RuntimeError(
+                    "jax is not installed. Try 'pip install openmdao[jax]' with Python>=3.8."
+                )
             if self._declare_partials and not self._use_jax:
                 jaxerr = True
             self._use_jax = True
@@ -290,18 +348,20 @@ class OMWrappedFunc(object):
             jaxerr = True
 
         if jaxerr:
-            raise RuntimeError("If multiple calls to declare_partials() are made on the same "
-                               "function object and any set method='jax', then all must set "
-                               "method='jax'.")
+            raise RuntimeError(
+                "If multiple calls to declare_partials() are made on the same "
+                "function object and any set method='jax', then all must set "
+                "method='jax'."
+            )
 
         kwargs = kwargs.copy()
-        kwargs['of'] = of
-        kwargs['wrt'] = wrt
+        kwargs["of"] = of
+        kwargs["wrt"] = wrt
         self._declare_partials.append(kwargs)
 
         return self
 
-    def declare_coloring(self, wrt=('*',), **kwargs):
+    def declare_coloring(self, wrt=("*",), **kwargs):
         r"""
         Collect args to be passed to declare_coloring on an OpenMDAO component.
 
@@ -313,14 +373,15 @@ class OMWrappedFunc(object):
             Keyword args to store.
         """
         if self._declare_coloring is None:
-            _check_kwargs(kwargs, _allowed_declare_coloring_args, 'declare_coloring')
+            _check_kwargs(kwargs, _allowed_declare_coloring_args, "declare_coloring")
             _update_from_defaults(kwargs, self._coloring_defaults)
             self._declare_coloring = kwargs.copy()
-            self._declare_coloring['wrt'] = wrt
-            if 'method' in kwargs and kwargs['method'] == 'jax':
+            self._declare_coloring["wrt"] = wrt
+            if "method" in kwargs and kwargs["method"] == "jax":
                 if jax is None:
-                    raise RuntimeError("jax is not installed. "
-                                       "Try 'pip install openmdao[jax]' with Python>=3.8.")
+                    raise RuntimeError(
+                        "jax is not installed. Try 'pip install openmdao[jax]' with Python>=3.8."
+                    )
                 self._use_jax = True
             return self
         raise RuntimeError("declare_coloring has already been called.")
@@ -336,7 +397,7 @@ class OMWrappedFunc(object):
         """
         if self._call_setup:
             self._setup()
-        return [it for it in self._inputs.items() if 'resid' not in it[1]]
+        return [it for it in self._inputs.items() if "resid" not in it[1]]
 
     def get_input_names(self):
         """
@@ -416,7 +477,7 @@ class OMWrappedFunc(object):
         for name in inspect.signature(self._f).parameters:
             meta = ins[name]
 
-            if meta.get('is_option'):
+            if meta.get("is_option"):
                 continue
 
             if name in outs:  # skip if this is a state
@@ -439,13 +500,17 @@ class OMWrappedFunc(object):
         except (RuntimeError, OSError) as err:
             # this could happen if function is compiled or has multiple return lines that are
             # not all consistent
-            msg = (f"During AST processing to determine the number and name of return values, the "
-                   f"following error occurred: {err}")
+            msg = (
+                f"During AST processing to determine the number and name of return values, the "
+                f"following error occurred: {err}"
+            )
             if not self._outputs:
                 raise RuntimeError(msg)
-            warnings.warn(f"{msg}\nError was ignored and will proceed assuming that the number "
-                          f"of return values matches the number of outputs ({len(self._outputs)}) "
-                          "defined in the metadata.")
+            warnings.warn(
+                f"{msg}\nError was ignored and will proceed assuming that the number "
+                f"of return values matches the number of outputs ({len(self._outputs)}) "
+                "defined in the metadata."
+            )
             outlist = list(self._outputs.items())
 
         residmap = {n: n for n, _ in outlist}
@@ -453,7 +518,7 @@ class OMWrappedFunc(object):
         for oname, ometa in self._outputs.items():
             residmap[oname] = oname
             for n, meta in outlist:
-                if n == oname or 'resid' in ometa and ometa['resid'] == n:
+                if n == oname or "resid" in ometa and ometa["resid"] == n:
                     if meta is not ometa:
                         meta.update(ometa)
                     residmap[n] = oname
@@ -464,14 +529,18 @@ class OMWrappedFunc(object):
         inones = [i for i, t in enumerate(outlist) if t[0] is None]  # indices with no name
 
         if len(inones) > len(self._outputs):
-            raise RuntimeError(f"{len(self._outputs)} output names are specified in the metadata "
-                               f"but there are {len(inones)} unnamed return values in the "
-                               "function.")
+            raise RuntimeError(
+                f"{len(self._outputs)} output names are specified in the metadata "
+                f"but there are {len(inones)} unnamed return values in the "
+                "function."
+            )
 
         if notfound:  # try to fill in the unnamed slots with user-supplied output data
             if len(notfound) != len(inones):
-                raise RuntimeError(f"There must be an unnamed return value for every unmatched "
-                                   f"output name {notfound} but only found {len(inones)}.")
+                raise RuntimeError(
+                    f"There must be an unnamed return value for every unmatched "
+                    f"output name {notfound} but only found {len(inones)}."
+                )
 
             # number of None return slots equals number of entries not found in outlist
             for i_olist, name_notfound in zip(inones, notfound):
@@ -489,8 +558,8 @@ class OMWrappedFunc(object):
         for name, meta in outs.items():
             self._default_to_shape(name, meta, self._output_defaults)
             _update_from_defaults(meta, self._output_defaults)
-            if meta['shape'] is not None:
-                meta['shape'] = _shape2tuple(meta['shape'])
+            if meta["shape"] is not None:
+                meta["shape"] = _shape2tuple(meta["shape"])
 
         self._outputs = outs
 
@@ -521,30 +590,30 @@ class OMWrappedFunc(object):
         need_shape = []
         for name, ometa in outs.items():
             try:
-                ometa['shape']
+                ometa["shape"]
             except KeyError:
                 need_shape.append(name)
 
         args = []
         static_argnums = []
         for i, (name, meta) in enumerate(ins.items()):
-            if 'is_option' in meta and meta['is_option']:
-                if 'default' in meta:
-                    val = meta['default']
-                elif 'values' in meta:
-                    val = meta['values'][0]
+            if "is_option" in meta and meta["is_option"]:
+                if "default" in meta:
+                    val = meta["default"]
+                elif "values" in meta:
+                    val = meta["values"][0]
                 else:
                     val = None
                 args.append(val)
                 static_argnums.append(i)
                 continue
-            if meta['val'] is not None:
-                args.append(meta['val'])
+            if meta["val"] is not None:
+                args.append(meta["val"])
             else:
                 try:
-                    shp = meta['shape']
+                    shp = meta["shape"]
                 except KeyError:
-                    if 'resid' not in meta:  # this is an input, not a state
+                    if "resid" not in meta:  # this is an input, not a state
                         raise RuntimeError(f"Can't determine shape of input '{name}'.")
                 else:
                     if jax is not None:
@@ -559,29 +628,37 @@ class OMWrappedFunc(object):
                     v = jax.make_jaxpr(self._f, static_argnums)(*args)
             except Exception as err:
                 if need_shape:
-                    raise RuntimeError(f"Failed to determine the output shapes "
-                                       f"based on the input shapes. The error was: {err}.  To "
-                                       "avoid this error, add return value metadata that "
-                                       "specifies the shapes of the return values to the function.")
-                warnings.warn("Failed to determine the output shapes based on the input "
-                              "shapes in order to check the provided metadata values. The"
-                              f" error was: {err}.")
+                    raise RuntimeError(
+                        f"Failed to determine the output shapes "
+                        f"based on the input shapes. The error was: {err}.  To "
+                        "avoid this error, add return value metadata that "
+                        "specifies the shapes of the return values to the function."
+                    )
+                warnings.warn(
+                    "Failed to determine the output shapes based on the input "
+                    "shapes in order to check the provided metadata values. The"
+                    f" error was: {err}."
+                )
             else:
                 for val, name in zip(v.out_avals, outs):
-                    oldshape = outs[name].get('shape')
+                    oldshape = outs[name].get("shape")
                     if oldshape is not None and _shape2tuple(oldshape) != val.shape:
-                        raise RuntimeError(f"shape from metadata for return value "
-                                           f"'{name}' of {oldshape} doesn't match computed "
-                                           f"shape of {val.shape}.")
-                    outs[name]['shape'] = val.shape
+                        raise RuntimeError(
+                            f"shape from metadata for return value "
+                            f"'{name}' of {oldshape} doesn't match computed "
+                            f"shape of {val.shape}."
+                        )
+                    outs[name]["shape"] = val.shape
                 need_shape = []
 
         if need_shape:  # output shapes weren't provided by user or by jax
-            shape = self._output_defaults['shape']
-            warnings.warn(f"Return values {need_shape} have unspecified shape so are assumed to "
-                          f"have shape {shape}.")
+            shape = self._output_defaults["shape"]
+            warnings.warn(
+                f"Return values {need_shape} have unspecified shape so are assumed to "
+                f"have shape {shape}."
+            )
             for name in need_shape:
-                outs[name]['shape'] = shape
+                outs[name]["shape"] = shape
 
     def _default_to_shape(self, name, meta, defaults_dict):
         """
@@ -596,24 +673,26 @@ class OMWrappedFunc(object):
         defaults_dict : dict
             Function defaults dict.
         """
-        if 'val' in meta and meta['val'] is not None:
-            valshape = np.asarray(meta['val']).shape
+        if "val" in meta and meta["val"] is not None:
+            valshape = np.asarray(meta["val"]).shape
         else:
             valshape = None
-            meta['val'] = defaults_dict['val']
+            meta["val"] = defaults_dict["val"]
 
-        if meta.get('shape') is None:
+        if meta.get("shape") is None:
             if valshape is not None:
-                meta['shape'] = valshape
+                meta["shape"] = valshape
             else:
-                meta['shape'] = defaults_dict['shape']
+                meta["shape"] = defaults_dict["shape"]
 
-        meta['shape'] = _shape2tuple(meta['shape'])
+        meta["shape"] = _shape2tuple(meta["shape"])
         if not valshape:  # val is a scalar so reshape with the given meta['shape']
-            meta['val'] = np.ones(meta['shape']) * meta['val']
-        elif valshape != meta['shape']:
-            raise ValueError(f"Input '{name}' value has shape "
-                             f"{valshape}, but shape was specified as {meta['shape']}.")
+            meta["val"] = np.ones(meta["shape"]) * meta["val"]
+        elif valshape != meta["shape"]:
+            raise ValueError(
+                f"Input '{name}' value has shape "
+                f"{valshape}, but shape was specified as {meta['shape']}."
+            )
 
 
 def wrap(func):
@@ -720,19 +799,19 @@ def jax_context(globals):
         The globals dict to have its numpy/np attributes updated.
     """
     savenp = savenumpy = None
-    if 'np' in globals and globals['np'] is np:
-        savenp = globals['np']
-        globals['np'] = jnp
-    if 'numpy' in globals:
-        savenumpy = globals['numpy']
-        globals['numpy'] = jnp
+    if "np" in globals and globals["np"] is np:
+        savenp = globals["np"]
+        globals["np"] = jnp
+    if "numpy" in globals:
+        savenumpy = globals["numpy"]
+        globals["numpy"] = jnp
     try:
         yield
     finally:
         if savenp is not None:
-            globals['np'] = savenp
+            globals["np"] = savenp
         if savenumpy is not None:
-            globals['numpy'] = savenumpy
+            globals["numpy"] = savenumpy
 
 
 def jax_decorate(func):
@@ -751,22 +830,23 @@ def jax_decorate(func):
     """
     g = func.__globals__
 
-    savenp = g['np'] if 'np' in g and g['np'] is np else False
-    savenumpy = g['numpy'] if 'numpy' in g and g['numpy'] is np else False
+    savenp = g["np"] if "np" in g and g["np"] is np else False
+    savenumpy = g["numpy"] if "numpy" in g and g["numpy"] is np else False
 
     if savenp or savenumpy:
+
         def _wrap(*args, **kwargs):
             if savenp:
-                g['np'] = jnp
+                g["np"] = jnp
             if savenumpy:
-                g['numpy'] = jnp
+                g["numpy"] = jnp
             try:
                 ret = func(*args, **kwargs)
             finally:
                 if savenp:
-                    g['np'] = savenp
+                    g["np"] = savenp
                 if savenumpy:
-                    g['numpy'] = savenumpy
+                    g["numpy"] = savenumpy
 
             return ret
 

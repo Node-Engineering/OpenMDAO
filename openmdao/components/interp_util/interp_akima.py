@@ -3,10 +3,14 @@ Interpolate using am Akima spline.
 
 Based on NPSS implementation, with improvements from Andrew Ning (BYU).
 """
+
 import numpy as np
 
-from openmdao.components.interp_util.interp_algorithm import InterpAlgorithm, \
-    InterpAlgorithmSemi, InterpAlgorithmFixed
+from openmdao.components.interp_util.interp_algorithm import (
+    InterpAlgorithm,
+    InterpAlgorithmSemi,
+    InterpAlgorithmFixed,
+)
 from openmdao.utils.array_utils import abs_complex, dv_abs_complex, shape_to_len
 
 
@@ -66,10 +70,10 @@ def dv_abs_smooth_complex(x, x_deriv, delta_x):
         elif x[0] <= -delta_x:
             return -x, -x_deriv
         else:
-            return 0.5 * (x[0]**2 / delta_x + delta_x), x[0] * x_deriv / delta_x
+            return 0.5 * (x[0] ** 2 / delta_x + delta_x), x[0] * x_deriv / delta_x
 
     y_deriv = x * x_deriv / delta_x
-    y = 0.5 * (x[0]**2 / delta_x + delta_x)
+    y = 0.5 * (x[0] ** 2 / delta_x + delta_x)
     idx_neg = np.where(x <= -delta_x)
     idx_pos = np.where(x >= delta_x)
 
@@ -103,20 +107,24 @@ class InterpAkima(InterpAlgorithm):
         """
         super().__init__(grid, values, interp, **kwargs)
         self.k = 4
-        self._name = 'akima'
+        self._name = "akima"
 
     def initialize(self):
         """
         Declare options.
         """
-        self.options.declare('delta_x', default=0.,
-                             desc="half-width of the smoothing interval added in the valley of "
-                             "absolute-value function. This allows the derivatives with respect to"
-                             " the data points (dydxpt, dydypt) to also be C1 continuous. Set "
-                             "parameter to 0 to get the original Akima function (but only if you "
-                             "don't need dydxpt, dydypt")
-        self.options.declare('eps', default=1e-30,
-                             desc='Value that triggers division-by-zero safeguard.')
+        self.options.declare(
+            "delta_x",
+            default=0.0,
+            desc="half-width of the smoothing interval added in the valley of "
+            "absolute-value function. This allows the derivatives with respect to"
+            " the data points (dydxpt, dydypt) to also be C1 continuous. Set "
+            "parameter to 0 to get the original Akima function (but only if you "
+            "don't need dydxpt, dydypt",
+        )
+        self.options.declare(
+            "eps", default=1e-30, desc="Value that triggers division-by-zero safeguard."
+        )
 
     def interpolate(self, x, idx, slice_idx):
         """
@@ -149,8 +157,8 @@ class InterpAkima(InterpAlgorithm):
         """
         grid = self.grid
         subtable = self.subtable
-        eps = self.options['eps']
-        delta_x = self.options['delta_x']
+        eps = self.options["eps"]
+        delta_x = self.options["delta_x"]
         nx = len(x)
 
         # Complex Step
@@ -308,8 +316,9 @@ class InterpAkima(InterpAlgorithm):
 
         m3 = (val4 - val3) / (grid[idx + 1] - grid[idx])
         if compute_local_train:
-            dm3_dv = (deriv_dv[..., idx_val4, :] - deriv_dv[..., idx_val3, :]) / \
-                (grid[idx + 1] - grid[idx])
+            dm3_dv = (deriv_dv[..., idx_val4, :] - deriv_dv[..., idx_val3, :]) / (
+                grid[idx + 1] - grid[idx]
+            )
             dm1_dv = 0
             dm2_dv = 0
             dm4_dv = 0
@@ -318,26 +327,30 @@ class InterpAkima(InterpAlgorithm):
         if idx >= 2:
             m1 = (val2 - val1) / (grid[idx - 1] - grid[idx - 2])
             if compute_local_train:
-                dm1_dv = (deriv_dv[..., idx_val2, :] - deriv_dv[..., idx_val1, :]) / \
-                    (grid[idx - 1] - grid[idx - 2])
+                dm1_dv = (deriv_dv[..., idx_val2, :] - deriv_dv[..., idx_val1, :]) / (
+                    grid[idx - 1] - grid[idx - 2]
+                )
 
         if idx >= 1:
             m2 = (val3 - val2) / (grid[idx] - grid[idx - 1])
             if compute_local_train:
-                dm2_dv = (deriv_dv[..., idx_val3, :] - deriv_dv[..., idx_val2, :]) / \
-                    (grid[idx] - grid[idx - 1])
+                dm2_dv = (deriv_dv[..., idx_val3, :] - deriv_dv[..., idx_val2, :]) / (
+                    grid[idx] - grid[idx - 1]
+                )
 
         if idx < ngrid - 2:
             m4 = (val5 - val4) / (grid[idx + 2] - grid[idx + 1])
             if compute_local_train:
-                dm4_dv = (deriv_dv[..., idx_val5, :] - deriv_dv[..., idx_val4, :]) / \
-                    (grid[idx + 2] - grid[idx + 1])
+                dm4_dv = (deriv_dv[..., idx_val5, :] - deriv_dv[..., idx_val4, :]) / (
+                    grid[idx + 2] - grid[idx + 1]
+                )
 
         if idx < ngrid - 3:
             m5 = (val6 - val5) / (grid[idx + 3] - grid[idx + 2])
             if compute_local_train:
-                dm5_dv = (deriv_dv[..., idx_val6, :] - deriv_dv[..., idx_val5, :]) / \
-                    (grid[idx + 3] - grid[idx + 2])
+                dm5_dv = (deriv_dv[..., idx_val6, :] - deriv_dv[..., idx_val5, :]) / (
+                    grid[idx + 3] - grid[idx + 2]
+                )
 
         if idx == 0:
             m2 = 2 * m3 - m4
@@ -395,26 +408,27 @@ class InterpAkima(InterpAlgorithm):
         # We need to suppress some warnings that occur when we divide by zero.  We replace all
         # values where this happens, so it never affects the result.
         old_settings = np.seterr()
-        np.seterr(invalid='ignore', divide='ignore')
+        np.seterr(invalid="ignore", divide="ignore")
 
         bpos = np.atleast_1d((m2 * w2 + m3 * w31) / (w2 + w31))
         if compute_local_train:
             if len(m2.shape) > 1:
-
                 w2n = w2[..., np.newaxis]
                 w31n = w31[..., np.newaxis]
                 m2n = m2[..., np.newaxis]
                 m3n = m3[..., np.newaxis]
 
-                dbpos_dv = ((m2n * dw2_dv + dm2_dv * w2n + m3n * dw31_dv + dm3_dv * w31n) *
-                            (w2n + w31n) -
-                            (m2n * w2n + m3n * w31n) * (dw2_dv + dw31_dv)) / (w2n + w31n) ** 2
+                dbpos_dv = (
+                    (m2n * dw2_dv + dm2_dv * w2n + m3n * dw31_dv + dm3_dv * w31n) * (w2n + w31n)
+                    - (m2n * w2n + m3n * w31n) * (dw2_dv + dw31_dv)
+                ) / (w2n + w31n) ** 2
                 dbpos_dv = np.atleast_2d(dbpos_dv)
 
             else:
-                dbpos_dv = ((m2 * dw2_dv + dm2_dv * w2 + m3 * dw31_dv + dm3_dv * w31) *
-                            (w2 + w31) -
-                            (m2 * w2 + m3 * w31) * (dw2_dv + dw31_dv)) / (w2 + w31) ** 2
+                dbpos_dv = (
+                    (m2 * dw2_dv + dm2_dv * w2 + m3 * dw31_dv + dm3_dv * w31) * (w2 + w31)
+                    - (m2 * w2 + m3 * w31) * (dw2_dv + dw31_dv)
+                ) / (w2 + w31) ** 2
                 dbpos_dv = np.atleast_2d(dbpos_dv)
 
         b[jj1] = bpos[jj1]
@@ -446,19 +460,20 @@ class InterpAkima(InterpAlgorithm):
         bp1pos = np.atleast_1d((m3 * w32 + m4 * w4) / (w32 + w4))
         if compute_local_train:
             if len(m2.shape) > 1:
-
                 w32n = w32[..., np.newaxis]
                 w4n = w4[..., np.newaxis]
                 m4n = m4[..., np.newaxis]
 
-                dbp1pos_dv = ((m3n * dw32_dv + dm3_dv * w32n + m4n * dw4_dv + dm4_dv * w4n) *
-                              (w32n + w4n) -
-                              (m3n * w32n + m4n * w4n) * (dw32_dv + dw4_dv)) / (w32n + w4n) ** 2
+                dbp1pos_dv = (
+                    (m3n * dw32_dv + dm3_dv * w32n + m4n * dw4_dv + dm4_dv * w4n) * (w32n + w4n)
+                    - (m3n * w32n + m4n * w4n) * (dw32_dv + dw4_dv)
+                ) / (w32n + w4n) ** 2
                 dbp1pos_dv = np.atleast_2d(dbp1pos_dv)
             else:
-                dbp1pos_dv = ((m3 * dw32_dv + dm3_dv * w32 + m4 * dw4_dv + dm4_dv * w4) *
-                              (w32 + w4) -
-                              (m3 * w32 + m4 * w4) * (dw32_dv + dw4_dv)) / (w32 + w4) ** 2
+                dbp1pos_dv = (
+                    (m3 * dw32_dv + dm3_dv * w32 + m4 * dw4_dv + dm4_dv * w4) * (w32 + w4)
+                    - (m3 * w32 + m4 * w4) * (dw32_dv + dw4_dv)
+                ) / (w32 + w4) ** 2
                 dbp1pos_dv = np.atleast_2d(dbp1pos_dv)
 
         bp1[jj2] = bp1pos[jj2]
@@ -599,18 +614,19 @@ class InterpAkima(InterpAlgorithm):
             if self._compute_d_dx:
                 db = 0.5 * (dm2 + dm3)
 
-                dbpos = ((dm2 * w2 + m2e * dw2 + dm3 * w31 + m3e * dw3) - bpos * (dw2 + dw3)) / \
-                    (w2 + w31)
+                dbpos = ((dm2 * w2 + m2e * dw2 + dm3 * w31 + m3e * dw3) - bpos * (dw2 + dw3)) / (
+                    w2 + w31
+                )
 
             if self._compute_d_dvalues:
                 db_dv = 0.5 * (dm2_dv + dm3_dv)
 
-                dbpos_dv = ((dm2_dv * w2 + m2e * dw2_dv + dm3_dv * w31 + m3e * dw3_dv) -
-                            bpos * (dw2_dv + dw3_dv)) / \
-                    (w2 + w31)
+                dbpos_dv = (
+                    (dm2_dv * w2 + m2e * dw2_dv + dm3_dv * w31 + m3e * dw3_dv)
+                    - bpos * (dw2_dv + dw3_dv)
+                ) / (w2 + w31)
 
             if nx > 2:
-
                 if len(val3.shape) == 0:
                     if len(jj1[0]) > 0:
                         if self._compute_d_dx:
@@ -660,19 +676,19 @@ class InterpAkima(InterpAlgorithm):
             if self._compute_d_dx:
                 dbp1 = 0.5 * (dm3 + dm4)
 
-                dbp1pos = ((dm3 * w32 + m3e * dw3 + dm4 * w4 + m4e * dw4) -
-                           bp1pos * (dw3 + dw4)) / \
-                    (w32 + w4)
+                dbp1pos = (
+                    (dm3 * w32 + m3e * dw3 + dm4 * w4 + m4e * dw4) - bp1pos * (dw3 + dw4)
+                ) / (w32 + w4)
 
             if self._compute_d_dvalues:
                 dbp1_dv = 0.5 * (dm3_dv + dm4_dv)
 
-                dbp1pos_dv = ((dm3_dv * w32 + m3e * dw3_dv + dm4_dv * w4 + m4e * dw4_dv) -
-                              bp1pos * (dw3_dv + dw4_dv)) / \
-                    (w32 + w4)
+                dbp1pos_dv = (
+                    (dm3_dv * w32 + m3e * dw3_dv + dm4_dv * w4 + m4e * dw4_dv)
+                    - bp1pos * (dw3_dv + dw4_dv)
+                ) / (w32 + w4)
 
             if nx > 2:
-
                 if len(val3.shape) == 0:
                     if len(jj2[0]) > 0:
                         if self._compute_d_dx:
@@ -793,28 +809,49 @@ class InterpAkimaSemi(InterpAlgorithmSemi):
         Interpolator-specific options to pass onward.
     """
 
-    def __init__(self, grid, values, interp, extrapolate=True, compute_d_dvalues=False, idx=None,
-                 idim=0, **kwargs):
+    def __init__(
+        self,
+        grid,
+        values,
+        interp,
+        extrapolate=True,
+        compute_d_dvalues=False,
+        idx=None,
+        idim=0,
+        **kwargs,
+    ):
         """
         Initialize table and subtables.
         """
-        super().__init__(grid, values, interp, extrapolate=extrapolate,
-                         compute_d_dvalues=compute_d_dvalues, idx=idx, idim=idim, **kwargs)
+        super().__init__(
+            grid,
+            values,
+            interp,
+            extrapolate=extrapolate,
+            compute_d_dvalues=compute_d_dvalues,
+            idx=idx,
+            idim=idim,
+            **kwargs,
+        )
         self.k = 4
-        self._name = 'akima'
+        self._name = "akima"
 
     def initialize(self):
         """
         Declare options.
         """
-        self.options.declare('delta_x', default=0.,
-                             desc="half-width of the smoothing interval added in the valley of "
-                             "absolute-value function. This allows the derivatives with respect to"
-                             " the data points (dydxpt, dydypt) to also be C1 continuous. Set "
-                             "parameter to 0 to get the original Akima function (but only if you "
-                             "don't need dydxpt, dydypt")
-        self.options.declare('eps', default=1e-30,
-                             desc='Value that triggers division-by-zero safeguard.')
+        self.options.declare(
+            "delta_x",
+            default=0.0,
+            desc="half-width of the smoothing interval added in the valley of "
+            "absolute-value function. This allows the derivatives with respect to"
+            " the data points (dydxpt, dydypt) to also be C1 continuous. Set "
+            "parameter to 0 to get the original Akima function (but only if you "
+            "don't need dydxpt, dydypt",
+        )
+        self.options.declare(
+            "eps", default=1e-30, desc="Value that triggers division-by-zero safeguard."
+        )
 
     def interpolate(self, x):
         """
@@ -845,8 +882,8 @@ class InterpAkimaSemi(InterpAlgorithmSemi):
         idx, flag = self.bracket(x[0])
         extrap = flag != 0
 
-        eps = self.options['eps']
-        delta_x = self.options['delta_x']
+        eps = self.options["eps"]
+        delta_x = self.options["delta_x"]
 
         # Complex Step
         if self.values.dtype == complex:
@@ -1019,31 +1056,31 @@ class InterpAkimaSemi(InterpAlgorithmSemi):
             dm4_dv = np.zeros(n_this, dtype=dtype)
             dm5_dv = np.zeros(n_this, dtype=dtype)
             dm3_dv[idx_val4] = (1.0 / (grid[idx + 1] - grid[idx])).item()
-            dm3_dv[idx_val3] = (- dm3_dv[idx_val4]).item()
+            dm3_dv[idx_val3] = (-dm3_dv[idx_val4]).item()
 
         if idx >= 2:
             m1 = (val2 - val1) / (grid[idx - 1] - grid[idx - 2])
             if compute_local_train:
                 dm1_dv[idx_val2] = (1.0 / (grid[idx - 1] - grid[idx - 2])).item()
-                dm1_dv[idx_val1] = (- dm1_dv[idx_val2]).item()
+                dm1_dv[idx_val1] = (-dm1_dv[idx_val2]).item()
 
         if idx >= 1:
             m2 = (val3 - val2) / (grid[idx] - grid[idx - 1])
             if compute_local_train:
                 dm2_dv[idx_val3] = (1.0 / (grid[idx] - grid[idx - 1])).item()
-                dm2_dv[idx_val2] = (- dm2_dv[idx_val3]).item()
+                dm2_dv[idx_val2] = (-dm2_dv[idx_val3]).item()
 
         if idx < ngrid - 2:
             m4 = (val5 - val4) / (grid[idx + 2] - grid[idx + 1])
             if compute_local_train:
                 dm4_dv[idx_val5] = (1.0 / (grid[idx + 2] - grid[idx + 1])).item()
-                dm4_dv[idx_val4] = (- dm4_dv[idx_val5]).item()
+                dm4_dv[idx_val4] = (-dm4_dv[idx_val5]).item()
 
         if idx < ngrid - 3:
             m5 = (val6 - val5) / (grid[idx + 3] - grid[idx + 2])
             if compute_local_train:
                 dm5_dv[idx_val6] = (1.0 / (grid[idx + 3] - grid[idx + 2])).item()
-                dm5_dv[idx_val5] = (- dm5_dv[idx_val6]).item()
+                dm5_dv[idx_val5] = (-dm5_dv[idx_val6]).item()
 
         if idx == 0:
             m2 = 2 * m3 - m4
@@ -1082,14 +1119,14 @@ class InterpAkimaSemi(InterpAlgorithmSemi):
             db_dv = 0.5 * (dm2_dv + dm3_dv)
 
         if w2 + w31 > eps:
-
             bpos = (m2 * w2 + m3 * w31) / (w2 + w31)
             b = bpos
 
             if compute_local_train:
-                dbpos_dv = ((m2 * dw2_dv + dm2_dv * w2 + m3 * dw31_dv + dm3_dv * w31) *
-                            (w2 + w31) -
-                            (m2 * w2 + m3 * w31) * (dw2_dv + dw31_dv)) / (w2 + w31) ** 2
+                dbpos_dv = (
+                    (m2 * dw2_dv + dm2_dv * w2 + m3 * dw31_dv + dm3_dv * w31) * (w2 + w31)
+                    - (m2 * w2 + m3 * w31) * (dw2_dv + dw31_dv)
+                ) / (w2 + w31) ** 2
                 db_dv = dbpos_dv
 
         if compute_local_train:
@@ -1105,9 +1142,10 @@ class InterpAkimaSemi(InterpAlgorithmSemi):
 
         bp1pos = (m3 * w32 + m4 * w4) / (w32 + w4)
         if compute_local_train:
-            dbp1pos_dv = ((m3 * dw32_dv + dm3_dv * w32 + m4 * dw4_dv + dm4_dv * w4) *
-                          (w32 + w4) -
-                          (m3 * w32 + m4 * w4) * (dw32_dv + dw4_dv)) / (w32 + w4) ** 2
+            dbp1pos_dv = (
+                (m3 * dw32_dv + dm3_dv * w32 + m4 * dw4_dv + dm4_dv * w4) * (w32 + w4)
+                - (m3 * w32 + m4 * w4) * (dw32_dv + dw4_dv)
+            ) / (w32 + w4) ** 2
 
         if w32 + w4 > eps:
             bp1 = bp1pos
@@ -1226,15 +1264,15 @@ class InterpAkimaSemi(InterpAlgorithmSemi):
 
             db = 0.5 * (dm2 + dm3)
 
-            dbpos = ((dm2 * w2 + m2 * dw2 + dm3 * w31 + m3 * dw3) - bpos * (dw2 + dw3)) / \
-                (w2 + w31)
+            dbpos = ((dm2 * w2 + m2 * dw2 + dm3 * w31 + m3 * dw3) - bpos * (dw2 + dw3)) / (w2 + w31)
 
             if self._compute_d_dvalues:
                 db_dv = 0.5 * (dm2_dv + dm3_dv)
 
-                dbpos_dv = ((dm2_dv * w2 + m2 * dw2_dv + dm3_dv * w31 + m3 * dw3_dv) -
-                            bpos * (dw2_dv + dw3_dv)) / \
-                    (w2 + w31)
+                dbpos_dv = (
+                    (dm2_dv * w2 + m2 * dw2_dv + dm3_dv * w31 + m3 * dw3_dv)
+                    - bpos * (dw2_dv + dw3_dv)
+                ) / (w2 + w31)
 
             if w2 + w31 > eps:
                 db = dbpos
@@ -1251,16 +1289,17 @@ class InterpAkimaSemi(InterpAlgorithmSemi):
             if w32 + w4 > eps:
                 dbp1 = 0.5 * (dm3 + dm4)
 
-                dbp1pos = ((dm3 * w32 + m3 * dw3 + dm4 * w4 + m4 * dw4) -
-                           bp1pos * (dw3 + dw4)) / \
-                    (w32 + w4)
+                dbp1pos = ((dm3 * w32 + m3 * dw3 + dm4 * w4 + m4 * dw4) - bp1pos * (dw3 + dw4)) / (
+                    w32 + w4
+                )
 
                 if self._compute_d_dvalues:
                     dbp1_dv = 0.5 * (dm3_dv + dm4_dv)
 
-                    dbp1pos_dv = ((dm3_dv * w32 + m3 * dw3_dv + dm4_dv * w4 + m4 * dw4_dv) -
-                                  bp1pos * (dw3_dv + dw4_dv)) / \
-                        (w32 + w4)
+                    dbp1pos_dv = (
+                        (dm3_dv * w32 + m3 * dw3_dv + dm4_dv * w4 + m4 * dw4_dv)
+                        - bp1pos * (dw3_dv + dw4_dv)
+                    ) / (w32 + w4)
 
                 dbp1 = dbp1pos
                 if self._compute_d_dvalues:
@@ -1332,21 +1371,25 @@ class Interp1DAkima(InterpAlgorithmFixed):
         self.k = 4
         self.dim = 1
         self.last_index = [0]
-        self._name = '1D-akima'
+        self._name = "1D-akima"
         self._vectorized = False
 
     def initialize(self):
         """
         Declare options.
         """
-        self.options.declare('delta_x', default=0.,
-                             desc="half-width of the smoothing interval added in the valley of "
-                             "absolute-value function. This allows the derivatives with respect to"
-                             " the data points (dydxpt, dydypt) to also be C1 continuous. Set "
-                             "parameter to 0 to get the original Akima function (but only if you "
-                             "don't need dydxpt, dydypt")
-        self.options.declare('eps', default=1e-30,
-                             desc='Value that triggers division-by-zero safeguard.')
+        self.options.declare(
+            "delta_x",
+            default=0.0,
+            desc="half-width of the smoothing interval added in the valley of "
+            "absolute-value function. This allows the derivatives with respect to"
+            " the data points (dydxpt, dydypt) to also be C1 continuous. Set "
+            "parameter to 0 to get the original Akima function (but only if you "
+            "don't need dydxpt, dydypt",
+        )
+        self.options.declare(
+            "eps", default=1e-30, desc="Value that triggers division-by-zero safeguard."
+        )
 
     def vectorized(self, x):
         """
@@ -1446,8 +1489,8 @@ class Interp1DAkima(InterpAlgorithmFixed):
         grid = self.grid[0]
         ngrid = len(grid)
         values = self.values
-        eps = self.options['eps']
-        delta_x = self.options['delta_x']
+        eps = self.options["eps"]
+        delta_x = self.options["delta_x"]
 
         # Calculate interval slope values
         #
@@ -1630,8 +1673,8 @@ class Interp1DAkima(InterpAlgorithmFixed):
         grid = self.grid[0]
         ngrid = len(grid)
         values = self.values
-        eps = self.options['eps']
-        delta_x = self.options['delta_x']
+        eps = self.options["eps"]
+        delta_x = self.options["delta_x"]
 
         idx = idx.copy()
         if 0 in idx:

@@ -22,7 +22,8 @@ class ConstantsTestCase(unittest.TestCase):
         self.assertTrue(is_undefined(cpf.bar), "Constants don't match!")
 
     def test_inf_bound_deprecated(self):
-        msg = 'The INF_BOUND sentinel in OpenMDAO is deprecated'
+        msg = "The INF_BOUND sentinel in OpenMDAO is deprecated"
         with assert_warning(OMDeprecationWarning, msg, contains_msg=True):
             from openmdao.core.constants import INF_BOUND
-            self.assertEqual(INF_BOUND, 1.0E30)
+
+            self.assertEqual(INF_BOUND, 1.0e30)

@@ -13,7 +13,6 @@ from openmdao.devtools import iprof_mem
 
 @unittest.skip("interactive test, not to be run with test suite")
 class TestProfileMemory(unittest.TestCase):
-
     def test_sellar(self):
         prob = Problem(SellarNoDerivatives()).setup()
 
@@ -55,9 +54,9 @@ class TestCmdlineMemory(unittest.TestCase):
         except ImportError:
             raise unittest.SkipTest("psutil is not installed")
 
-        self.tstfile = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mem_model.py')
+        self.tstfile = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mem_model.py")
         self.startdir = os.getcwd()
-        self.tempdir = tempfile.mkdtemp(prefix='TestDOEDriver-')
+        self.tempdir = tempfile.mkdtemp(prefix="TestDOEDriver-")
         os.chdir(self.tempdir)
 
     def tearDown(self):
@@ -69,18 +68,19 @@ class TestCmdlineMemory(unittest.TestCase):
 
     def _run_command(self, cmd):
         try:
-            subprocess.check_output(cmd).decode('utf-8', 'ignore')
+            subprocess.check_output(cmd).decode("utf-8", "ignore")
         except subprocess.CalledProcessError as err:
-            self.fail(f"Running command '{cmd}' failed. " + \
-                      f"Output was: \n{err.output.decode('utf-8')}")
+            self.fail(
+                f"Running command '{cmd}' failed. " + f"Output was: \n{err.output.decode('utf-8')}"
+            )
 
     def test_mem(self):
-        self._run_command(['openmdao', 'mem', self.tstfile])
-        self._run_command(['openmdao', 'mempost', 'mem_trace.raw'])
+        self._run_command(["openmdao", "mem", self.tstfile])
+        self._run_command(["openmdao", "mempost", "mem_trace.raw"])
 
     def test_mem_tree(self):
-        self._run_command(['openmdao', 'mem', '-t', self.tstfile])
-        self._run_command(['openmdao', 'mempost', '-t', 'mem_trace.raw'])
+        self._run_command(["openmdao", "mem", "-t", self.tstfile])
+        self._run_command(["openmdao", "mempost", "-t", "mem_trace.raw"])
 
 
 if __name__ == "__main__":

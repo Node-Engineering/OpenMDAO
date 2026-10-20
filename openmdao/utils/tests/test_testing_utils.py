@@ -30,10 +30,14 @@ class TestPrimitives(unittest.TestCase):
 
         # Check each string with the regex pattern
         for s in numstrs:
-            m =  re.match(num_rgx, s)
+            m = re.match(num_rgx, s)
             self.assertTrue(m is not None, f"{s} should be parsed as a number")
-            self.assertEqual(m.start(), 0, f"{s} should be parsed as a whole number but only used {m.group()}")
-            self.assertEqual(m.end(), len(s), f"{s} should be parsed as a whole number but only used {m.group()}")
+            self.assertEqual(
+                m.start(), 0, f"{s} should be parsed as a whole number but only used {m.group()}"
+            )
+            self.assertEqual(
+                m.end(), len(s), f"{s} should be parsed as a whole number but only used {m.group()}"
+            )
 
     def test_num_regex_mixed(self):
         mixedstrs = [
@@ -50,7 +54,7 @@ class TestPrimitives(unittest.TestCase):
         ]
 
         for s, expected in mixedstrs:
-            m =  re.match(num_rgx, s)
+            m = re.match(num_rgx, s)
             val = m if m is None else m.group()
             self.assertEqual(val, expected, f"first number should be {expected} but got {val}")
 
@@ -60,12 +64,14 @@ class TestSNumIter(unittest.TestCase):
         # Test with a string containing both numbers and non-numbers
         s = "abc123def456"
         result = list(snum_iter(s))
-        self.assertEqual(result, [('abc', False), (123.0, True), ('def', False), (456.0, True)])
+        self.assertEqual(result, [("abc", False), (123.0, True), ("def", False), (456.0, True)])
 
         # Test with a string containing both numbers and non-numbers, ending in non-number
         s = "abc123def456xyz"
         result = list(snum_iter(s))
-        self.assertEqual(result, [('abc', False), (123.0, True), ('def', False), (456.0, True), ('xyz', False)])
+        self.assertEqual(
+            result, [("abc", False), (123.0, True), ("def", False), (456.0, True), ("xyz", False)]
+        )
 
         # Test with a string containing only numbers
         s = "123456"
@@ -75,12 +81,12 @@ class TestSNumIter(unittest.TestCase):
         # Test with a string containing only non-numbers
         s = "abcdef"
         result = list(snum_iter(s))
-        self.assertEqual(result, [('abcdef', False)])
+        self.assertEqual(result, [("abcdef", False)])
 
         # Test with a string containing numbers with decimal points
         s = "abc123.456def789.012"
         result = list(snum_iter(s))
-        self.assertEqual(result, [('abc', False), (123.456, True), ('def', False), (789.012, True)])
+        self.assertEqual(result, [("abc", False), (123.456, True), ("def", False), (789.012, True)])
 
         # Test with an empty string
         s = ""
@@ -90,12 +96,12 @@ class TestSNumIter(unittest.TestCase):
         # Test with a string containing negative numbers
         s = "abc-123def-456"
         result = list(snum_iter(s))
-        self.assertEqual(result, [('abc', False), (-123.0, True), ('def', False), (-456.0, True)])
+        self.assertEqual(result, [("abc", False), (-123.0, True), ("def", False), (-456.0, True)])
 
         # Test with a string containing numbers in scientific notation
         s = "abc1.23e-4def5.67e+8"
         result = list(snum_iter(s))
-        self.assertEqual(result, [('abc', False), (1.23e-4, True), ('def', False), (5.67e+8, True)])
+        self.assertEqual(result, [("abc", False), (1.23e-4, True), ("def", False), (5.67e8, True)])
 
 
 class TestRelNumDiff(unittest.TestCase):
@@ -125,7 +131,6 @@ class TestRelNumDiff(unittest.TestCase):
 
 
 class TestSNumEqual(unittest.TestCase):
-
     def test_snum_equal_no_numbers(self):
         # Test with strings that do not contain numbers
         self.assertTrue(snum_equal("abc", "abc"))
@@ -153,8 +158,12 @@ class TestSNumEqual(unittest.TestCase):
 
     def test_snum_equal_with_multiple_numbers_within_tolerance(self):
         # Test with strings that contain multiple numbers within the tolerance
-        self.assertTrue(snum_equal("abc123.000001def456.000001", "abc123.000002def456.000002", atol=1e-6))
-        self.assertTrue(snum_equal("abc123.000001def456.000001", "abc123.000002def456.000002", rtol=1e-6))
+        self.assertTrue(
+            snum_equal("abc123.000001def456.000001", "abc123.000002def456.000002", atol=1e-6)
+        )
+        self.assertTrue(
+            snum_equal("abc123.000001def456.000001", "abc123.000002def456.000002", rtol=1e-6)
+        )
 
     def test_snum_equal_with_multiple_numbers_outside_tolerance(self):
         # Test with strings that contain multiple numbers outside the tolerance

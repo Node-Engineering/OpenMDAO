@@ -30,7 +30,7 @@ from pydantic import BaseModel, Field
 
 
 # Use a PAT for private repos or to increase the rate limit of requests.
-PERSONAL_ACCESS_TOKEN = os.environ['GITHUB_PAT']
+PERSONAL_ACCESS_TOKEN = os.environ["GITHUB_PAT"]
 
 # When creating a new cache, fetch PRs from this far back
 INITIAL_LOOKBACK_DAYS = 180
@@ -38,6 +38,7 @@ INITIAL_LOOKBACK_DAYS = 180
 
 class PullRequest(BaseModel):
     """Pydantic model for a GitHub pull request."""
+
     number: int
     title: str
     merged_at: datetime
@@ -52,12 +53,13 @@ class PullRequest(BaseModel):
             title=pr.title,
             merged_at=pr.merged_at.replace(tzinfo=timezone.utc) if pr.merged_at else None,
             author=pr.user.login if pr.user else "unknown",
-            url=pr.html_url
+            url=pr.html_url,
         )
 
 
 class PullRequestCache(BaseModel):
     """Container for cached pull requests."""
+
     pulls: list[PullRequest] = Field(default_factory=list)
     last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -79,16 +81,16 @@ class PullRequestCache(BaseModel):
 
     def save(self, filepath: Path):
         """Save cache to JSON file."""
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             f.write(self.model_dump_json(indent=2))
 
     @classmethod
-    def load(cls, filepath: Path) -> 'PullRequestCache':
+    def load(cls, filepath: Path) -> "PullRequestCache":
         """Load cache from JSON file."""
         if not filepath.exists():
             return cls()
 
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             return cls.model_validate_json(f.read())
 
 
@@ -117,7 +119,7 @@ def get_latest_release_date(repo) -> Optional[datetime]:
         return None
 
 
-def fetch_initial_pulls(repo, lookback_days=INITIAL_LOOKBACK_DAYS, state='closed', base='master'):
+def fetch_initial_pulls(repo, lookback_days=INITIAL_LOOKBACK_DAYS, state="closed", base="master"):
     """
     Fetch initial set of pull requests from the past year.
 
@@ -141,7 +143,7 @@ def fetch_initial_pulls(repo, lookback_days=INITIAL_LOOKBACK_DAYS, state='closed
     print(f"Creating new cache with PRs merged after {cutoff_date.isoformat()}")
 
     cache = PullRequestCache()
-    pulls = repo.get_pulls(state=state, base=base, sort='updated', direction='desc')
+    pulls = repo.get_pulls(state=state, base=base, sort="updated", direction="desc")
 
     count = 0
     for pr in pulls:
@@ -169,7 +171,7 @@ def fetch_initial_pulls(repo, lookback_days=INITIAL_LOOKBACK_DAYS, state='closed
     return cache
 
 
-def fetch_and_update_pulls(repo, cache: PullRequestCache, state='closed', base='master'):
+def fetch_and_update_pulls(repo, cache: PullRequestCache, state="closed", base="master"):
     """
     Fetch pull requests from GitHub and update the cache.
 
@@ -193,7 +195,7 @@ def fetch_and_update_pulls(repo, cache: PullRequestCache, state='closed', base='
     else:
         print("No cached PRs found. Fetching all merged PRs...")
 
-    pulls = repo.get_pulls(state=state, base=base, sort='updated', direction='desc')
+    pulls = repo.get_pulls(state=state, base=base, sort="updated", direction="desc")
 
     new_count = 0
     for pr in pulls:
@@ -220,26 +222,29 @@ def fetch_and_update_pulls(repo, cache: PullRequestCache, state='closed', base='
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Fetch and cache GitHub pull requests, showing PRs since the latest release.'
+        description="Fetch and cache GitHub pull requests, showing PRs since the latest release."
     )
     parser.add_argument(
-        '-r', '--repo',
-        default='OpenMDAO/OpenMDAO',
-        help='GitHub repository in format owner/repo (default: OpenMDAO/OpenMDAO)'
-    )
-
-    parser.add_argument(
-        '-l', '--list-caches',
-        action='store_true',
-        help='Show the absolute path of any cache files.'
+        "-r",
+        "--repo",
+        default="OpenMDAO/OpenMDAO",
+        help="GitHub repository in format owner/repo (default: OpenMDAO/OpenMDAO)",
     )
 
     parser.add_argument(
-        '-d', '--lookback_days',
-        action='store',
+        "-l",
+        "--list-caches",
+        action="store_true",
+        help="Show the absolute path of any cache files.",
+    )
+
+    parser.add_argument(
+        "-d",
+        "--lookback_days",
+        action="store",
         type=int,
         default=180,
-        help='Set the number of days to retrieve in the initial retrieval..'
+        help="Set the number of days to retrieve in the initial retrieval..",
     )
 
     this_dir = Path(__file__).parent
@@ -250,15 +255,15 @@ def main():
     if args.list_caches:
         cache_files = list(this_dir.glob("*_pulls.json"))
         if not cache_files:
-            print('\nNo cache files found.')
+            print("\nNo cache files found.")
         else:
-            print('Existing cache files:')
+            print("Existing cache files:")
             for f in cache_files:
-                print(f'  {f}')
+                print(f"  {f}")
         exit(0)
 
     # Cache file location based on repo name
-    cache_file = this_dir / f'{repo_name.split("/")[-1]}_pulls.json'
+    cache_file = this_dir / f"{repo_name.split('/')[-1]}_pulls.json"
 
     print(f"Working with repository: {repo_name}")
 
@@ -267,7 +272,9 @@ def main():
 
     # Check if cache exists
     if not cache_file.exists():
-        print(f"Cache file not found. Creating initial cache from past {args.lookback_days} days...\n")
+        print(
+            f"Cache file not found. Creating initial cache from past {args.lookback_days} days...\n"
+        )
         cache = fetch_initial_pulls(repo, lookback_days=args.lookback_days)
     else:
         print(f"Loading existing cache from {cache_file}\n")
@@ -292,14 +299,14 @@ def main():
 
         if matching_prs:
             for pr in matching_prs:
-                print(f'- {pr.title} [#{pr.number}]({pr.url})')
+                print(f"- {pr.title} [#{pr.number}]({pr.url})")
         else:
             print("No pull requests found since the last release.")
     else:
         print("\nCould not determine latest release date. Showing all cached PRs:\n")
         for pr in cache.pulls:
-            print(f'- {pr.title} [#{pr.number}]({pr.url})')
+            print(f"- {pr.title} [#{pr.number}]({pr.url})")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

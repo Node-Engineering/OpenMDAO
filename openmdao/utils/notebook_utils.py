@@ -1,12 +1,14 @@
 """Checking for interactive notebook mode."""
+
 import sys
 import importlib
 import inspect
 
 # Fast path: if IPython already loaded, check it
-if 'IPython' in sys.modules:
+if "IPython" in sys.modules:
     try:
         import IPython
+
         ipy = IPython.get_ipython() is not None
     except (ImportError, AttributeError):
         ipy = False
@@ -16,7 +18,7 @@ else:
 
 from openmdao.utils.om_warnings import issue_warning, warn_deprecation
 
-colab = 'google.colab' in sys.modules
+colab = "google.colab" in sys.modules
 
 
 def _get_object_from_reference(reference):
@@ -33,12 +35,12 @@ def _get_object_from_reference(reference):
     str
         Object of the given class.
     """
-    split = reference.split('.')
+    split = reference.split(".")
     right = []
     obj = None
     while split:
         try:
-            obj = importlib.import_module('.'.join(split))
+            obj = importlib.import_module(".".join(split))
             break
         except ModuleNotFoundError:
             right.append(split.pop())
@@ -69,14 +71,17 @@ def get_code(reference, hide_doc_string=False):
     if hide_doc_string:
         obj = obj.split('"""')
         del obj[1]
-        obj = ''.join(obj)
+        obj = "".join(obj)
 
     if ipy:
         from IPython.display import Code
-        return Code(obj, language='python')
+
+        return Code(obj, language="python")
     else:
-        issue_warning("IPython is not installed. Run `pip install openmdao[notebooks]` or "
-                      "`pip install openmdao[docs]` to upgrade.")
+        issue_warning(
+            "IPython is not installed. Run `pip install openmdao[notebooks]` or "
+            "`pip install openmdao[docs]` to upgrade."
+        )
 
 
 def display_source(reference, hide_doc_string=False):
@@ -91,11 +96,12 @@ def display_source(reference, hide_doc_string=False):
         Option to hide the docstring.
     """
     from IPython.display import display
+
     if ipy:
         display(get_code(reference, hide_doc_string))
 
 
-def show_options_table(reference, recording_options=False, options_dict='options'):
+def show_options_table(reference, recording_options=False, options_dict="options"):
     """
     Return the options table of the given reference path.
 
@@ -123,22 +129,27 @@ def show_options_table(reference, recording_options=False, options_dict='options
 
     if ipy:
         from IPython.display import display, HTML
+
         if recording_options:
-            warn_deprecation('Argument `recording_options` is deprecated. Use '
-                             '`options_dict="recording_options" to remove this '
-                             'warning.')
+            warn_deprecation(
+                "Argument `recording_options` is deprecated. Use "
+                '`options_dict="recording_options" to remove this '
+                "warning."
+            )
             opt = obj.recording_options
         elif isinstance(obj, OptionsDictionary):
             opt = obj
         elif hasattr(obj, options_dict):
             opt = getattr(obj, options_dict)
         else:
-            raise AttributeError(f'Object {reference} has no attribute {options_dict}.')
+            raise AttributeError(f"Object {reference} has no attribute {options_dict}.")
 
-        return display(HTML(str(opt.to_table(fmt='html', display=False))))
+        return display(HTML(str(opt.to_table(fmt="html", display=False))))
     else:
-        issue_warning("IPython is not installed. Run `pip install openmdao[notebooks]` or "
-                      "`pip install openmdao[docs]` to upgrade.")
+        issue_warning(
+            "IPython is not installed. Run `pip install openmdao[notebooks]` or "
+            "`pip install openmdao[docs]` to upgrade."
+        )
 
 
 def cite(reference):
@@ -175,7 +186,7 @@ def mpi_exec(nprocs, script):
     import subprocess
     from pathlib import Path
 
-    source = Path(script).read_text(encoding='utf-8')
+    source = Path(script).read_text(encoding="utf-8")
 
     if ipy:
         from IPython.display import display, HTML
@@ -184,37 +195,43 @@ def mpi_exec(nprocs, script):
             from pygments import highlight
             from pygments.lexers import PythonLexer
             from pygments.formatters import HtmlFormatter
+
             formatter = HtmlFormatter()
             highlighted = highlight(source, PythonLexer(), formatter)
-            style_tag = f'<style>{formatter.get_style_defs(".highlight")}</style>'
+            style_tag = f"<style>{formatter.get_style_defs('.highlight')}</style>"
             source_html = style_tag + highlighted
         except ImportError:
-            source_html = f'<pre><code>{source}</code></pre>'
+            source_html = f"<pre><code>{source}</code></pre>"
 
-        display(HTML(
-            '<div class="admonition note"><p class="admonition-title">Note</p>'
-            '<p>This feature requires MPI, and may not be able to be run on Colab or Binder.</p>'
-            '</div>'
-        ))
-        display(HTML(
-            f'<p>The following script is executed using '
-            f'<code>mpiexec -n {nprocs} {script}</code>:</p>'
-            + source_html
-        ))
+        display(
+            HTML(
+                '<div class="admonition note"><p class="admonition-title">Note</p>'
+                "<p>This feature requires MPI, and may not be able to be run on Colab or Binder.</p>"
+                "</div>"
+            )
+        )
+        display(
+            HTML(
+                f"<p>The following script is executed using "
+                f"<code>mpiexec -n {nprocs} {script}</code>:</p>" + source_html
+            )
+        )
     else:
-        print('Note: This feature requires MPI, and may not be able to be run on Colab or Binder.')
-        print(f'The following script is executed using mpiexec -n {nprocs} {script}:')
+        print("Note: This feature requires MPI, and may not be able to be run on Colab or Binder.")
+        print(f"The following script is executed using mpiexec -n {nprocs} {script}:")
         print(source)
 
-    result = subprocess.run(['mpiexec', '-n', str(nprocs), 'python', script],
-                            capture_output=True, text=True)
+    result = subprocess.run(
+        ["mpiexec", "-n", str(nprocs), "python", script], capture_output=True, text=True
+    )
     if result.stdout:
         print(result.stdout)
     if result.returncode != 0:
         if result.stderr:
             print(result.stderr)
         raise RuntimeError(
-            f'mpiexec -n {nprocs} {script} failed with exit code {result.returncode}')
+            f"mpiexec -n {nprocs} {script} failed with exit code {result.returncode}"
+        )
 
 
 def notebook_mode():

@@ -13,63 +13,63 @@ from openmdao.test_suite.parametric_suite import parametric_suite
 
 
 class ImplComp4Test(ImplicitComponent):
-
     def setup(self):
-        self.add_input('x', np.ones(2))
-        self.add_output('y', np.ones(2))
-        self.mtx = np.array([
-            [3., 4.],
-            [2., 3.],
-        ])
+        self.add_input("x", np.ones(2))
+        self.add_output("y", np.ones(2))
+        self.mtx = np.array(
+            [
+                [3.0, 4.0],
+                [2.0, 3.0],
+            ]
+        )
         # Inverse is
         # [ 3.,-4.],
         # [-2., 3.],
 
-        #self.declare_partials('y', 'x', val=-np.eye(2))
-        #self.declare_partials('y', 'y', val=self.mtx)
-        self.declare_partials('*', '*')
+        # self.declare_partials('y', 'x', val=-np.eye(2))
+        # self.declare_partials('y', 'y', val=self.mtx)
+        self.declare_partials("*", "*")
 
     def apply_nonlinear(self, inputs, outputs, residuals):
-        residuals['y'] = self.mtx.dot(outputs['y']) - inputs['x']
+        residuals["y"] = self.mtx.dot(outputs["y"]) - inputs["x"]
 
     def linearize(self, inputs, outputs, partials):
-        partials['y', 'x'] = -np.eye(2)
-        partials['y', 'y'] = self.mtx
+        partials["y", "x"] = -np.eye(2)
+        partials["y", "y"] = self.mtx
 
 
 class TestLinearSolverParametricSuite(unittest.TestCase):
-
     def test_direct_solver_comp(self):
         """
         Test the direct solver on a component.
         """
-        for jac in [None, 'csc', 'dense']:
+        for jac in [None, "csc", "dense"]:
             prob = Problem()
-            comp = prob.model.add_subsystem('comp', ImplComp4Test())
+            comp = prob.model.add_subsystem("comp", ImplComp4Test())
             comp.nonlinear_solver = NewtonSolver(solve_subsystems=False)
-            if jac in ('csc', 'dense'):
-                comp.options['assembled_jac_type'] = jac
-            comp.linear_solver = DirectSolver(assemble_jac=jac in ('csc','dense'))
+            if jac in ("csc", "dense"):
+                comp.options["assembled_jac_type"] = jac
+            comp.linear_solver = DirectSolver(assemble_jac=jac in ("csc", "dense"))
             prob.set_solver_print(level=0)
 
             prob.setup()
 
             prob.run_model()
-            assert_near_equal(prob['comp.y'], [-1., 1.])
+            assert_near_equal(prob["comp.y"], [-1.0, 1.0])
 
             d_inputs, d_outputs, d_residuals = comp.get_linear_vectors()
 
             d_residuals.set_val(2.0)
             d_outputs.set_val(0.0)
-            comp.run_solve_linear('fwd')
+            comp.run_solve_linear("fwd")
             result = d_outputs.asarray()
-            assert_near_equal(result, [-2., 2.])
+            assert_near_equal(result, [-2.0, 2.0])
 
             d_outputs.set_val(2.0)
             d_residuals.set_val(0.0)
-            comp.run_solve_linear('rev')
+            comp.run_solve_linear("rev")
             result = d_residuals.asarray()
-            assert_near_equal(result, [2., -2.])
+            assert_near_equal(result, [2.0, -2.0])
 
     def test_direct_solver_group(self):
         """
@@ -80,7 +80,7 @@ class TestLinearSolverParametricSuite(unittest.TestCase):
         prob.setup()
 
         # Set this to False because we have matrix-free component(s).
-        prob.model.linear_solver.options['assemble_jac'] = False
+        prob.model.linear_solver.options["assemble_jac"] = False
 
         # Conclude setup but don't run model.
         prob.final_setup()
@@ -91,23 +91,23 @@ class TestLinearSolverParametricSuite(unittest.TestCase):
 
         d_residuals.set_val(1.0)
         d_outputs.set_val(0.0)
-        prob.model.run_solve_linear('fwd')
+        prob.model.run_solve_linear("fwd")
         result = d_outputs.asarray()
         assert_near_equal(result, prob.model.expected_solution, 1e-15)
 
         d_outputs.set_val(1.0)
         d_residuals.set_val(0.0)
-        prob.model.run_solve_linear('rev')
+        prob.model.run_solve_linear("rev")
         result = d_residuals.asarray()
         assert_near_equal(result, prob.model.expected_solution, 1e-15)
 
     @parametric_suite(
         assembled_jac=[False, True],
-        jacobian_type=['dense'],
-        partial_type=['array', 'sparse', 'aij'],
+        jacobian_type=["dense"],
+        partial_type=["array", "sparse", "aij"],
         num_var=[2, 3],
         var_shape=[(2, 3), (2,)],
-        connection_type=['implicit', 'explicit'],
+        connection_type=["implicit", "explicit"],
         run_by_default=False,
     )
     def test_subset(self, param_instance):
@@ -126,12 +126,13 @@ class TestLinearSolverParametricSuite(unittest.TestCase):
         expected_totals = model.expected_totals
         if expected_totals:
             # Forward Derivatives Check
-            totals = param_instance.compute_totals('fwd')
+            totals = param_instance.compute_totals("fwd")
             assert_near_equal(totals, expected_totals, 1e-8)
 
             # Reverse Derivatives Check
-            totals = param_instance.compute_totals('rev')
+            totals = param_instance.compute_totals("rev")
             assert_near_equal(totals, expected_totals, 1e-8)
+
 
 if __name__ == "__main__":
     unittest.main()

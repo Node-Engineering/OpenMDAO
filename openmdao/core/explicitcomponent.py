@@ -42,8 +42,8 @@ class ExplicitComponent(Component):
         """
         super().__init__(**kwargs)
 
-        self._has_compute_partials = overrides_method('compute_partials', self, ExplicitComponent)
-        self.options.undeclare('assembled_jac_type')
+        self._has_compute_partials = overrides_method("compute_partials", self, ExplicitComponent)
+        self.options.undeclare("assembled_jac_type")
         self._vjp_hash = None
         self._vjp_fun = None
 
@@ -80,7 +80,7 @@ class ExplicitComponent(Component):
         Configure this system to assign children settings and detect if matrix_free.
         """
         if is_undefined(self.matrix_free):
-            self.matrix_free = overrides_method('compute_jacvec_product', self, ExplicitComponent)
+            self.matrix_free = overrides_method("compute_jacvec_product", self, ExplicitComponent)
 
     def override_method(self, name, method):
         """
@@ -107,9 +107,11 @@ class ExplicitComponent(Component):
         ValueError
             If name is not 'compute_partials' or 'compute_jacvec_product'.
         """
-        if name not in ('compute_partials', 'compute_jacvec_product'):
-            raise ValueError(f"{self.msginfo}: name must be either 'compute_partials' or "
-                             f"'compute_jacvec_product', but got '{name}'.")
+        if name not in ("compute_partials", "compute_jacvec_product"):
+            raise ValueError(
+                f"{self.msginfo}: name must be either 'compute_partials' or "
+                f"'compute_jacvec_product', but got '{name}'."
+            )
 
         # Convert to MethodType if not already a bound method
         if not isinstance(method, MethodType):
@@ -119,9 +121,9 @@ class ExplicitComponent(Component):
         setattr(self, name, method)
 
         # Update the appropriate attribute
-        if name == 'compute_partials':
+        if name == "compute_partials":
             self._has_compute_partials = True
-        elif name == 'compute_jacvec_product':
+        elif name == "compute_jacvec_product":
             self.matrix_free = True
 
     def _jac_wrt_iter(self, wrt_matches=None):
@@ -154,11 +156,11 @@ class ExplicitComponent(Component):
         """
         start = end = 0
         toidx = self._var_allprocs_abs2idx
-        sizes = self._var_sizes['input']
-        for wrt, meta in self._var_abs2meta['input'].items():
+        sizes = self._var_sizes["input"]
+        for wrt, meta in self._var_abs2meta["input"].items():
             if wrt_matches is None or wrt in wrt_matches:
-                end += meta['size']
-                dist_sizes = sizes[:, toidx[wrt]] if meta['distributed'] else None
+                end += meta["size"]
+                dist_sizes = sizes[:, toidx[wrt]] if meta["distributed"] else None
                 yield wrt, start, end, self._inputs, _full_slice, dist_sizes
                 start = end
 
@@ -166,10 +168,12 @@ class ExplicitComponent(Component):
         """
         Prevent the user from implementing setup_residuals for explicit components.
         """
-        if overrides_method('setup_residuals', self, ExplicitComponent):
-            raise RuntimeError(f'{self.msginfo}: Class overrides setup_residuals but '
-                               'is an ExplicitComponent. setup_residuals may only be '
-                               'overridden by ImplicitComponents.')
+        if overrides_method("setup_residuals", self, ExplicitComponent):
+            raise RuntimeError(
+                f"{self.msginfo}: Class overrides setup_residuals but "
+                "is an ExplicitComponent. setup_residuals may only be "
+                "overridden by ImplicitComponents."
+            )
 
     def _setup_partials(self):
         """
@@ -182,18 +186,17 @@ class ExplicitComponent(Component):
 
         # Note: These declare calls are outside of setup_partials so that users do not have to
         # call the super version of setup_partials. This is still in the final setup.
-        for out_abs, meta in self._var_abs2meta['output'].items():
-
-            size = meta['size']
+        for out_abs, meta in self._var_abs2meta["output"].items():
+            size = meta["size"]
             if size > 0:
                 # ExplicitComponent jacobians have -1 on the diagonal.
                 self._subjacs_info[out_abs, out_abs] = {
-                    'rows': None,
-                    'cols': None,
-                    'diagonal': True,
-                    'shape': (size, size),
-                    'val': -1.0,
-                    'dependent': True,
+                    "rows": None,
+                    "cols": None,
+                    "diagonal": True,
+                    "shape": (size, size),
+                    "val": -1.0,
+                    "dependent": True,
                 }
 
     def _get_jacobian(self, use_relevance=True):
@@ -221,11 +224,29 @@ class ExplicitComponent(Component):
 
         return self._jacobian
 
-    def add_output(self, name, val=1.0, shape=None, units=None, res_units=None, desc='',
-                   lower=None, upper=None, ref=1.0, ref0=0.0, res_ref=None, tags=None,
-                   shape_by_conn=False, copy_shape=None, compute_shape=None,
-                   units_by_conn=False, compute_units=None, copy_units=None,
-                   distributed=None, primal_name=None):
+    def add_output(
+        self,
+        name,
+        val=1.0,
+        shape=None,
+        units=None,
+        res_units=None,
+        desc="",
+        lower=None,
+        upper=None,
+        ref=1.0,
+        ref0=0.0,
+        res_ref=None,
+        tags=None,
+        shape_by_conn=False,
+        copy_shape=None,
+        compute_shape=None,
+        units_by_conn=False,
+        compute_units=None,
+        copy_units=None,
+        distributed=None,
+        primal_name=None,
+    ):
         """
         Add an output variable to the component.
 
@@ -300,21 +321,34 @@ class ExplicitComponent(Component):
         if res_ref is None:
             res_ref = ref
 
-        return super().add_output(name, val=val, shape=shape, units=units,
-                                  res_units=res_units, desc=desc,
-                                  lower=lower, upper=upper,
-                                  ref=ref, ref0=ref0, res_ref=res_ref,
-                                  tags=tags, shape_by_conn=shape_by_conn,
-                                  copy_shape=copy_shape, compute_shape=compute_shape,
-                                  units_by_conn=units_by_conn, compute_units=compute_units,
-                                  copy_units=copy_units,
-                                  distributed=distributed, primal_name=primal_name)
+        return super().add_output(
+            name,
+            val=val,
+            shape=shape,
+            units=units,
+            res_units=res_units,
+            desc=desc,
+            lower=lower,
+            upper=upper,
+            ref=ref,
+            ref0=ref0,
+            res_ref=res_ref,
+            tags=tags,
+            shape_by_conn=shape_by_conn,
+            copy_shape=copy_shape,
+            compute_shape=compute_shape,
+            units_by_conn=units_by_conn,
+            compute_units=compute_units,
+            copy_units=copy_units,
+            distributed=distributed,
+            primal_name=primal_name,
+        )
 
     def _approx_subjac_keys_iter(self):
         is_input = self._inputs._contains_abs
         for abs_key, meta in self._subjacs_info.items():
-            if 'method' in meta and is_input(abs_key[1]):
-                method = meta['method']
+            if "method" in meta and is_input(abs_key[1]):
+                method = meta["method"]
                 if method in self._approx_schemes:
                     yield abs_key
 
@@ -322,12 +356,16 @@ class ExplicitComponent(Component):
         """
         Call compute based on the value of the "run_root_only" option.
         """
-        with self._call_user_function('compute'):
+        with self._call_user_function("compute"):
             if self._run_root_only():
                 if self.comm.rank == 0:
                     if self._discrete_inputs or self._discrete_outputs:
-                        self.compute(self._inputs, self._outputs,
-                                     self._discrete_inputs, self._discrete_outputs)
+                        self.compute(
+                            self._inputs,
+                            self._outputs,
+                            self._discrete_inputs,
+                            self._discrete_outputs,
+                        )
                     else:
                         self.compute(self._inputs, self._outputs)
                     self.comm.bcast([self._outputs.asarray(), self._discrete_outputs], root=0)
@@ -339,8 +377,9 @@ class ExplicitComponent(Component):
                             self._discrete_outputs[name] = val
             else:
                 if self._discrete_inputs or self._discrete_outputs:
-                    self.compute(self._inputs, self._outputs,
-                                 self._discrete_inputs, self._discrete_outputs)
+                    self.compute(
+                        self._inputs, self._outputs, self._discrete_inputs, self._discrete_outputs
+                    )
                 else:
                     self.compute(self._inputs, self._outputs)
 
@@ -365,15 +404,16 @@ class ExplicitComponent(Component):
         """
         Compute outputs. The model is assumed to be in a scaled state.
         """
-        with Recording(self.pathname + '._solve_nonlinear', self.iter_count, self):
+        with Recording(self.pathname + "._solve_nonlinear", self.iter_count, self):
             self._residuals.set_val(0.0)
             with self._unscaled_context(outputs=[self._outputs]):
                 self._compute_wrapper()
 
             # Iteration counter is incremented in the Recording context manager at exit.
 
-    def _compute_jacvec_product_wrapper(self, inputs, d_inputs, d_resids, mode,
-                                        discrete_inputs=None):
+    def _compute_jacvec_product_wrapper(
+        self, inputs, d_inputs, d_resids, mode, discrete_inputs=None
+    ):
         """
         Call compute_jacvec_product based on the value of the "run_root_only" option.
 
@@ -396,18 +436,18 @@ class ExplicitComponent(Component):
                     self.compute_jacvec_product(inputs, d_inputs, d_resids, mode, discrete_inputs)
                 else:
                     self.compute_jacvec_product(inputs, d_inputs, d_resids, mode)
-                if mode == 'fwd':
+                if mode == "fwd":
                     self.comm.bcast(d_resids.asarray(), root=0)
                 else:  # rev
                     self.comm.bcast(d_inputs.asarray(), root=0)
             else:
                 new_vals = self.comm.bcast(None, root=0)
-                if mode == 'fwd':
+                if mode == "fwd":
                     d_resids.set_val(new_vals)
                 else:  # rev
                     d_inputs.set_val(new_vals)
         else:
-            dochk = self._problem_meta['checking'] and mode == 'rev' and self.comm.size > 1
+            dochk = self._problem_meta["checking"] and mode == "rev" and self.comm.size > 1
 
             if dochk:
                 nzdresids = self._get_dist_nz_dresids()
@@ -445,9 +485,8 @@ class ExplicitComponent(Component):
 
             # Jacobian and vectors are all unscaled, dimensional
             with self._unscaled_context(outputs=[self._outputs], residuals=[d_residuals]):
-
                 # set appropriate vectors to read_only to help prevent user error
-                if mode == 'fwd':
+                if mode == "fwd":
                     d_inputs.read_only = True
                 else:  # rev
                     d_residuals.read_only = True
@@ -460,7 +499,7 @@ class ExplicitComponent(Component):
 
                         # 'val' in the code below is a reference to the part of the
                         # output or residual array corresponding to the variable 'v'
-                        if mode == 'fwd':
+                        if mode == "fwd":
                             for v in d_outputs._names:
                                 if (v, v) not in self._subjacs_info:
                                     val = get_dresid(v)
@@ -472,9 +511,10 @@ class ExplicitComponent(Component):
                                     val -= get_dresid(v)
 
                     # We used to negate the residual here, and then re-negate after the hook
-                    with self._call_user_function('compute_jacvec_product'):
-                        self._compute_jacvec_product_wrapper(self._inputs, d_inputs, d_residuals,
-                                                             mode, self._discrete_inputs)
+                    with self._call_user_function("compute_jacvec_product"):
+                        self._compute_jacvec_product_wrapper(
+                            self._inputs, d_inputs, d_residuals, mode, self._discrete_inputs
+                        )
                 finally:
                     d_inputs.read_only = d_residuals.read_only = False
 
@@ -494,7 +534,7 @@ class ExplicitComponent(Component):
         d_outputs = self._doutputs
         d_residuals = self._dresiduals
 
-        if mode == 'fwd':
+        if mode == "fwd":
             if self._has_resid_scaling:
                 with self._unscaled_context(outputs=[d_outputs], residuals=[d_residuals]):
                     d_outputs.set_vec(d_residuals)
@@ -518,7 +558,7 @@ class ExplicitComponent(Component):
         """
         Call compute_partials based on the value of the "run_root_only" option.
         """
-        with self._call_user_function('compute_partials'):
+        with self._call_user_function("compute_partials"):
             if self._run_root_only():
                 if self.comm.rank == 0:
                     if self._discrete_inputs:
@@ -550,7 +590,6 @@ class ExplicitComponent(Component):
             return
 
         with JacobianUpdateContext(self) as jac:
-
             with self._unscaled_context(outputs=[self._outputs], residuals=[self._residuals]):
                 # Computing the approximation before the call to compute_partials allows users to
                 # override FD'd values.
@@ -588,8 +627,8 @@ class ExplicitComponent(Component):
             returns = (returns,)
 
         if discrete_outputs:
-            outputs.set_vals(returns[:outputs.nvars()])
-            self._discrete_outputs.set_vals(returns[outputs.nvars():])
+            outputs.set_vals(returns[: outputs.nvars()])
+            self._discrete_outputs.set_vals(returns[outputs.nvars() :])
         else:
             outputs.set_vals(returns)
 
@@ -684,12 +723,14 @@ class ExplicitComponent(Component):
             List of argnames expected by the compute_primal method.
         """
         if self._valid_name_map:
-            return [self._valid_name_map.get(n, n) for n in chain(self._var_rel_names['input'],
-                                                                  self._discrete_inputs)]
+            return [
+                self._valid_name_map.get(n, n)
+                for n in chain(self._var_rel_names["input"], self._discrete_inputs)
+            ]
         else:
-            return list(chain(self._var_rel_names['input'], self._discrete_inputs))
+            return list(chain(self._var_rel_names["input"], self._discrete_inputs))
 
-    def compute_fd_sparsity(self, method='fd', num_full_jacs=2, perturb_size=1e-9):
+    def compute_fd_sparsity(self, method="fd", num_full_jacs=2, perturb_size=1e-9):
         """
         Use finite difference to compute a sparsity matrix.
 
@@ -709,8 +750,9 @@ class ExplicitComponent(Component):
             The sparsity matrix.
         """
         jac = _ColSparsityJac(self)
-        for _ in self._perturbation_iter(num_full_jacs, perturb_size,
-                                         (self._inputs,), (self._outputs, self._residuals)):
+        for _ in self._perturbation_iter(
+            num_full_jacs, perturb_size, (self._inputs,), (self._outputs, self._residuals)
+        ):
             self._apply_nonlinear()
             self.compute_fd_jac(jac=jac, method=method)
         return jac.get_sparsity()

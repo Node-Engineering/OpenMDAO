@@ -15,10 +15,21 @@ import time
 from http.server import HTTPServer
 
 from openmdao.utils.graph_utils import networkx_to_dot, dot_to_html
-from openmdao.utils.general_utils import common_subpath, is_undefined, truncate_str, \
-    all_ancestors, collect_error, collect_errors
-from openmdao.utils.array_utils import array_connection_compatible, shape_to_len, \
-    get_global_dist_shape, evenly_distrib_idxs, array_hash
+from openmdao.utils.general_utils import (
+    common_subpath,
+    is_undefined,
+    truncate_str,
+    all_ancestors,
+    collect_error,
+    collect_errors,
+)
+from openmdao.utils.array_utils import (
+    array_connection_compatible,
+    shape_to_len,
+    get_global_dist_shape,
+    evenly_distrib_idxs,
+    array_hash,
+)
 from openmdao.utils.units import is_compatible
 from openmdao.utils.units import unit_conversion
 from openmdao.utils.indexer import indexer, Indexer, idx_list_to_index_array
@@ -32,30 +43,36 @@ from openmdao.utils.mpi import MPI
 # use hex colors here because the using english names was sometimes causing failure to show
 # proper colors in the help dialog.
 GRAPH_COLORS = {
-    'input': 'peachpuff3',
-    'output': 'skyblue3',
-    'highlight': '#66ff00',
-    'ambiguous': '#FF0800',
-    'boundary': '#D3D3D3',
+    "input": "peachpuff3",
+    "output": "skyblue3",
+    "highlight": "#66ff00",
+    "ambiguous": "#FF0800",
+    "boundary": "#D3D3D3",
 }
 
 _shape_func_map = {
     # (src distributed, tgt distributed, fwd)
-    (False, False, True): 'serial2serial_fwd_shape',
-    (False, False, False): 'serial2serial_rev_shape',
-    (False, True, True): 'serial2dist_fwd_shape',
-    (False, True, False): 'serial2dist_rev_shape',
-    (True, False, True): 'dist2serial_fwd_shape',
-    (True, False, False): 'dist2serial_rev_shape',
-    (True, True, True): 'dist2dist_fwd_shape',
-    (True, True, False): 'dist2dist_rev_shape',
+    (False, False, True): "serial2serial_fwd_shape",
+    (False, False, False): "serial2serial_rev_shape",
+    (False, True, True): "serial2dist_fwd_shape",
+    (False, True, False): "serial2dist_rev_shape",
+    (True, False, True): "dist2serial_fwd_shape",
+    (True, False, False): "dist2serial_rev_shape",
+    (True, True, True): "dist2dist_fwd_shape",
+    (True, True, False): "dist2dist_rev_shape",
 }
 
 
-
-_continuous_copy_meta = ['val', 'units', 'shape', 'discrete', 'remote', 'distributed',
-                         'global_shape']
-_discrete_copy_meta = ['val', 'discrete', 'remote']
+_continuous_copy_meta = [
+    "val",
+    "units",
+    "shape",
+    "discrete",
+    "remote",
+    "distributed",
+    "global_shape",
+]
+_discrete_copy_meta = ["val", "discrete", "remote"]
 
 
 def _strip_np(shape):
@@ -103,7 +120,7 @@ def are_compatible_values(a, b, discrete, src_indices=None):
         True if a and b are compatible, False otherwise.
     """
     if discrete:
-        return (isinstance(b, type(a)) or isinstance(a, type(b)))
+        return isinstance(b, type(a)) or isinstance(a, type(b))
 
     a = np.atleast_1d(a)
     b = np.atleast_1d(b)
@@ -158,7 +175,7 @@ AMBIGUOUS = AMBIGUOUS_VAL | AMBIGUOUS_UNITS
 NONE_UP_VAL = REMOTE | AMBIGUOUS_VAL
 
 
-class Defaults():
+class Defaults:
     """
     Container for default values of a variable.
 
@@ -172,7 +189,7 @@ class Defaults():
         Default source shape.
     """
 
-    __slots__ = ['val', 'units', 'src_shape']
+    __slots__ = ["val", "units", "src_shape"]
 
     def __init__(self, val=None, units=None, src_shape=None):
         self.val = val
@@ -197,11 +214,11 @@ class Defaults():
         yield self.src_shape
 
 
-_global_to_update = ['global_shape', 'global_size']
-_local_to_update = ['global_shape', 'global_size']
+_global_to_update = ["global_shape", "global_size"]
+_local_to_update = ["global_shape", "global_size"]
 
 
-class NodeAttrs():
+class NodeAttrs:
     """
     Container for per-node variable metadata used by the connection graph.
 
@@ -241,9 +258,24 @@ class NodeAttrs():
         The flags for the node.
     """
 
-    __slots__ = ('pathname', 'rel_name', '_val', '_shape', '_global_shape', '_units', 'defaults',
-                 '_src_inds_list', 'flags', '_meta', '_locmeta', 'copy_shape', 'compute_shape',
-                 'copy_units', 'compute_units', 'distributed')
+    __slots__ = (
+        "pathname",
+        "rel_name",
+        "_val",
+        "_shape",
+        "_global_shape",
+        "_units",
+        "defaults",
+        "_src_inds_list",
+        "flags",
+        "_meta",
+        "_locmeta",
+        "copy_shape",
+        "compute_shape",
+        "copy_units",
+        "compute_units",
+        "distributed",
+    )
 
     def __init__(self, pathname=None, rel_name=None):
         """
@@ -367,9 +399,12 @@ class NodeAttrs():
         str
             A formatted table representation of non-None attributes.
         """
-        rows = [[key, getattr(self, key)] for key in self.__slots__
-                if getattr(self, key) is not None and key != 'meta']
-        table = generate_table(rows, tablefmt='plain')
+        rows = [
+            [key, getattr(self, key)]
+            for key in self.__slots__
+            if getattr(self, key) is not None and key != "meta"
+        ]
+        table = generate_table(rows, tablefmt="plain")
         return f"{self.__class__.__name__}:\n{table}"
 
     @property
@@ -388,7 +423,7 @@ class NodeAttrs():
     def src_inds_list(self, value):
         self._src_inds_list = value
         if self._locmeta is not None:
-            self._locmeta['src_inds_list'] = value
+            self._locmeta["src_inds_list"] = value
 
     @property
     def val(self):
@@ -436,15 +471,15 @@ class NodeAttrs():
                 self.global_shape = shape
 
             if self._meta is not None:
-                self._meta['shape'] = shape
+                self._meta["shape"] = shape
                 size = shape_to_len(shape)
-                self._meta['size'] = size
+                self._meta["size"] = size
                 if self._locmeta is not None:
                     if self._val is None:
                         self._val = np.ones(shape)
-                    self._locmeta['shape'] = shape
-                    self._locmeta['size'] = size
-                    self._locmeta['val'] = self._val
+                    self._locmeta["shape"] = shape
+                    self._locmeta["size"] = size
+                    self._locmeta["val"] = self._val
 
     @property
     def size(self):
@@ -460,11 +495,11 @@ class NodeAttrs():
     def global_shape(self, global_shape):
         self._global_shape = global_shape
         if self._meta is not None:
-            self._meta['global_shape'] = global_shape
-            self._meta['global_size'] = self.global_size
+            self._meta["global_shape"] = global_shape
+            self._meta["global_size"] = self.global_size
             if self._locmeta is not None:
-                self._locmeta['global_shape'] = global_shape
-                self._locmeta['global_size'] = self.global_size
+                self._locmeta["global_shape"] = global_shape
+                self._locmeta["global_size"] = self.global_size
 
     @property
     def global_size(self):
@@ -478,13 +513,12 @@ class NodeAttrs():
     def units(self, units):
         if units is not None and self._units is None:
             if self.discrete:
-                raise ValueError("Cannot set units for discrete variable "
-                                 f"'{self.msgname()}'.")
+                raise ValueError(f"Cannot set units for discrete variable '{self.msgname()}'.")
             self._units = units
             if self._meta is not None:
-                self._meta['units'] = units
+                self._meta["units"] = units
                 if self._locmeta is not None:
-                    self._locmeta['units'] = units
+                    self._locmeta["units"] = units
 
     @property
     def discrete(self):
@@ -699,7 +733,7 @@ class NodeAttrs():
         dict
             A dictionary of non-None attributes excluding _meta, _locmeta, and _val.
         """
-        skip = {'_meta', '_locmeta', '_val'}
+        skip = {"_meta", "_locmeta", "_val"}
         ret = {}
         for name in self.__slots__:
             if name not in skip:
@@ -832,7 +866,7 @@ class AllConnGraph(nx.DiGraph):
         """
         if self._problem_meta is None:
             return None
-        return self._problem_meta['saved_errors']
+        return self._problem_meta["saved_errors"]
 
     def find_node(self, pathname, varname, io=None):
         """
@@ -853,18 +887,18 @@ class AllConnGraph(nx.DiGraph):
             The node found.
         """
         if pathname:
-            prefix = pathname + '.'
+            prefix = pathname + "."
             if varname.startswith(prefix):
                 name = varname
             else:
-                name = pathname + '.' + varname
+                name = pathname + "." + varname
         else:
             name = varname
 
         if io is None:
-            node = ('o', name)
+            node = ("o", name)
             if node not in self:
-                node = ('i', name)
+                node = ("i", name)
         else:
             node = (io[0], name)
 
@@ -872,10 +906,17 @@ class AllConnGraph(nx.DiGraph):
             return node
 
         msg = f"{pathname}: Variable '{varname}' not found."
-        guesses = sorted(set(get_close_matches(name, [n[1] for n, d in self.nodes(data=True)
-                                                      if d['attrs'].pathname==pathname],
-                                               n=3, cutoff=0.15)))
-        guesses = [g for g in guesses if not g.startswith('_auto_ivc.')]
+        guesses = sorted(
+            set(
+                get_close_matches(
+                    name,
+                    [n[1] for n, d in self.nodes(data=True) if d["attrs"].pathname == pathname],
+                    n=3,
+                    cutoff=0.15,
+                )
+            )
+        )
+        guesses = [g for g in guesses if not g.startswith("_auto_ivc.")]
         if guesses:
             msg = f"{msg} Perhaps you meant one of the following variables: {guesses}."
         raise KeyError(msg)
@@ -894,7 +935,7 @@ class AllConnGraph(nx.DiGraph):
         str or None
             The variable name relative to the top level group or None if the node is not connected.
         """
-        if node[0] == 'i':
+        if node[0] == "i":
             root = self.input_root(node)
             return root[1] if root else None
         else:
@@ -902,7 +943,7 @@ class AllConnGraph(nx.DiGraph):
                 return node[1]
 
             for _, v in dfs_edges(self, node):
-                if v[0] == 'o' and self.out_degree(v) == 0:
+                if v[0] == "o" and self.out_degree(v) == 0:
                     return v[1]
 
     def base_error(self, msg, src, tgt, src_indices=None):
@@ -926,19 +967,19 @@ class AllConnGraph(nx.DiGraph):
             Returned value.
         """
         edge = (src, tgt)
-        edge_meta = self.edges.get(edge, {'type': 'manual'})
-        typ = edge_meta.get('type', None)
-        type_map = {None: 'promote', 'manual': 'connect', 'implicit': 'implicitly connect'}
+        edge_meta = self.edges.get(edge, {"type": "manual"})
+        typ = edge_meta.get("type", None)
+        type_map = {None: "promote", "manual": "connect", "implicit": "implicitly connect"}
         typestr = type_map[typ]
 
-        if typestr == 'promote' and src[0] == 'i':
-            src, tgt = tgt, src   # promotion for inputs is up the tree
+        if typestr == "promote" and src[0] == "i":
+            src, tgt = tgt, src  # promotion for inputs is up the tree
 
         fromto = f"'{src[1]}' to '{tgt[1]}'"
 
-        indstr = ''
+        indstr = ""
         if src_indices is not False:  # False means don't include src_indices in the error message
-            src_indices = edge_meta.get('src_indices', None)
+            src_indices = edge_meta.get("src_indices", None)
 
             if src_indices is not None:
                 indstr = f" when applying index {truncate_str(src_indices, max_len=50)}"
@@ -966,8 +1007,12 @@ class AllConnGraph(nx.DiGraph):
         str
             Returned value.
         """
-        return self.base_error(f"shape {src_shape} of '{src[1]}' is incompatible with shape "
-                               f"{tgt_shape} of '{tgt[1]}'.", src, tgt)
+        return self.base_error(
+            f"shape {src_shape} of '{src[1]}' is incompatible with shape "
+            f"{tgt_shape} of '{tgt[1]}'.",
+            src,
+            tgt,
+        )
 
     def value_error(self, going_up, src, tgt, src_val, tgt_val):
         """
@@ -995,15 +1040,19 @@ class AllConnGraph(nx.DiGraph):
             src, tgt = tgt, src
             src_val, tgt_val = tgt_val, src_val
 
-        if not self.nodes[tgt]['attrs'].discrete:
+        if not self.nodes[tgt]["attrs"].discrete:
             sshp = np.shape(src_val)
             tshp = np.shape(tgt_val)
             if sshp != tshp:
                 return self.shape_error(src, tgt, sshp, tshp)
 
-        return self.base_error(f"value {truncate_str(src_val, max_len=50)} of '{src[1]}' is "
-                               f"incompatible with value {truncate_str(tgt_val, max_len=50)} of "
-                               f"'{tgt[1]}'.", src, tgt)
+        return self.base_error(
+            f"value {truncate_str(src_val, max_len=50)} of '{src[1]}' is "
+            f"incompatible with value {truncate_str(tgt_val, max_len=50)} of "
+            f"'{tgt[1]}'.",
+            src,
+            tgt,
+        )
 
     def units_error(self, going_up, src, tgt, src_units, tgt_units):
         """
@@ -1031,8 +1080,13 @@ class AllConnGraph(nx.DiGraph):
             src, tgt = tgt, src
             src_units, tgt_units = tgt_units, src_units
 
-        return self.base_error(f"units '{src_units}' of '{src[1]}' are incompatible with units "
-                               f"'{tgt_units}' of '{tgt[1]}'.", src, tgt, src_indices=False)
+        return self.base_error(
+            f"units '{src_units}' of '{src[1]}' are incompatible with units "
+            f"'{tgt_units}' of '{tgt[1]}'.",
+            src,
+            tgt,
+            src_indices=False,
+        )
 
     def handle_error(self, going_up, src, tgt, exc):
         """
@@ -1058,7 +1112,7 @@ class AllConnGraph(nx.DiGraph):
         else:
             ident = frozenset((src, tgt))
             edge_meta = self.edges[src, tgt]
-            src_indices = edge_meta.get('src_indices', None)
+            src_indices = edge_meta.get("src_indices", None)
             excstr = self.base_error(msg=excstr, src=src, tgt=tgt, src_indices=src_indices)
 
         self._collect_error(f"{self.msginfo}: {excstr}", tback=exc.__traceback__, ident=ident)
@@ -1077,17 +1131,17 @@ class AllConnGraph(nx.DiGraph):
         (str, str) or None
             Node name ('i' or 'o', var name), or None.
         """
-        assert node[0] == 'i'
+        assert node[0] == "i"
         in_degree = self.in_degree
         preds = self.predecessors
         dangling = []
         for n in self.bfs_up_iter(node, include_self=True):
-            if n[0] == 'i':
+            if n[0] == "i":
                 if in_degree(n) == 0:  # over-promoted input or dangling input
                     dangling.append(n)
                 else:
                     for io, _ in preds(n):
-                        if io == 'o':
+                        if io == "o":
                             return n
 
         if dangling:
@@ -1110,9 +1164,9 @@ class AllConnGraph(nx.DiGraph):
         """
         if node not in self:  # might be a var name instead of a node
             orig = node
-            node = ('i', node)
+            node = ("i", node)
             if node not in self:
-                node = ('o', node)
+                node = ("o", node)
                 if node not in self:
                     raise ValueError(f"Node '{orig}' not found in the graph.")
 
@@ -1125,7 +1179,7 @@ class AllConnGraph(nx.DiGraph):
         if node[1] == names:
             return names
 
-        return f'{node[1]} ({names})'
+        return f"{node[1]} ({names})"
 
     def startswith(self, prefix, node):
         """
@@ -1168,8 +1222,8 @@ class AllConnGraph(nx.DiGraph):
                     all_sync_auto_ivcs[name] = owner
 
         for name, owner in sorted(all_sync_auto_ivcs.items()):
-            node = self.find_node('', name, io='o')
-            node_meta = self.nodes[node]['attrs']
+            node = self.find_node("", name, io="o")
+            node_meta = self.nodes[node]["attrs"]
             if owner == model.comm.rank:
                 if has_vectors:
                     val = model._outputs[name]
@@ -1186,8 +1240,20 @@ class AllConnGraph(nx.DiGraph):
             # reset the flag so we don't sync again unless the user changes the value again
             self._sync_auto_ivcs[name] = None
 
-    def get_val_from_src(self, system, name, units=None, indices=None, get_remote=False, rank=None,
-                         vec_name='nonlinear', kind=None, flat=False, use_vec=False, src_node=None):
+    def get_val_from_src(
+        self,
+        system,
+        name,
+        units=None,
+        indices=None,
+        get_remote=False,
+        rank=None,
+        vec_name="nonlinear",
+        kind=None,
+        flat=False,
+        use_vec=False,
+        src_node=None,
+    ):
         """Get val from source.
 
         Parameters
@@ -1222,50 +1288,65 @@ class AllConnGraph(nx.DiGraph):
             Returned value.
         """
         node = self.find_node(system.pathname, name)
-        node_meta = self.nodes[node]['attrs']
+        node_meta = self.nodes[node]["attrs"]
         if src_node is None:
             src_node = self.get_root(node)
-        src_meta = self.nodes[src_node]['attrs']
+        src_meta = self.nodes[src_node]["attrs"]
 
         src_inds_list = node_meta.src_inds_list
 
         if not get_remote and self.comm.size > 1:
             if src_meta.distributed and not node_meta.distributed:
-                raise RuntimeError(f"{self.msginfo}: Non-distributed variable '{node[1]}' has "
-                                   f"a distributed source, '{src_node[1]}', so you must retrieve "
-                                   "its value using 'get_remote=True'.")
+                raise RuntimeError(
+                    f"{self.msginfo}: Non-distributed variable '{node[1]}' has "
+                    f"a distributed source, '{src_node[1]}', so you must retrieve "
+                    "its value using 'get_remote=True'."
+                )
             elif node_meta.distributed and src_inds_list:
                 if src_meta.distributed:
-                    model = system._problem_meta['model_ref']()
-                    src_inds_list = self.inds_into_local_distrib(model, src_node, node,
-                                                                 src_inds_list)
+                    model = system._problem_meta["model_ref"]()
+                    src_inds_list = self.inds_into_local_distrib(
+                        model, src_node, node, src_inds_list
+                    )
                 elif src_meta.remote:
                     err = True
 
                     if self.comm.allreduce(err, op=MPI.LOR):
-                        raise RuntimeError(f"{self.msginfo}: Can't retrieve distributed variable "
-                                            f"'{node[1]}' because its src_indices reference "
-                                            "entries from other processes. You can retrieve values "
-                                            "from all processes using "
-                                            "`get_val(<name>, get_remote=True)`.")
+                        raise RuntimeError(
+                            f"{self.msginfo}: Can't retrieve distributed variable "
+                            f"'{node[1]}' because its src_indices reference "
+                            "entries from other processes. You can retrieve values "
+                            "from all processes using "
+                            "`get_val(<name>, get_remote=True)`."
+                        )
         if use_vec:
-            val = system._abs_get_val(src_node[1], get_remote, rank, vec_name, kind, flat,
-                                      from_root=True)
+            val = system._abs_get_val(
+                src_node[1], get_remote, rank, vec_name, kind, flat, from_root=True
+            )
         else:
             val = src_meta.val
 
             if is_undefined(val):
-                raise ValueError(f"{system.msginfo}: Variable '{self.msgname(src_node)}' has not "
-                                 "been initialized.")
+                raise ValueError(
+                    f"{system.msginfo}: Variable '{self.msgname(src_node)}' has not "
+                    "been initialized."
+                )
 
         try:
-            val = self.convert_get(node, val, src_meta.units, node_meta.units,
-                                   src_inds_list, units, indices,
-                                   get_remote=get_remote)
+            val = self.convert_get(
+                node,
+                val,
+                src_meta.units,
+                node_meta.units,
+                src_inds_list,
+                units,
+                indices,
+                get_remote=get_remote,
+            )
         except Exception as err:
             raise ValueError(f"{system.msginfo}: Can't get value of '{node[1]}': {str(err)}")
 
-        if node[0] == 'i' and get_remote and node_meta.distributed and self.comm.size > 1:
+        if node[0] == "i" and get_remote and node_meta.distributed and self.comm.size > 1:
             # gather parts of the distrib input value from all procs
             full_val = np.zeros(shape_to_len(node_meta.global_shape))
             sizes = np.asarray(self.get_dist_sizes(node), dtype=INT_DTYPE)
@@ -1279,8 +1360,19 @@ class AllConnGraph(nx.DiGraph):
 
         return val
 
-    def get_val(self, system, name, units=None, indices=None, get_remote=False, rank=None,
-                vec_name='nonlinear', kind=None, flat=False, from_src=True):
+    def get_val(
+        self,
+        system,
+        name,
+        units=None,
+        indices=None,
+        get_remote=False,
+        rank=None,
+        vec_name="nonlinear",
+        kind=None,
+        flat=False,
+        from_src=True,
+    ):
         """
         Return the value of a variable.
 
@@ -1316,17 +1408,26 @@ class AllConnGraph(nx.DiGraph):
             indices = indexer(indices, flat_src=flat)
 
         node = self.find_node(system.pathname, name)
-        node_meta = self.nodes[node]['attrs']
+        node_meta = self.nodes[node]["attrs"]
 
         # ambiguous units aren't fatal during setup, but if we're getting a specific promoted
         # input that has ambiguous units, it becomes fatal, so we need to check that here.
         if node_meta.ambiguous_units:
             raise ValueError(self.ambig_units_msg(node))
 
-        if from_src or node[0] == 'o':
-            return self.get_val_from_src(system, name, units=units, indices=indices,
-                                         get_remote=get_remote, rank=rank, vec_name=vec_name,
-                                         kind=kind, flat=flat, use_vec=system.has_vectors())
+        if from_src or node[0] == "o":
+            return self.get_val_from_src(
+                system,
+                name,
+                units=units,
+                indices=indices,
+                get_remote=get_remote,
+                rank=rank,
+                vec_name=vec_name,
+                kind=kind,
+                flat=flat,
+                use_vec=system.has_vectors(),
+            )
 
         # since from_src is False, we're getting a specific input
         # (must use absolute name or have only a single leaf node and no src_indices between the
@@ -1338,36 +1439,49 @@ class AllConnGraph(nx.DiGraph):
                 f"{system.msginfo}: Promoted variable '{name}' refers to multiple "
                 "input variables so the choice of input is ambiguous.  Either "
                 "use the absolute name of the input or set 'from_src=True' to "
-                "retrieve the value from the connected output.")
+                "retrieve the value from the connected output."
+            )
 
-        leaf_meta = self.nodes[leaves[0]]['attrs']
+        leaf_meta = self.nodes[leaves[0]]["attrs"]
 
         if system.has_vectors():
-            model = system._problem_meta['model_ref']()
-            if model._resolver.is_prom(node[1], 'input' if node[0] == 'i' else 'output'):
+            model = system._problem_meta["model_ref"]()
+            if model._resolver.is_prom(node[1], "input" if node[0] == "i" else "output"):
                 abs_name = model._resolver.prom2abs(node[1])
             else:
                 abs_name = node[1]
-            val = system._abs_get_val(abs_name, get_remote, rank, vec_name, kind, flat,
-                                      from_root=True)
+            val = system._abs_get_val(
+                abs_name, get_remote, rank, vec_name, kind, flat, from_root=True
+            )
         else:
             val = leaf_meta.val
 
         if is_undefined(val):
-            raise ValueError(f"{system.msginfo}: Variable '{self.msgname(node)}' has not "
-                                "been initialized.")
+            raise ValueError(
+                f"{system.msginfo}: Variable '{self.msgname(node)}' has not been initialized."
+            )
 
         if node != leaves[0]:
             if leaf_meta.src_inds_list:
-                src_inds_list = leaf_meta.src_inds_list[len(node_meta.src_inds_list):]
+                src_inds_list = leaf_meta.src_inds_list[len(node_meta.src_inds_list) :]
                 if src_inds_list:
-                    raise RuntimeError(f"Can't get the value of promoted input '{node[1]}' when "
-                                       "from_src is False because src_indices exist between the "
-                                       f"promoted input and the actual input '{leaves[0][1]}'.")
+                    raise RuntimeError(
+                        f"Can't get the value of promoted input '{node[1]}' when "
+                        "from_src is False because src_indices exist between the "
+                        f"promoted input and the actual input '{leaves[0][1]}'."
+                    )
 
         try:
-            val = self.convert_get(node, val, node_meta.units, leaf_meta.units, (), units, indices,
-                                   get_remote=get_remote)
+            val = self.convert_get(
+                node,
+                val,
+                node_meta.units,
+                leaf_meta.units,
+                (),
+                units,
+                indices,
+                get_remote=get_remote,
+            )
         except Exception as err:
             raise ValueError(f"{system.msginfo}: Can't get value of '{node[1]}': {str(err)}")
 
@@ -1396,15 +1510,15 @@ class AllConnGraph(nx.DiGraph):
         list of Indexers
             The converted indices.
         """
-        if inds and self.comm.size > 1 and self.nodes[src_node]['attrs'].distributed:
+        if inds and self.comm.size > 1 and self.nodes[src_node]["attrs"].distributed:
             src = src_node[1]
             # TODO: this could be expensive.  Try to make it more efficient.
             src_indices = idx_list_to_index_array(inds)
 
-            ssizes = model._var_sizes['output']
+            ssizes = model._var_sizes["output"]
             sidx = model._var_allprocs_abs2idx[src]
             ssize = ssizes[self.comm.rank, sidx]
-            start = np.sum(ssizes[:self.comm.rank, sidx])
+            start = np.sum(ssizes[: self.comm.rank, sidx])
             end = start + ssize
             if np.any(src_indices < start) or np.any(src_indices >= end):
                 err = True
@@ -1412,11 +1526,13 @@ class AllConnGraph(nx.DiGraph):
                 err = False
 
             if self.comm.allreduce(err, op=MPI.LOR):
-                raise RuntimeError(f"{model.msginfo}: Can't retrieve distributed variable "
-                                    f"'{tgt_node[1]}' because its src_indices reference "
-                                    "entries from other processes. You can retrieve values "
-                                    "from all processes using "
-                                    "`get_val(<name>, get_remote=True)`.")
+                raise RuntimeError(
+                    f"{model.msginfo}: Can't retrieve distributed variable "
+                    f"'{tgt_node[1]}' because its src_indices reference "
+                    "entries from other processes. You can retrieve values "
+                    "from all processes using "
+                    "`get_val(<name>, get_remote=True)`."
+                )
             if start > 0:
                 src_indices = src_indices - start
             inds = [indexer(src_indices)]
@@ -1442,20 +1558,20 @@ class AllConnGraph(nx.DiGraph):
             The indices or slice to set.
         """
         node = self.find_node(system.pathname, name)
-        node_meta = self.nodes[node]['attrs']
+        node_meta = self.nodes[node]["attrs"]
 
         nodes = self.nodes
         src_node = self.get_root(node)
-        src_meta = nodes[src_node]['attrs']
+        src_meta = nodes[src_node]["attrs"]
         src = src_node[1]
 
-        model = system._problem_meta['model_ref']()
+        model = system._problem_meta["model_ref"]()
 
         if src_meta.discrete:
             if system.has_vectors():
                 if src in model._discrete_outputs:
                     model._discrete_outputs[src] = val
-                if node[0] == 'i':
+                if node[0] == "i":
                     for abs_in in self.absnames(node):
                         if abs_in in model._discrete_inputs:
                             model._discrete_inputs[abs_in] = val
@@ -1465,7 +1581,7 @@ class AllConnGraph(nx.DiGraph):
             return
 
         # every variable is continuous from here down
-        if node[0] == 'o':
+        if node[0] == "o":
             tgt_units = None
             tgt_inds_list = ()
         else:
@@ -1483,26 +1599,29 @@ class AllConnGraph(nx.DiGraph):
 
         # do unit conversion on given val if needed
         try:
-            sval = self.convert_set(val, src_units, tgt_units, (),  units)
+            sval = self.convert_set(val, src_units, tgt_units, (), units)
         except Exception as err:
-            self._collect_error(f"{system.msginfo}: Can't set value of '{self.msgname(node)}': "
-                                f"{str(err)}")
+            self._collect_error(
+                f"{system.msginfo}: Can't set value of '{self.msgname(node)}': {str(err)}"
+            )
             return
 
         if node_meta.remote:
             if tgt_inds_list:
-                issue_warning(f"{model.msginfo}: Cannot set the value of '{node[1]}':"
-                                " Setting the value of a remote connected input with"
-                                " src_indices is currently not supported, you must call"
-                                " `run_model()` to have the outputs populate their"
-                                " corresponding inputs.")
+                issue_warning(
+                    f"{model.msginfo}: Cannot set the value of '{node[1]}':"
+                    " Setting the value of a remote connected input with"
+                    " src_indices is currently not supported, you must call"
+                    " `run_model()` to have the outputs populate their"
+                    " corresponding inputs."
+                )
 
         if src_meta.remote:
             return
 
         if model.has_vectors():
             srcval = model._abs_get_val(src, get_remote=False)
-            if inds and node[0] == 'i' and src_meta.distributed:
+            if inds and node[0] == "i" and src_meta.distributed:
                 inds = self.inds_into_local_distrib(model, src_node, node, inds)
 
             if np.ndim(srcval) > 0:
@@ -1520,12 +1639,13 @@ class AllConnGraph(nx.DiGraph):
                         break
 
             # also set the input if it's absolute
-            if node[0] == 'i' and node[1] in model._var_abs2meta['input']:
+            if node[0] == "i" and node[1] in model._var_abs2meta["input"]:
                 try:
-                    tval = self.convert_set(val, tgt_units, tgt_units, (),  units)
+                    tval = self.convert_set(val, tgt_units, tgt_units, (), units)
                 except Exception as err:
-                    self._collect_error(f"{system.msginfo}: Can't set value of "
-                                        f"'{self.msgname(node)}': {str(err)}")
+                    self._collect_error(
+                        f"{system.msginfo}: Can't set value of '{self.msgname(node)}': {str(err)}"
+                    )
                     return
                 if indices is None:
                     model._inputs._abs_set_val(node[1], tval)
@@ -1545,8 +1665,9 @@ class AllConnGraph(nx.DiGraph):
                     self.set_subarray(srcval, inds, sval, node)
             else:
                 if inds:
-                    self._collect_error(f"Shape of '{name}' isn't known yet so you can't use "
-                                        f"indices to set it.")
+                    self._collect_error(
+                        f"Shape of '{name}' isn't known yet so you can't use indices to set it."
+                    )
                     return
                 srcval = sval
 
@@ -1567,13 +1688,13 @@ class AllConnGraph(nx.DiGraph):
             The starting value to set.
         """
         nodes = self.nodes
-        src_meta = nodes[src_node]['attrs']
+        src_meta = nodes[src_node]["attrs"]
         src_meta.val = srcval
         src_dist = src_meta.distributed
         has_vecs = model.has_vectors()
 
         for leaf in self.leaf_input_iter(src_node):
-            tgt_meta = nodes[leaf]['attrs']
+            tgt_meta = nodes[leaf]["attrs"]
             if tgt_meta.remote:
                 continue
 
@@ -1583,7 +1704,7 @@ class AllConnGraph(nx.DiGraph):
 
             src_inds_list = tgt_meta.src_inds_list
 
-            if not (src_dist or tgt_meta.distributed): # serial --> serial
+            if not (src_dist or tgt_meta.distributed):  # serial --> serial
                 if src_inds_list:
                     tgt_meta.val = self.get_subarray(srcval, src_inds_list)
                 else:
@@ -1658,16 +1779,18 @@ class AllConnGraph(nx.DiGraph):
 
         if self.in_degree(tgt) != 0:
             self._mult_inconn_nodes.add(tgt)
-            if src[0] == 'o':
+            if src[0] == "o":
                 for p in self.pred[tgt]:
-                    if p[0] == 'o':
+                    if p[0] == "o":
                         self._bad_conns.add((src, tgt))
                         # sort names because sometimes the order is reversed
                         names = sorted([self.msgname(src), self.msgname(p)])
                         group._collect_error(
                             f"{group.msginfo}: Target '{self.msgname(tgt)}' cannot be "
                             f"connected to '{names[0]}' because it's already "
-                            f"connected to '{names[1]}'.", ident=(src, tgt))
+                            f"connected to '{names[1]}'.",
+                            ident=(src, tgt),
+                        )
                         return
 
         self.add_edge(src, tgt, **kwargs)
@@ -1690,7 +1813,7 @@ class AllConnGraph(nx.DiGraph):
         tuple of the form ('i' or 'o', name)
             The node name.
         """
-        return (io[0], pathname + '.' + name if pathname else name)
+        return (io[0], pathname + "." + name if pathname else name)
 
     def get_node_attrs(self, pathname, name, io):
         """
@@ -1701,7 +1824,7 @@ class AllConnGraph(nx.DiGraph):
             attrs = NodeAttrs(pathname=pathname, rel_name=name)
             self.add_node(node, attrs=attrs)
         else:
-            attrs = self.nodes[node]['attrs']
+            attrs = self.nodes[node]["attrs"]
 
         return node, attrs
 
@@ -1719,7 +1842,7 @@ class AllConnGraph(nx.DiGraph):
         tuple of the form (str, str)
             The system pathname and promoted name of the node relative to the system.
         """
-        meta = self.nodes[node]['attrs']
+        meta = self.nodes[node]["attrs"]
         return meta.pathname, meta.rel_name
 
     def set_model_meta(self, model, node, meta, locmeta):
@@ -1738,7 +1861,7 @@ class AllConnGraph(nx.DiGraph):
         locmeta : dict or None
             The local metadata of the node.
         """
-        node_meta = self.nodes[node]['attrs']
+        node_meta = self.nodes[node]["attrs"]
 
         # this is only called on nodes corresponding to variables in the model, not on
         # nodes internal to the tree.
@@ -1746,29 +1869,35 @@ class AllConnGraph(nx.DiGraph):
             node_meta._meta = meta
             node_meta._locmeta = locmeta
 
-            if locmeta is None and not node[1].startswith('_auto_ivc.'):
+            if locmeta is None and not node[1].startswith("_auto_ivc."):
                 node_meta.remote = True
 
             if node_meta.discrete:
                 if locmeta is not None:
-                    node_meta._val = locmeta['val']
+                    node_meta._val = locmeta["val"]
             else:
-                for key in ('shape_by_conn', 'copy_shape', 'compute_shape',
-                            'units_by_conn', 'copy_units', 'compute_units'):
+                for key in (
+                    "shape_by_conn",
+                    "copy_shape",
+                    "compute_shape",
+                    "units_by_conn",
+                    "copy_units",
+                    "compute_units",
+                ):
                     setattr(node_meta, key, meta[key])
 
-                node_meta.distributed = meta['distributed'] if model.comm.size > 1 else False
+                node_meta.distributed = meta["distributed"] if model.comm.size > 1 else False
 
-                if not node_meta.rel_name.startswith('_auto_ivc.'):
+                if not node_meta.rel_name.startswith("_auto_ivc."):
                     if node_meta.distributed:
                         self._distributed_nodes.add(node)
                     if not node_meta.dyn_shape:
                         if node_meta.remote and node_meta.distributed:
                             node_meta._shape = (0,)
                         else:
-                            node_meta._shape = meta['shape']
+                            node_meta._shape = meta["shape"]
                         if locmeta is not None:
-                            val = locmeta['val']
+                            val = locmeta["val"]
                             if isinstance(val, Number):
                                 node_meta._val = val
                                 if not node_meta.discrete:
@@ -1779,7 +1908,7 @@ class AllConnGraph(nx.DiGraph):
                                     node_meta._val = np.asarray(node_meta._val, dtype=float)
 
                 if not node_meta.dyn_units:
-                    node_meta._units = meta['units']
+                    node_meta._units = meta["units"]
 
     def add_continuous_var(self, model, name, meta, locmeta, io):
         """
@@ -1798,7 +1927,7 @@ class AllConnGraph(nx.DiGraph):
         io : str
             The I/O type of the variable, either 'input' or 'output'.
         """
-        node, node_meta = self.get_node_attrs('', name, io[0])
+        node, node_meta = self.get_node_attrs("", name, io[0])
         node_meta.discrete = False
 
         self.set_model_meta(model, node, meta, locmeta)
@@ -1808,7 +1937,7 @@ class AllConnGraph(nx.DiGraph):
         if node_meta.dyn_units:
             self._has_dynamic_units = True
 
-        if io == 'input' and meta['require_connection']:
+        if io == "input" and meta["require_connection"]:
             self._required_conns.add(name)
             node_meta.require_connection = True
 
@@ -1829,7 +1958,7 @@ class AllConnGraph(nx.DiGraph):
         io : str
             The I/O type of the variable, either 'input' or 'output'.
         """
-        node, node_meta = self.get_node_attrs('', name, io[0])
+        node, node_meta = self.get_node_attrs("", name, io[0])
         node_meta.discrete = True
         self.set_model_meta(model, node, meta, locmeta)
 
@@ -1848,7 +1977,7 @@ class AllConnGraph(nx.DiGraph):
 
         self._distributed_nodes = set()
 
-        for io in ['input', 'output']:
+        for io in ["input", "output"]:
             loc = model._var_abs2meta[io]
             for name, meta in model._var_allprocs_abs2meta[io].items():
                 locmeta = loc[name] if name in loc else None
@@ -1882,9 +2011,9 @@ class AllConnGraph(nx.DiGraph):
                 # at this point, _distributed_nodes only contains local vars
                 for gnode in self._distributed_nodes:
                     io, name = gnode
-                    mode = 'output' if io == 'o' else 'input'
+                    mode = "output" if io == "o" else "input"
                     if existence[mode][self.comm.rank, self._var_allprocs_abs2idx[name]]:
-                        dshapes[gnode] = self.nodes[gnode]['attrs'].shape
+                        dshapes[gnode] = self.nodes[gnode]["attrs"].shape
 
                 all_dshapes = {}
 
@@ -1910,13 +2039,15 @@ class AllConnGraph(nx.DiGraph):
         # if we get here, node is dynamically shaped so we didn't know the shape the first time
         # around
         if node in self._distributed_nodes and self.comm.size > 1:
-            node_meta = self.nodes[node]['attrs']
+            node_meta = self.nodes[node]["attrs"]
             dist_shapes = self.comm.allgather(node_meta.shape)
             self._dist_shapes[node] = dist_shapes
             return dist_shapes
         else:
-            raise ValueError(f"Can't get distributed shapes for variable '{node[1]}' because it is "
-                             "not a distributed variable in the model.")
+            raise ValueError(
+                f"Can't get distributed shapes for variable '{node[1]}' because it is "
+                "not a distributed variable in the model."
+            )
 
     def get_dist_sizes(self, node=None):
         """
@@ -1937,8 +2068,7 @@ class AllConnGraph(nx.DiGraph):
                 dshapes = self.get_dist_shapes()
                 self._dist_sizes = dsizes = {}
                 for n, shapes in dshapes.items():
-                    sizes = [shape_to_len(shape) if shape is not None else 0
-                                 for shape in shapes]
+                    sizes = [shape_to_len(shape) if shape is not None else 0 for shape in shapes]
                     # if total size is 0, dshapes haven't been set yet
                     if np.sum(sizes) > 0:
                         dsizes[n] = sizes
@@ -1957,8 +2087,10 @@ class AllConnGraph(nx.DiGraph):
             self._dist_sizes[node] = sizes
             return sizes
         else:
-            raise ValueError(f"Can't get distributed sizes for variable '{node[1]}' because it is "
-                             "not a distributed variable in the model.")
+            raise ValueError(
+                f"Can't get distributed sizes for variable '{node[1]}' because it is "
+                "not a distributed variable in the model."
+            )
 
     def compute_global_shape(self, node):
         """
@@ -1977,8 +2109,9 @@ class AllConnGraph(nx.DiGraph):
         try:
             return get_global_dist_shape(self.get_dist_shapes(node))
         except ValueError as err:
-            self._collect_error(f"Can't get global shape of distributed variable '{node[1]}': "
-                                f"{err}", ident=node)
+            self._collect_error(
+                f"Can't get global shape of distributed variable '{node[1]}': {err}", ident=node
+            )
             return
 
     def add_promotion(self, io, group, prom_name, subsys, sub_prom, pinfo=None):
@@ -2005,7 +2138,7 @@ class AllConnGraph(nx.DiGraph):
         pinfo : dict or None
             The promotion information.
         """
-        if io == 'input':
+        if io == "input":
             src, _ = self.get_node_attrs(group.pathname, prom_name, io[0])
             tgt, tgt_attrs = self.get_node_attrs(subsys.pathname, sub_prom, io[0])
         else:
@@ -2036,59 +2169,70 @@ class AllConnGraph(nx.DiGraph):
         """
         manual_connections = group._manual_connections
         resolver = group._resolver
-        allprocs_discrete_in = group._var_allprocs_discrete['input']
-        allprocs_discrete_out = group._var_allprocs_discrete['output']
+        allprocs_discrete_in = group._var_allprocs_discrete["input"]
+        allprocs_discrete_out = group._var_allprocs_discrete["output"]
 
         for prom_tgt, (prom_src, src_indices) in manual_connections.items():
             src_io = resolver.get_iotype(prom_src)
             if src_io is None:
-                guesses = get_close_matches(prom_src, list(resolver.prom_iter('output')) +
-                                            list(allprocs_discrete_out.keys()))
+                guesses = get_close_matches(
+                    prom_src,
+                    list(resolver.prom_iter("output")) + list(allprocs_discrete_out.keys()),
+                )
                 self._bad_conns.add((prom_src, prom_tgt))
-                group._collect_error(f"{group.msginfo}: Attempted to connect from '{prom_src}' to "
-                                     f"'{prom_tgt}', but '{prom_src}' doesn't exist. Perhaps you "
-                                     "meant to connect to one of the following outputs: "
-                                     f"{guesses}.")
+                group._collect_error(
+                    f"{group.msginfo}: Attempted to connect from '{prom_src}' to "
+                    f"'{prom_tgt}', but '{prom_src}' doesn't exist. Perhaps you "
+                    "meant to connect to one of the following outputs: "
+                    f"{guesses}."
+                )
                 continue
 
-            if resolver.is_prom(prom_tgt, 'input'):
-                tgt_io = 'input'
+            if resolver.is_prom(prom_tgt, "input"):
+                tgt_io = "input"
             else:
                 tgt_io = resolver.get_iotype(prom_tgt)
 
-            if tgt_io == 'output':
+            if tgt_io == "output":
                 # check that target is not also an input
                 self._bad_conns.add((prom_src, prom_tgt))
-                group._collect_error(f"{group.msginfo}: Attempted to connect from '{prom_src}' to "
-                                    f"'{prom_tgt}', but '{prom_tgt}' is an output. All "
-                                    "connections must be to an input.")
+                group._collect_error(
+                    f"{group.msginfo}: Attempted to connect from '{prom_src}' to "
+                    f"'{prom_tgt}', but '{prom_tgt}' is an output. All "
+                    "connections must be to an input."
+                )
                 continue
 
             if tgt_io is None:
-                guesses = get_close_matches(prom_tgt, list(resolver.prom_iter('input')) +
-                                            list(allprocs_discrete_in.keys()))
+                guesses = get_close_matches(
+                    prom_tgt, list(resolver.prom_iter("input")) + list(allprocs_discrete_in.keys())
+                )
                 self._bad_conns.add((prom_src, prom_tgt))
-                group._collect_error(f"{group.msginfo}: Attempted to connect from '{prom_src}' to "
-                                     f"'{prom_tgt}', but '{prom_tgt}' doesn't exist. Perhaps you "
-                                     f"meant to connect to one of the following inputs: {guesses}.")
+                group._collect_error(
+                    f"{group.msginfo}: Attempted to connect from '{prom_src}' to "
+                    f"'{prom_tgt}', but '{prom_tgt}' doesn't exist. Perhaps you "
+                    f"meant to connect to one of the following inputs: {guesses}."
+                )
                 continue
 
-            out_comps = {n.rpartition('.')[0] for n in resolver.absnames(prom_src, src_io)}
-            in_comps = {n.rpartition('.')[0] for n in resolver.absnames(prom_tgt, tgt_io)}
+            out_comps = {n.rpartition(".")[0] for n in resolver.absnames(prom_src, src_io)}
+            in_comps = {n.rpartition(".")[0] for n in resolver.absnames(prom_tgt, tgt_io)}
 
             if out_comps & in_comps:
                 self._bad_conns.add((prom_src, prom_tgt))
-                group._collect_error(f"{group.msginfo}: Source and target are in the same System "
-                                     f"for connection from '{prom_src}' to '{prom_tgt}'.")
+                group._collect_error(
+                    f"{group.msginfo}: Source and target are in the same System "
+                    f"for connection from '{prom_src}' to '{prom_tgt}'."
+                )
                 continue
 
             src_node, _ = self.get_node_attrs(group.pathname, prom_src, src_io[0])
             tgt_node, _ = self.get_node_attrs(group.pathname, prom_tgt, tgt_io[0])
 
-            if src_io == 'input' and tgt_io == 'input':
+            if src_io == "input" and tgt_io == "input":
                 self._input_input_conns.add((src_node, tgt_node))
 
-            self.check_add_edge(group, src_node, tgt_node, type='manual', src_indices=src_indices)
+            self.check_add_edge(group, src_node, tgt_node, type="manual", src_indices=src_indices)
 
     def add_group_input_defaults(self, group):
         """
@@ -2101,30 +2245,34 @@ class AllConnGraph(nx.DiGraph):
         """
         notfound = []
         for name, gin_meta in group._group_inputs.items():
-            path = group.pathname + '.' + name if group.pathname else name
-            node = ('i', path)
+            path = group.pathname + "." + name if group.pathname else name
+            node = ("i", path)
             if node not in self:
-                if not group._resolver.is_prom(name, 'input'):
+                if not group._resolver.is_prom(name, "input"):
                     notfound.append(name)
                     continue
 
-            node, node_meta = self.get_node_attrs(group.pathname, name, 'i')
+            node, node_meta = self.get_node_attrs(group.pathname, name, "i")
 
             defaults = node_meta.defaults
 
             for k, v in gin_meta.items():
                 old = getattr(defaults, k)
                 if old is not None:
-                    issue_warning(f"{group.msginfo}: skipping default input {k} for '{name}' "
-                                  f"because it was already set to {truncate_str(old)}.")
+                    issue_warning(
+                        f"{group.msginfo}: skipping default input {k} for '{name}' "
+                        f"because it was already set to {truncate_str(old)}."
+                    )
                     continue
 
                 setattr(defaults, k, v)
 
         if notfound:
-            group._collect_error(f"{group.msginfo}: The following group inputs, passed to "
-                                 f"set_input_defaults(), could not be found: {sorted(notfound)}.",
-                                 ident=frozenset(notfound))
+            group._collect_error(
+                f"{group.msginfo}: The following group inputs, passed to "
+                f"set_input_defaults(), could not be found: {sorted(notfound)}.",
+                ident=frozenset(notfound),
+            )
 
     def update_all_node_meta(self, model):
         # this is called twice, once in _setup_global_connections and once after all of the
@@ -2137,9 +2285,10 @@ class AllConnGraph(nx.DiGraph):
         model : Group
             The model.
         """
-        for abs_out in chain(self._var_allprocs_abs2meta['output'],
-                             self._var_allprocs_discrete['output']):
-            node = ('o', abs_out)
+        for abs_out in chain(
+            self._var_allprocs_abs2meta["output"], self._var_allprocs_discrete["output"]
+        ):
+            node = ("o", abs_out)
             if self.out_degree(node) == 0:
                 continue
 
@@ -2167,33 +2316,35 @@ class AllConnGraph(nx.DiGraph):
         nodes = self.nodes
         edges = self.edges
 
-        for abs_in in chain(model._var_allprocs_abs2meta['input'],
-                            model._var_allprocs_discrete['input']):
+        for abs_in in chain(
+            model._var_allprocs_abs2meta["input"], model._var_allprocs_discrete["input"]
+        ):
             if abs_in in vars_to_gather and vars_to_gather[abs_in] == myrank:
-                in_node = ('i', abs_in)
+                in_node = ("i", abs_in)
                 for inode in self.bfs_up_iter(in_node, include_self=False):
-                    if inode[0] == 'o' or in_degree(inode) == 0:
+                    if inode[0] == "o" or in_degree(inode) == 0:
                         path = nx.shortest_path(self, inode, in_node)
-                        outstart = inode[0] == 'o'
+                        outstart = inode[0] == "o"
 
                         for i, p in enumerate(path):
                             if p not in nodes_to_send and (not outstart or i > 0):
-                                nodes_to_send[p] = nodes[p]['attrs'].as_dict()
+                                nodes_to_send[p] = nodes[p]["attrs"].as_dict()
                             if i > 0:
-                                edge = (path[i-1], p)
+                                edge = (path[i - 1], p)
                                 edges_to_send[edge] = edges[edge]
 
-        for abs_out in chain(model._var_allprocs_abs2meta['output'],
-                             model._var_allprocs_discrete['output']):
+        for abs_out in chain(
+            model._var_allprocs_abs2meta["output"], model._var_allprocs_discrete["output"]
+        ):
             if abs_out in vars_to_gather and vars_to_gather[abs_out] == myrank:
                 # include other promoted output nodes
-                for u, v in nx.dfs_edges(self, ('o', abs_out)):
+                for u, v in nx.dfs_edges(self, ("o", abs_out)):
                     if u not in nodes_to_send:
-                        nodes_to_send[u] = nodes[u]['attrs'].as_dict()
+                        nodes_to_send[u] = nodes[u]["attrs"].as_dict()
                     edges_to_send[u, v] = edges[u, v]
-                    if v[0] == 'i':
+                    if v[0] == "i":
                         continue
-                    nodes_to_send[v] = nodes[v]['attrs'].as_dict()
+                    nodes_to_send[v] = nodes[v]["attrs"].as_dict()
                     # edges_to_send[u, v] = edges[u, v]
 
         graph_info = model.comm.allgather((nodes_to_send, edges_to_send))
@@ -2203,28 +2354,28 @@ class AllConnGraph(nx.DiGraph):
         for rank_nodes, _ in graph_info:
             for node, data in rank_nodes.items():
                 if node not in self:
-                    data['remote'] = True
+                    data["remote"] = True
                     attrs = NodeAttrs()
                     attrs.update(data)
                     self.add_node(node, attrs=attrs)
-                    if node[0] == 'i':
-                        na2m = all_abs2meta['input']
-                        ndisc = all_discrete['input']
+                    if node[0] == "i":
+                        na2m = all_abs2meta["input"]
+                        ndisc = all_discrete["input"]
                     else:
-                        na2m = all_abs2meta['output']
-                        ndisc = all_discrete['output']
+                        na2m = all_abs2meta["output"]
+                        ndisc = all_discrete["output"]
 
                     if node[1] in na2m:
-                        nodes[node]['attrs'].meta = na2m[node[1]]
+                        nodes[node]["attrs"].meta = na2m[node[1]]
                     elif node[1] in ndisc:
-                        nodes[node]['attrs'].meta = ndisc[node[1]]
+                        nodes[node]["attrs"].meta = ndisc[node[1]]
 
         for _, rank_edges in graph_info:
             for edge, data in rank_edges.items():
                 if edge in edges:
-                    if data.get('src_indices', None) is not None:
-                        if edges[edge].get('src_indices', None) is None:
-                            edges[edge]['src_indices'] = data['src_indices']
+                    if data.get("src_indices", None) is not None:
+                        if edges[edge].get("src_indices", None) is None:
+                            edges[edge]["src_indices"] = data["src_indices"]
                 else:
                     assert edge[0] in nodes and edge[1] in nodes
                     self.add_edge(edge[0], edge[1], **data)
@@ -2251,26 +2402,28 @@ class AllConnGraph(nx.DiGraph):
             return
 
         try:
-            children_meta = \
-                [(self.nodes[child]['attrs'], self.edges[(node, child)].get('src_indices', None))
-                 for child in self.succ[node]]
+            children_meta = [
+                (self.nodes[child]["attrs"], self.edges[(node, child)].get("src_indices", None))
+                for child in self.succ[node]
+            ]
 
-            node_meta = self.nodes[node]['attrs']
-            if node[0] == 'i':
+            node_meta = self.nodes[node]["attrs"]
+            if node[0] == "i":
                 remote = all(m.remote for m, _ in children_meta)
             else:
                 remote = False  # dont' transfer 'remote' status to connected outputs
 
             node_meta.remote = remote
             node_meta.require_connection = any(m.require_connection for m, _ in children_meta)
-            node_meta.discrete = discrete = self.get_discrete_from_children(model, node,
-                                                                            children_meta)
-            node_meta.distributed = \
-                self.get_distributed_from_children(model, node, children_meta, auto,
-                                                   self.nodes[src_node]['attrs'].distributed)
+            node_meta.discrete = discrete = self.get_discrete_from_children(
+                model, node, children_meta
+            )
+            node_meta.distributed = self.get_distributed_from_children(
+                model, node, children_meta, auto, self.nodes[src_node]["attrs"].distributed
+            )
 
             ambig_units = ambig_val = None
-            if node[0] == 'o':
+            if node[0] == "o":
                 for i, tup in enumerate(children_meta):
                     cm, _ = tup
                     ambig = cm.ambiguous
@@ -2285,21 +2438,24 @@ class AllConnGraph(nx.DiGraph):
             if not discrete:
                 node_meta.units_by_conn = all(m.units_by_conn for m, _ in children_meta)
                 if not ambig_units:
-                    node_meta.units = self.get_units_from_children(model, node, children_meta,
-                                                                   node_meta.defaults)
+                    node_meta.units = self.get_units_from_children(
+                        model, node, children_meta, node_meta.defaults
+                    )
                 node_meta.shape_by_conn = all(m.shape_by_conn for m, _ in children_meta)
-                node_meta.shape = \
-                    self.get_shape_from_children(node, children_meta, node_meta.defaults)
+                node_meta.shape = self.get_shape_from_children(
+                    node, children_meta, node_meta.defaults
+                )
 
             if not ambig_val:
-                val = self.get_val_from_children(model, node, children_meta, node_meta.defaults,
-                                                 auto)
+                val = self.get_val_from_children(
+                    model, node, children_meta, node_meta.defaults, auto
+                )
                 if val is not None:
-                    if node[1].startswith('_auto_ivc.'):
+                    if node[1].startswith("_auto_ivc."):
                         val = deepcopy(val)
                         node_meta.val = val
                         if node_meta._locmeta is not None:
-                            node_meta._locmeta['val'] = val
+                            node_meta._locmeta["val"] = val
                     else:
                         node_meta.val = val
 
@@ -2310,12 +2466,13 @@ class AllConnGraph(nx.DiGraph):
 
         except Exception as err:
             if isinstance(err, ConnError):
-                model._collect_error(f"{model.msginfo}: {err}", tback=err.__traceback__,
-                                     ident=node)
+                model._collect_error(f"{model.msginfo}: {err}", tback=err.__traceback__, ident=node)
             else:
-                model._collect_error(f"{model.msginfo}: While resolving children of '{node[1]}': "
-                                     f"{err}", tback=err.__traceback__,
-                                     ident=node)
+                model._collect_error(
+                    f"{model.msginfo}: While resolving children of '{node[1]}': {err}",
+                    tback=err.__traceback__,
+                    ident=node,
+                )
 
     def ambig_units_msg(self, node, incompatible=False):
         """
@@ -2334,16 +2491,17 @@ class AllConnGraph(nx.DiGraph):
             Returned value.
         """
         rows = []
-        self.find_ambiguous_causes(node, rows, 'units')
+        self.find_ambiguous_causes(node, rows, "units")
         rows = sorted(rows, key=lambda x: x[0])
-        table = textwrap.indent(str(generate_table(rows, tablefmt='plain')), '   ')
-        msg = (f"The following inputs promoted to '{node[1]}' have different "
-               f"units:\n{table}")
+        table = textwrap.indent(str(generate_table(rows, tablefmt="plain")), "   ")
+        msg = f"The following inputs promoted to '{node[1]}' have different units:\n{table}"
         if incompatible:
             msg += "\n   These units are incompatible."
         else:
-            msg += ("\n   Call model.set_input_defaults('"
-                    f"{self.top_name(node)}', units=?) to remove the ambiguity.")
+            msg += (
+                "\n   Call model.set_input_defaults('"
+                f"{self.top_name(node)}', units=?) to remove the ambiguity."
+            )
         return msg
 
     def ambig_shapes_msg(self, node, children_meta):
@@ -2362,13 +2520,15 @@ class AllConnGraph(nx.DiGraph):
         str
             The message.
         """
-        node_meta = self.nodes[node]['attrs']
+        node_meta = self.nodes[node]["attrs"]
         shapes = [m.shape_from_child(node_meta, src_indices) for m, src_indices in children_meta]
         children = [n for _, n in self.succ[node]]
         rows = sorted((n, s) for n, s in zip(children, shapes))
-        table = textwrap.indent(str(generate_table(rows, tablefmt='plain')), '   ')
-        return (f"The following inputs promoted to '{node[1]}' have different "
-                f"incompatible shapes:\n{table}")
+        table = textwrap.indent(str(generate_table(rows, tablefmt="plain")), "   ")
+        return (
+            f"The following inputs promoted to '{node[1]}' have different "
+            f"incompatible shapes:\n{table}"
+        )
 
     def ambig_values_msg(self, node):
         """
@@ -2385,20 +2545,22 @@ class AllConnGraph(nx.DiGraph):
             The message.
         """
         causes = []
-        self.find_ambiguous_causes(node, causes, 'val')
+        self.find_ambiguous_causes(node, causes, "val")
         children = [n for n, _ in causes]
-        child_nodes = [('i', n) for n in children]
-        causing_meta = [self.nodes[n]['attrs'] for n in child_nodes]
+        child_nodes = [("i", n) for n in children]
+        causing_meta = [self.nodes[n]["attrs"] for n in child_nodes]
         units_list = [m.units for m in causing_meta]
         vals = [m.val for m in causing_meta]
-        ulist = [u if u is not None else '' for u in units_list]
+        ulist = [u if u is not None else "" for u in units_list]
         vlist = [truncate_str(v, max_len=60) for v in vals]
         rows = sorted((n, u, v) for n, u, v in zip(children, ulist, vlist))
-        table = textwrap.indent(str(generate_table(rows, tablefmt='plain')), '   ')
-        return (f"The following inputs promoted to '{node[1]}' have different "
-                f"values, so the value of '{node[1]}' is ambiguous:\n{table}\n   Call "
-                f"model.set_input_defaults('"
-                f"{self.top_name(node)}', val=?) to remove the ambiguity.")
+        table = textwrap.indent(str(generate_table(rows, tablefmt="plain")), "   ")
+        return (
+            f"The following inputs promoted to '{node[1]}' have different "
+            f"values, so the value of '{node[1]}' is ambiguous:\n{table}\n   Call "
+            f"model.set_input_defaults('"
+            f"{self.top_name(node)}', val=?) to remove the ambiguity."
+        )
 
     def find_ambiguous_causes(self, node, causes, data_name):
         """
@@ -2416,7 +2578,7 @@ class AllConnGraph(nx.DiGraph):
         attr = f"ambiguous_{data_name}"
 
         for child in self.succ[node]:
-            child_meta = self.nodes[child]['attrs']
+            child_meta = self.nodes[child]["attrs"]
             if getattr(child_meta, attr):
                 self.find_ambiguous_causes(child, causes, data_name)
             else:
@@ -2445,7 +2607,7 @@ class AllConnGraph(nx.DiGraph):
         start = None
         nodes = self.nodes
 
-        is_output = node[0] == 'o'
+        is_output = node[0] == "o"
         node_ambig = False
         child_units_differ = False
 
@@ -2465,7 +2627,7 @@ class AllConnGraph(nx.DiGraph):
             if is_output and node_ambig:
                 # we want the ambiguous child (input) for error reporting
                 for s in self.succ[node]:
-                    if nodes[s]['attrs'].ambiguous_units:
+                    if nodes[s]["attrs"].ambiguous_units:
                         raise ConnError(self.ambig_units_msg(s), ident=s)
 
             one_none = (start is not None and u is None) or (start is None and u is not None)
@@ -2482,15 +2644,15 @@ class AllConnGraph(nx.DiGraph):
 
         if defaults.units is not None:
             # setting default units removes any ambiguity
-            nodes[node]['attrs'].ambiguous_units = False
+            nodes[node]["attrs"].ambiguous_units = False
             return defaults.units
 
         if child_units_differ:
-            nodes[node]['attrs'].ambiguous_units = True
+            nodes[node]["attrs"].ambiguous_units = True
         else:
             # if a child is ambiguous, this node is also ambiguous if the default units are not set
             if node_ambig:
-                nodes[node]['attrs'].ambiguous_units = True
+                nodes[node]["attrs"].ambiguous_units = True
             return start
 
     def get_shape_from_children(self, node, children_meta, defaults):
@@ -2511,7 +2673,7 @@ class AllConnGraph(nx.DiGraph):
         tuple or None
             The shape from the children of the given node.
         """
-        node_meta = self.nodes[node]['attrs']
+        node_meta = self.nodes[node]["attrs"]
         start = None
         for chmeta, src_indices in children_meta:
             shape = chmeta.shape_from_child(node_meta, src_indices)
@@ -2554,7 +2716,7 @@ class AllConnGraph(nx.DiGraph):
         any or None
             The value from the children of the given node.
         """
-        node_meta = self.nodes[node]['attrs']
+        node_meta = self.nodes[node]["attrs"]
 
         start = None
         unshaped_scalar = False
@@ -2575,7 +2737,6 @@ class AllConnGraph(nx.DiGraph):
                     unshaped_scalar = ch_meta.shape is None and np.ndim(start) == 0
 
                 elif auto:  # values must be the same or value of auto_ivc will be ambiguous
-
                     if ch_meta.discrete:
                         if start_type is not type(val):
                             node_meta.ambiguous_val = True
@@ -2593,8 +2754,9 @@ class AllConnGraph(nx.DiGraph):
                         if has_val_mismatch(start_units, start, ch_meta.units, val):
                             node_meta.ambiguous_val = True
                 elif not (ch_meta.shape is None and np.ndim(val) == 0):
-                    if not are_compatible_values(start, val, ch_meta.discrete,
-                                                 src_indices=src_indices):
+                    if not are_compatible_values(
+                        start, val, ch_meta.discrete, src_indices=src_indices
+                    ):
                         slist = list(self.succ[node])
                         raise ConnError(self.value_error(True, slist[i], node, start, val))
 
@@ -2628,21 +2790,27 @@ class AllConnGraph(nx.DiGraph):
         if len(dset) == 1:
             discrete = dset.pop()
             if discrete:
-                node_meta = self.nodes[node]['attrs']
+                node_meta = self.nodes[node]["attrs"]
                 if node_meta.defaults.units is not None:
-                    group._collect_error(f"Cannot set 'units={node_meta.defaults.units}' for "
-                                         f"discrete variable '{node[1]}'.")
+                    group._collect_error(
+                        f"Cannot set 'units={node_meta.defaults.units}' for "
+                        f"discrete variable '{node[1]}'."
+                    )
                 if node_meta.defaults.src_shape is not None:
-                    group._collect_error(f"Cannot set 'shape={node_meta.defaults.src_shape}' for "
-                                         f"discrete variable '{node[1]}'.")
+                    group._collect_error(
+                        f"Cannot set 'shape={node_meta.defaults.src_shape}' for "
+                        f"discrete variable '{node[1]}'."
+                    )
 
             return discrete
         else:
             slist = list(self.succ[node])
             discs = [s for s, d in zip(slist, discretes) if d]
             non_discs = [s for s, d in zip(slist, discretes) if not d]
-            raise ConnError(f"'{node[1]}' has discrete ({sorted(discs)}) and non-discrete "
-                            f"({sorted(non_discs)}) children.")
+            raise ConnError(
+                f"'{node[1]}' has discrete ({sorted(discs)}) and non-discrete "
+                f"({sorted(non_discs)}) children."
+            )
 
     def get_distributed_from_children(self, model, node, children_meta, auto, src_distributed):
         """
@@ -2708,8 +2876,8 @@ class AllConnGraph(nx.DiGraph):
         any
             The value, shape, and units from the parent of the given child node.
         """
-        parent_meta = self.nodes[parent]['attrs']
-        src_indices = self.edges[(parent, child)].get('src_indices', None)
+        parent_meta = self.nodes[parent]["attrs"]
+        src_indices = self.edges[(parent, child)].get("src_indices", None)
         val = parent_meta.val
         shape = parent_meta.shape
 
@@ -2742,15 +2910,17 @@ class AllConnGraph(nx.DiGraph):
         tgt : tuple of the form ('i' or 'o', name)
             The target input node.
         """
-        src_meta = self.nodes[src]['attrs']
-        tgt_meta = self.nodes[tgt]['attrs']
+        src_meta = self.nodes[src]["attrs"]
+        tgt_meta = self.nodes[tgt]["attrs"]
         src_discrete = src_meta.discrete
         tgt_discrete = tgt_meta.discrete
 
         if src_discrete != tgt_discrete:
-            dmap = {True: 'discrete', False: 'continuous'}
-            raise TypeError(f"Can't connect {dmap[tgt_discrete]} variable "
-                            f"'{tgt[1]}' to {dmap[src_discrete]} variable '{src[1]}'.")
+            dmap = {True: "discrete", False: "continuous"}
+            raise TypeError(
+                f"Can't connect {dmap[tgt_discrete]} variable "
+                f"'{tgt[1]}' to {dmap[src_discrete]} variable '{src[1]}'."
+            )
 
         src_val = src_meta.val
 
@@ -2760,7 +2930,7 @@ class AllConnGraph(nx.DiGraph):
                     raise ConnError(self.value_error(False, src, tgt, src_val, tgt_meta.val))
         else:
             edge = (src, tgt)
-            src_indices = self.edges[edge].get('src_indices', None)
+            src_indices = self.edges[edge].get("src_indices", None)
 
             src_units = src_meta.units
             tgt_units = tgt_meta.units
@@ -2818,8 +2988,8 @@ class AllConnGraph(nx.DiGraph):
         tgt_shape : tuple
             The target shape.
         """
-        src_meta = self.nodes[src]['attrs']
-        tgt_meta = self.nodes[tgt]['attrs']
+        src_meta = self.nodes[src]["attrs"]
+        tgt_meta = self.nodes[tgt]["attrs"]
 
         if src_shape is not None and not (src_meta.distributed and src_meta.remote):
             if tgt_shape is not None:
@@ -2834,7 +3004,7 @@ class AllConnGraph(nx.DiGraph):
         tgt_units = tgt_meta.units
         if src_units is not None:
             if tgt_units is not None:
-                if tgt_units != 'ambiguous' and not is_compatible(src_units, tgt_units):
+                if tgt_units != "ambiguous" and not is_compatible(src_units, tgt_units):
                     self._collect_error(self.units_error(False, src, tgt, src_units, tgt_units))
             elif tgt_meta.units_by_conn:
                 tgt_meta.units = src_units
@@ -2889,7 +3059,7 @@ class AllConnGraph(nx.DiGraph):
             The source node.
         """
         nodes = self.nodes
-        src_meta = nodes[src_node]['attrs']
+        src_meta = nodes[src_node]["attrs"]
         if src_meta.shape is None:
             return  # an earlier error has occurred, so skip
 
@@ -2904,7 +3074,7 @@ class AllConnGraph(nx.DiGraph):
 
         leaves = list(self.leaf_input_iter(src_node))
         for tgt_node in leaves:
-            tgt_meta = nodes[tgt_node]['attrs']
+            tgt_meta = nodes[tgt_node]["attrs"]
             tgt_dist = tgt_meta.distributed
 
             src_inds_list = tgt_meta.src_inds_list
@@ -2925,22 +3095,27 @@ class AllConnGraph(nx.DiGraph):
                             offset, sz = self.get_dist_offset(tgt_node, self.comm.rank, False)
                             if sz is not None:
                                 if sz == 0:
-                                    src_indices = \
-                                        indexer(slice(0, 0), flat_src=True, src_shape=src_shape)
+                                    src_indices = indexer(
+                                        slice(0, 0), flat_src=True, src_shape=src_shape
+                                    )
                                 else:
-                                    src_indices = \
-                                        indexer(slice(offset, offset + sz),
-                                                flat_src=False, src_shape=src_meta.global_shape)
+                                    src_indices = indexer(
+                                        slice(offset, offset + sz),
+                                        flat_src=False,
+                                        src_shape=src_meta.global_shape,
+                                    )
 
                                 path = nx.shortest_path(self, src_node, tgt_node)
-                                self.edges[(path[-2], tgt_node)]['src_indices'] = src_indices
+                                self.edges[(path[-2], tgt_node)]["src_indices"] = src_indices
                                 tgt_meta.src_inds_list = src_inds_list = [src_indices]
 
                 else:  # dist --> serial
                     if not src_inds_list:
-                        self._collect_error(f"Can't automatically determine src_indices for "
-                                             f"connection from distributed variable '{src_node[1]}'"
-                                             f" to serial variable '{tgt_node[1]}'.")
+                        self._collect_error(
+                            f"Can't automatically determine src_indices for "
+                            f"connection from distributed variable '{src_node[1]}'"
+                            f" to serial variable '{tgt_node[1]}'."
+                        )
                         return
                     src_shape = src_meta.global_shape
                     tgt_shape = tgt_meta.shape
@@ -2958,13 +3133,12 @@ class AllConnGraph(nx.DiGraph):
                         # with the serial source
                         if tgt_shape is not None and src_shape == tgt_meta.global_shape:
                             offset, sz = self.get_dist_offset(tgt_node, model.comm.rank, False)
-                            src_indices = \
-                                indexer(slice(offset, offset + sz),
-                                                                    flat_src=False,
-                                                                    src_shape=src_inds_shape)
+                            src_indices = indexer(
+                                slice(offset, offset + sz), flat_src=False, src_shape=src_inds_shape
+                            )
 
                             path = nx.shortest_path(self, src_node, tgt_node)
-                            self.edges[(path[-2], tgt_node)]['src_indices'] = src_indices
+                            self.edges[(path[-2], tgt_node)]["src_indices"] = src_indices
                             tgt_meta.src_inds_list = src_inds_list = [src_indices]
                 else:  # serial --> serial
                     pass
@@ -2977,9 +3151,10 @@ class AllConnGraph(nx.DiGraph):
                         src_inds.set_src_shape(src_shape)
                     src_shape = src_inds.indexed_src_shape
             except Exception as err:
-                if not src_meta.dyn_shape: # if dyn_shape, error is already collected
-                    self._collect_error(f"Error in connection between '{src_node[1]}' and "
-                                        f"'{tgt_node[1]}': {err}")
+                if not src_meta.dyn_shape:  # if dyn_shape, error is already collected
+                    self._collect_error(
+                        f"Error in connection between '{src_node[1]}' and '{tgt_node[1]}': {err}"
+                    )
                 return
 
             self.check_src_to_tgt_indirect(model, src_node, tgt_node, src_shape, tgt_shape)
@@ -2997,10 +3172,10 @@ class AllConnGraph(nx.DiGraph):
         child : tuple of the form ('i' or 'o', name)
             The child output node.
         """
-        child_meta = self.nodes[child]['attrs']
-        parent_meta = self.nodes[parent]['attrs']
+        child_meta = self.nodes[child]["attrs"]
+        parent_meta = self.nodes[parent]["attrs"]
 
-        if parent_meta['discrete']:
+        if parent_meta["discrete"]:
             for key in _discrete_copy_meta:
                 setattr(child_meta, key, getattr(parent_meta, key))
         else:
@@ -3025,8 +3200,8 @@ class AllConnGraph(nx.DiGraph):
         auto : bool
             Whether the source node of the connection tree is an auto_ivc node.
         """
-        child_meta = self.nodes[child]['attrs']
-        parent_meta = self.nodes[parent]['attrs']
+        child_meta = self.nodes[child]["attrs"]
+        parent_meta = self.nodes[parent]["attrs"]
 
         val = None
 
@@ -3046,8 +3221,9 @@ class AllConnGraph(nx.DiGraph):
             if units is not None:
                 if child_meta.units is not None:
                     if not is_compatible(child_meta.units, units):
-                        raise ConnError(self.units_error(False, parent, child, child_meta.units,
-                                                         units))
+                        raise ConnError(
+                            self.units_error(False, parent, child, child_meta.units, units)
+                        )
                 elif child_meta.units is None and auto:
                     child_meta.units = units
 
@@ -3057,9 +3233,8 @@ class AllConnGraph(nx.DiGraph):
 
             if shape is not None:
                 if child_meta.shape is not None:
-                        if not array_connection_compatible(shape, child_meta.shape):
-                            raise ConnError(self.shape_error(parent, child, shape,
-                                                             child_meta.shape))
+                    if not array_connection_compatible(shape, child_meta.shape):
+                        raise ConnError(self.shape_error(parent, child, shape, child_meta.shape))
                 else:
                     child_meta.shape = shape
 
@@ -3085,8 +3260,8 @@ class AllConnGraph(nx.DiGraph):
             Whether the source node of the connection tree is an auto_ivc node.
         """
         try:
-            if parent[0] == 'o':
-                if child[0] == 'i':
+            if parent[0] == "o":
+                if child[0] == "i":
                     return self.resolve_output_input_connection(model, parent, child)
                 else:
                     self.resolve_output_to_output_down(parent, child)
@@ -3118,8 +3293,8 @@ class AllConnGraph(nx.DiGraph):
             return
 
         nodes = self.nodes
-        auto = src_node[1].startswith('_auto_ivc.')
-        src_meta = nodes[src_node]['attrs']
+        auto = src_node[1].startswith("_auto_ivc.")
+        src_meta = nodes[src_node]["attrs"]
         dynamic = src_meta.dynamic
         src_dist = src_meta.distributed
         first_pass = self._first_pass
@@ -3130,14 +3305,14 @@ class AllConnGraph(nx.DiGraph):
             has_dist = True
 
         dist_nodes = self._dist_nodes
-        abs2meta_in = model._var_allprocs_abs2meta['input']
+        abs2meta_in = model._var_allprocs_abs2meta["input"]
 
         # first, resolve inputs up from the bottom of the tree to the root input node.
         for node in dfs_postorder_nodes(self, src_node):
             if src_dist and first_pass and node[1] in abs2meta_in:
                 self._dist_nodes.update(nx.shortest_path(self, src_node, node))
-            if node[0] == 'i':
-                node_meta = nodes[node]['attrs']
+            if node[0] == "i":
+                node_meta = nodes[node]["attrs"]
                 if node_meta.dynamic:
                     # if tree contains no dynamic nodes then it's resolved after the first pass
                     dynamic = True
@@ -3157,9 +3332,9 @@ class AllConnGraph(nx.DiGraph):
                 leaves = list(self.leaf_input_iter(src_node))
                 if len(leaves) > 1:
                     for src_node, tgt_node in dfs_edges(self, src_node):
-                        if tgt_node[0] == 'i':
+                        if tgt_node[0] == "i":
                             # root input
-                            inp_meta = nodes[tgt_node]['attrs']
+                            inp_meta = nodes[tgt_node]["attrs"]
                             if inp_meta.ambiguous_units:
                                 break
                             if inp_meta.remote:
@@ -3195,7 +3370,8 @@ class AllConnGraph(nx.DiGraph):
                                     f"The inputs {inps}, promoted to '{tgt_node[1]}' have "
                                     f"different values, so the value of '{tgt_node[1]}' is "
                                     "ambiguous. Call model.set_input_defaults('"
-                                    f"{self.top_name(tgt_node)}', val=?) to remove the ambiguity.")
+                                    f"{self.top_name(tgt_node)}', val=?) to remove the ambiguity."
+                                )
 
                             break
 
@@ -3213,7 +3389,7 @@ class AllConnGraph(nx.DiGraph):
         if not (dynamic and first_pass):
             for edge in dfs_edges(self, src_node):
                 u, v = edge
-                if v[0] == 'i' and u in dist_nodes and v in dist_nodes:
+                if v[0] == "i" and u in dist_nodes and v in dist_nodes:
                     # if the edge is along a path between a src and leaf node that are dist-dist,
                     # dist-serial, or serial-dist, then we need to check the compatibility of the
                     # connection taking distributed shapes into account.
@@ -3240,7 +3416,7 @@ class AllConnGraph(nx.DiGraph):
         list of tuples of the form ('o', name)
             The auto IVC nodes added.
         """
-        assert model.pathname == ''
+        assert model.pathname == ""
         in_degree = self.in_degree
 
         pred = self.predecessors
@@ -3250,16 +3426,17 @@ class AllConnGraph(nx.DiGraph):
         dangling_inputs = set()
         above_anchors = set()  # input nodes directly above an anchor node
 
-        for name in chain(model._var_allprocs_abs2meta['input'],
-                          model._var_allprocs_discrete['input']):
-            start_node = ('i', name)
+        for name in chain(
+            model._var_allprocs_abs2meta["input"], model._var_allprocs_discrete["input"]
+        ):
+            start_node = ("i", name)
             src = None
             stack = [start_node]
             while stack:
                 node = stack.pop()
                 preds = list(pred(node))
-                outs = [p for p in preds if p[0] == 'o']
-                ins = [p for p in preds if p[0] == 'i']
+                outs = [p for p in preds if p[0] == "o"]
+                ins = [p for p in preds if p[0] == "i"]
                 if outs:
                     assert src is None and len(outs) == 1
                     src = outs[0]
@@ -3299,8 +3476,8 @@ class AllConnGraph(nx.DiGraph):
 
         auto_nodes = []
         for i, n in enumerate(sorted(final_dangling_inputs, key=lambda x: x[1])):
-            auto_node, _ = self.get_node_attrs('', f'_auto_ivc.v{i}', 'o')
-            self.add_edge(auto_node, n, type='manual')
+            auto_node, _ = self.get_node_attrs("", f"_auto_ivc.v{i}", "o")
+            self.add_edge(auto_node, n, type="manual")
             auto_nodes.append(auto_node)
 
         return auto_nodes
@@ -3316,12 +3493,12 @@ class AllConnGraph(nx.DiGraph):
             The top level group.
         """
         nodes = self.nodes
-        for abs_out in self._var_allprocs_abs2meta['output']:
-            node = ('o', abs_out)
-            auto = node[1].startswith('_auto_ivc.')
+        for abs_out in self._var_allprocs_abs2meta["output"]:
+            node = ("o", abs_out)
+            auto = node[1].startswith("_auto_ivc.")
 
             for u, v in dfs_edges(self, node):
-                vmeta = nodes[v]['attrs']
+                vmeta = nodes[v]["attrs"]
                 if auto and vmeta.distributed:
                     for _, t in self._bad_conns:
                         if t[1] == v[1]:
@@ -3332,43 +3509,53 @@ class AllConnGraph(nx.DiGraph):
                             promas = f", promoted as '{iroot[1]}',"
                         else:
                             promas = ""
-                        self._collect_error(f"Distributed input '{v[1]}'{promas} is not "
-                                            "connected. Declare an IndepVarComp and connect it "
-                                            "to this input to eliminate this error.",
-                                            ident=(u, v))
+                        self._collect_error(
+                            f"Distributed input '{v[1]}'{promas} is not "
+                            "connected. Declare an IndepVarComp and connect it "
+                            "to this input to eliminate this error.",
+                            ident=(u, v),
+                        )
                         continue
 
-                if u[0] == 'o' and v[0] == 'i':  # an output to input connection
-                    uunits = nodes[u]['attrs'].units
+                if u[0] == "o" and v[0] == "i":  # an output to input connection
+                    uunits = nodes[u]["attrs"].units
                     vunits = vmeta.units
                     if uunits is None or vunits is None:
                         uunitless = _is_unitless(uunits)
                         vunitless = _is_unitless(vunits)
                         if uunitless and not vunitless:
-                            issue_warning(f"{model.msginfo}: Input '{v[1]}' with units of "
-                                        f"'{vunits}' is connected to output '{u[1]}' "
-                                        f"which has no units.", category=UnitsWarning)
+                            issue_warning(
+                                f"{model.msginfo}: Input '{v[1]}' with units of "
+                                f"'{vunits}' is connected to output '{u[1]}' "
+                                f"which has no units.",
+                                category=UnitsWarning,
+                            )
                         elif not uunitless and vunitless:
-                            if not nodes[v]['attrs'].ambiguous_units:
-                                issue_warning(f"{model.msginfo}: Output '{u[1]}' with units of "
-                                            f"'{uunits}' is connected to input '{v[1]}' "
-                                            f"which has no units.", category=UnitsWarning)
+                            if not nodes[v]["attrs"].ambiguous_units:
+                                issue_warning(
+                                    f"{model.msginfo}: Output '{u[1]}' with units of "
+                                    f"'{uunits}' is connected to input '{v[1]}' "
+                                    f"which has no units.",
+                                    category=UnitsWarning,
+                                )
 
         desvars = model.get_design_vars()
         for req in self._required_conns:
-            node = ('i', req)
+            node = ("i", req)
             root = self.get_root(node)
-            if root[1].startswith('_auto_ivc.'):
+            if root[1].startswith("_auto_ivc."):
                 iroot = self.input_root(node)
                 if iroot[1] in desvars:  # design vars are 'connected'
                     continue
 
                 if iroot == node:
-                    promstr = ''
+                    promstr = ""
                 else:
                     promstr = f", promoted as '{iroot[1]}',"
-                self._collect_error(f"{self.msginfo}: Input '{req}'{promstr} requires a "
-                                    f"connection but is not connected.")
+                self._collect_error(
+                    f"{self.msginfo}: Input '{req}'{promstr} requires a "
+                    f"connection but is not connected."
+                )
 
     def add_implicit_connections(self, model, implicit_conn_vars):
         # implicit connections are added after all promotions are added, so any implicitly connected
@@ -3383,9 +3570,9 @@ class AllConnGraph(nx.DiGraph):
             implicit conn vars.
         """
         for pathname, relname in implicit_conn_vars:
-            onode, _ = self.get_node_attrs(pathname, relname, 'o')
-            inode, _ = self.get_node_attrs(pathname, relname, 'i')
-            self.check_add_edge(model, onode, inode, type='implicit')
+            onode, _ = self.get_node_attrs(pathname, relname, "o")
+            inode, _ = self.get_node_attrs(pathname, relname, "i")
+            self.check_add_edge(model, onode, inode, type="implicit")
 
     def update_src_inds_lists(self, model):
         # propagate src_indices down the tree, but don't update shapes because we don't
@@ -3405,17 +3592,17 @@ class AllConnGraph(nx.DiGraph):
 
         for node in self.nodes():
             if self.in_degree(node) == 0:
-                if node[0] == 'o':
+                if node[0] == "o":
                     for u, v in dfs_edges(self, node):
-                        if v[0] == 'i':
+                        if v[0] == "i":
                             edge_meta = edges[u, v]
-                            src_inds = edge_meta.get('src_indices', None)
-                            src_inds_list = nodes[u]['attrs'].src_inds_list
+                            src_inds = edge_meta.get("src_indices", None)
+                            src_inds_list = nodes[u]["attrs"].src_inds_list
                             if src_inds is not None:
                                 src_inds_list = src_inds_list.copy()
                                 src_inds_list.append(src_inds)
 
-                            nodes[v]['attrs'].src_inds_list = src_inds_list
+                            nodes[v]["attrs"].src_inds_list = src_inds_list
                 else:
                     dangling.add(node)
 
@@ -3434,7 +3621,7 @@ class AllConnGraph(nx.DiGraph):
         """
         for n in self.bfs_down_iter(node, include_self=False):
             for p in self.predecessors(n):
-                if p[0] == 'o':  # n is the src attachment point
+                if p[0] == "o":  # n is the src attachment point
                     return n, p
         return None, None
 
@@ -3460,10 +3647,10 @@ class AllConnGraph(nx.DiGraph):
 
             anchor, src_node = self.get_anchored_input_node(d)
             if anchor is not None:
-                src_inds_list = self.nodes[anchor]['attrs'].src_inds_list
+                src_inds_list = self.nodes[anchor]["attrs"].src_inds_list
                 path = nx.shortest_path(self, d, anchor)
                 for i in range(1, len(path)):
-                    src_indices = edges[path[i - 1], path[i]].get('src_indices', None)
+                    src_indices = edges[path[i - 1], path[i]].get("src_indices", None)
                     if src_indices is not None:
                         break
                 else:
@@ -3472,14 +3659,14 @@ class AllConnGraph(nx.DiGraph):
                     donodes = path[:-1]  # all but the anchor node
                     donodes = donodes[::-1]  # reverse order
                     for pnode in donodes:
-                        nodes[pnode]['attrs'].src_inds_list = src_inds_list
+                        nodes[pnode]["attrs"].src_inds_list = src_inds_list
                         self.resolve_from_children(model, src_node, pnode)
 
-                    src_meta = nodes[src_node]['attrs']
+                    src_meta = nodes[src_node]["attrs"]
                     if first_pass and not src_meta.dynamic:
                         # see if leaf node is dynamic
                         for leaf in self.leaf_input_iter(d):
-                            if nodes[leaf]['attrs'].dynamic:
+                            if nodes[leaf]["attrs"].dynamic:
                                 break
                         else:
                             self._resolved.add(d)
@@ -3501,19 +3688,19 @@ class AllConnGraph(nx.DiGraph):
 
             tgt_syspath, tgt_prom = self.get_path_prom(tgt)
             if tgt_syspath:
-                tgt_prom = model._resolver.abs2prom(self.absnames(tgt)[0], 'input')
+                tgt_prom = model._resolver.abs2prom(self.absnames(tgt)[0], "input")
             model._manual_connections.pop(tgt_prom, None)
 
             _, abs_out = root
-            if abs_out.startswith('_auto_ivc.'):
+            if abs_out.startswith("_auto_ivc."):
                 src_prom = abs_out
             else:
-                src_prom = model._resolver.abs2prom(abs_out, 'output')
+                src_prom = model._resolver.abs2prom(abs_out, "output")
 
             # _, inp_src_prom = self.get_path_prom(inp_src)
-            inp_src_prom = model._resolver.abs2prom(self.absnames(inp_src)[0], 'input')
+            inp_src_prom = model._resolver.abs2prom(self.absnames(inp_src)[0], "input")
 
-            model._manual_connections[inp_src_prom] = (src_prom, edge_meta.get('src_indices', None))
+            model._manual_connections[inp_src_prom] = (src_prom, edge_meta.get("src_indices", None))
 
     def create_all_conns_dict(self, model):
         """
@@ -3532,14 +3719,14 @@ class AllConnGraph(nx.DiGraph):
             A dict of connections 'owned' by a group, of the form
             {group_pathname: {abs_in: abs_out}}.
         """
-        assert model.pathname == ''
+        assert model.pathname == ""
 
         conns = {}
-        abs_ins = model._var_allprocs_abs2meta['input']
-        discrete_ins = model._var_allprocs_discrete['input']
+        abs_ins = model._var_allprocs_abs2meta["input"]
+        discrete_ins = model._var_allprocs_discrete["input"]
         global_conns = {}
-        for abs_out in  model._resolver.abs_iter('output'):
-            node = ('o', abs_out)
+        for abs_out in model._resolver.abs_iter("output"):
+            node = ("o", abs_out)
             for _, abs_in in self.leaf_input_iter(node):
                 assert abs_in in abs_ins or abs_in in discrete_ins
                 if abs_in in global_conns:
@@ -3561,8 +3748,9 @@ class AllConnGraph(nx.DiGraph):
             for abs_in, abs_outs in multiple_conns:
                 msg.append(f"'{abs_in}' from {abs_outs}")
 
-            self._collect_error(f"{self.msginfo}: The following inputs have multiple connections:"
-                                f" {', '.join(msg)}.")
+            self._collect_error(
+                f"{self.msginfo}: The following inputs have multiple connections: {', '.join(msg)}."
+            )
 
         return conns
 
@@ -3581,7 +3769,7 @@ class AllConnGraph(nx.DiGraph):
         """
         in_degree = self.in_degree
         for n in self.bfs_up_iter(node):
-            if n[0] == 'o' and in_degree(n) == 0:
+            if n[0] == "o" and in_degree(n) == 0:
                 return n
 
         # if we get here, node is an input promoted above the attachment point of its source output
@@ -3593,7 +3781,7 @@ class AllConnGraph(nx.DiGraph):
         for n in self.bfs_down_iter(node, include_self=False):
             # look for output predecessors
             for p in self.predecessors(n):
-                if p[0] == 'o':
+                if p[0] == "o":
                     return self.get_root(p)
 
     def get_tree_iter(self, node):
@@ -3614,7 +3802,7 @@ class AllConnGraph(nx.DiGraph):
         """
         root = self.get_root(node)
         if root is None:
-            if node[0] == 'i':
+            if node[0] == "i":
                 # may have a manual connection before a late promotion, so
                 # traverse down the tree to the end, then back to the root from there
                 for n in self.leaf_input_iter(node):
@@ -3647,12 +3835,12 @@ class AllConnGraph(nx.DiGraph):
         tuple of the form ('i' or 'o', name)
             A leaf input node.
         """
-        if node[0] == 'i' and self.out_degree(node) == 0:
+        if node[0] == "i" and self.out_degree(node) == 0:
             yield node
         else:
             out_degree = self.out_degree
             for _, node in dfs_edges(self, node):
-                if node[0] == 'i' and out_degree(node) == 0:
+                if node[0] == "i" and out_degree(node) == 0:
                     yield node
 
     def absnames(self, node):
@@ -3669,7 +3857,7 @@ class AllConnGraph(nx.DiGraph):
         list of str
             The absolute names associated with the node.
         """
-        if node[0] == 'i':
+        if node[0] == "i":
             return [n for _, n in self.leaf_input_iter(node)]
         else:
             return [self.get_root(node)[1]]
@@ -3718,7 +3906,7 @@ class AllConnGraph(nx.DiGraph):
         ValueError
             If the shape of val does not match the final subarray shape.
         """
-        msg = ''
+        msg = ""
         try:
             if indices_list:
                 chain = [arr]
@@ -3726,8 +3914,10 @@ class AllConnGraph(nx.DiGraph):
                     chain.append(idx.indexed_val(chain[-1]))
 
                 if np.shape(val) != () and np.squeeze(val).shape != np.squeeze(chain[-1]).shape:
-                    msg = (f"Value shape {np.squeeze(val).shape} does not match shape "
-                           f"{np.squeeze(chain[-1]).shape} of the destination")
+                    msg = (
+                        f"Value shape {np.squeeze(val).shape} does not match shape "
+                        f"{np.squeeze(chain[-1]).shape} of the destination"
+                    )
             else:
                 try:
                     arr[:] = val
@@ -3769,17 +3959,17 @@ class AllConnGraph(nx.DiGraph):
         numpy.ndarray or None
             The source index array or None if the input is not found.
         """
-        node = ('i', abs_in)
+        node = ("i", abs_in)
         if node not in self:
             raise ValueError(f"Input '{abs_in}' not found.")
-        src_inds_list = self.nodes[node]['attrs'].src_inds_list
+        src_inds_list = self.nodes[node]["attrs"].src_inds_list
         if not src_inds_list:
             return None
         elif len(src_inds_list) == 1:
             return src_inds_list[0].shaped_array()
         else:
             root = self.get_root(node)
-            root_meta = self.nodes[root]['attrs']
+            root_meta = self.nodes[root]["attrs"]
             if root_meta.distributed:
                 root_shape = root_meta.global_shape
             else:
@@ -3789,8 +3979,17 @@ class AllConnGraph(nx.DiGraph):
                 arr = inds.indexed_val(arr)
             return arr
 
-    def convert_get(self, node, val, src_units, tgt_units, src_inds_list=(), units=None,
-                    indices=None, get_remote=False):
+    def convert_get(
+        self,
+        node,
+        val,
+        src_units,
+        tgt_units,
+        src_inds_list=(),
+        units=None,
+        indices=None,
+        get_remote=False,
+    ):
         """
         Convert the value for a given node based on units and indices.
 
@@ -3818,7 +4017,7 @@ class AllConnGraph(nx.DiGraph):
         numpy.ndarray
             The converted value.
         """
-        node_meta = self.nodes[node]['attrs']
+        node_meta = self.nodes[node]["attrs"]
 
         if not node_meta.discrete:
             val = np.asarray(val)
@@ -3844,8 +4043,9 @@ class AllConnGraph(nx.DiGraph):
                 try:
                     scale, offset = unit_conversion(src_units, units)
                 except Exception:
-                    raise TypeError(f"Can't express value with units of '{src_units}' in units of "
-                                    f"'{units}'.")
+                    raise TypeError(
+                        f"Can't express value with units of '{src_units}' in units of '{units}'."
+                    )
 
                 return (val + offset) * scale
 
@@ -3885,14 +4085,16 @@ class AllConnGraph(nx.DiGraph):
 
         if units is not None:
             if src_units is None:
-                raise TypeError(f"Can't express value with units of '{src_units}' in units of "
-                                f"'{units}'.")
+                raise TypeError(
+                    f"Can't express value with units of '{src_units}' in units of '{units}'."
+                )
             elif src_units != units:
                 try:
                     scale, offset = unit_conversion(units, src_units)
                 except Exception:
-                    raise TypeError(f"Can't express value with units of '{src_units}' in units of "
-                                    f"'{units}'.")
+                    raise TypeError(
+                        f"Can't express value with units of '{src_units}' in units of '{units}'."
+                    )
 
                 return (val + offset) * scale
 
@@ -3924,11 +4126,11 @@ class AllConnGraph(nx.DiGraph):
 
         # check for cycles
         if not nx.is_directed_acyclic_graph(self):
-            cycle_edges = nx.find_cycle(self, orientation='original')
-            errmsg = '\n'.join([f'     {edge[0]} ---> {edge[1]}'
-                                for edge in cycle_edges])
-            self._collect_error('Cycle detected in input-to-input connections. '
-                                f'This is not allowed.\n{errmsg}')
+            cycle_edges = nx.find_cycle(self, orientation="original")
+            errmsg = "\n".join([f"     {edge[0]} ---> {edge[1]}" for edge in cycle_edges])
+            self._collect_error(
+                f"Cycle detected in input-to-input connections. This is not allowed.\n{errmsg}"
+            )
 
         self.add_auto_ivc_nodes(model)
         self.update_src_inds_lists(model)
@@ -3943,7 +4145,7 @@ class AllConnGraph(nx.DiGraph):
         # update global shapes for distributed vars, now that data structures include
         # auto_ivcs
         for dnode in self._distributed_nodes:
-            node_meta = self.nodes[dnode]['attrs']
+            node_meta = self.nodes[dnode]["attrs"]
             if not node_meta.dyn_shape:
                 node_meta.global_shape = self.compute_global_shape(dnode)
 
@@ -3952,8 +4154,8 @@ class AllConnGraph(nx.DiGraph):
 
         conn_dict = self.create_all_conns_dict(model)
 
-        global_conn_dict = {'': {}}
-        root_dict = global_conn_dict['']
+        global_conn_dict = {"": {}}
+        root_dict = global_conn_dict[""]
         for path, conn_data in conn_dict.items():
             for name in all_ancestors(path):
                 if name in global_conn_dict:
@@ -3984,6 +4186,7 @@ class AllConnGraph(nx.DiGraph):
         str
             Returned html for the node label.
         """
+
         def get_table_row(name, meta, mods=(), max_width=None, show_always=False):
             """
             Get the html for a table row.
@@ -4007,8 +4210,8 @@ class AllConnGraph(nx.DiGraph):
             str
                 The html for the table row.
             """
-            if '.' in name:
-                parent, _, child = name.rpartition('.')
+            if "." in name:
+                parent, _, child = name.rpartition(".")
                 meta = getattr(meta, parent)
                 content = getattr(meta, child)
             elif isinstance(meta, dict):
@@ -4018,11 +4221,12 @@ class AllConnGraph(nx.DiGraph):
 
                 ambig = getattr(meta, f"ambiguous_{name}")
                 if ambig:
-                    content = '?'
+                    content = "?"
 
-            if (content is None or content is False or (isinstance(content, list) and not content))\
-                  and not show_always:
-                return ''
+            if (
+                content is None or content is False or (isinstance(content, list) and not content)
+            ) and not show_always:
+                return ""
 
             if max_width is not None:
                 content = truncate_str(content, max_width)
@@ -4034,51 +4238,57 @@ class AllConnGraph(nx.DiGraph):
                     starts.append(f"<{mod}>")
                     ends.append(f"</{mod}>")
 
-                content = ''.join(starts) + content + ''.join(ends)
+                content = "".join(starts) + content + "".join(ends)
 
-            line = f'<tr><td align="left"><b>{name}:</b></td><td fixedsize="false" align="left">'\
-                f'{content}</td></tr>'
+            line = (
+                f'<tr><td align="left"><b>{name}:</b></td><td fixedsize="false" align="left">'
+                f"{content}</td></tr>"
+            )
 
             return line
 
         name = node[1]
-        meta = self.nodes[node]['attrs']
+        meta = self.nodes[node]["attrs"]
         rows = []
-        rows.append(get_table_row('units', meta, ('i',)))
-        rows.append(get_table_row('shape', meta))
-        rows.append(get_table_row('val', meta, max_width=max(30, int(len(name) * 1.2))))
-        rows.append(get_table_row('defaults.val', meta, max_width=max(30, int(len(name) * 1.2))))
-        rows.append(get_table_row('defaults.src_shape', meta))
-        rows.append(get_table_row('defaults.units', meta))
-        rows.append(get_table_row('src_inds_list', meta))
-        rows.append(get_table_row('shape_by_conn', meta))
-        rows.append(get_table_row('copy_shape', meta))
+        rows.append(get_table_row("units", meta, ("i",)))
+        rows.append(get_table_row("shape", meta))
+        rows.append(get_table_row("val", meta, max_width=max(30, int(len(name) * 1.2))))
+        rows.append(get_table_row("defaults.val", meta, max_width=max(30, int(len(name) * 1.2))))
+        rows.append(get_table_row("defaults.src_shape", meta))
+        rows.append(get_table_row("defaults.units", meta))
+        rows.append(get_table_row("src_inds_list", meta))
+        rows.append(get_table_row("shape_by_conn", meta))
+        rows.append(get_table_row("copy_shape", meta))
 
         # dot doesn't like node labels containing functions, so just show yes if set
-        rows.append(get_table_row('compute_shape',
-                                  {'compute_shape': 'yes' if meta.compute_shape else None}))
-        rows.append(get_table_row('compute_units',
-                                  {'compute_units': 'yes' if meta.compute_units else None}))
+        rows.append(
+            get_table_row("compute_shape", {"compute_shape": "yes" if meta.compute_shape else None})
+        )
+        rows.append(
+            get_table_row("compute_units", {"compute_units": "yes" if meta.compute_units else None})
+        )
 
-        rows.append(get_table_row('units_by_conn', meta))
-        rows.append(get_table_row('copy_units', meta))
-        rows.append(get_table_row('discrete', meta))
-        rows.append(get_table_row('distributed', meta))
-        rows.append(get_table_row('remote', meta))
+        rows.append(get_table_row("units_by_conn", meta))
+        rows.append(get_table_row("copy_units", meta))
+        rows.append(get_table_row("discrete", meta))
+        rows.append(get_table_row("distributed", meta))
+        rows.append(get_table_row("remote", meta))
         rows = [r for r in rows if r]
 
         if rows:
-            combined = '\n'.join(rows)
+            combined = "\n".join(rows)
         else:
-            combined = ''
+            combined = ""
 
-        label = (f'<table border="0" cellborder="0" cellspacing="0" cellpadding="0">'
-                 f'<tr><td align="left" colspan="2"><b>{name}</b></td></tr>'
-                 f'{combined}</table>')
+        label = (
+            f'<table border="0" cellborder="0" cellspacing="0" cellpadding="0">'
+            f'<tr><td align="left" colspan="2"><b>{name}</b></td></tr>'
+            f"{combined}</table>"
+        )
 
         return label
 
-    def drawable_node_iter(self, pathname=''):
+    def drawable_node_iter(self, pathname=""):
         """
         Yield nodes usable in a pydot graph.
 
@@ -4093,31 +4303,31 @@ class AllConnGraph(nx.DiGraph):
             The node and its metadata.
         """
         if pathname:
-            pathname = pathname + '.'
+            pathname = pathname + "."
 
         for node, data in self.nodes(data=True):
-            meta = data['attrs']
+            meta = data["attrs"]
             if pathname and not self.startswith(pathname, node):
                 continue
             newdata = {}
-            if node[0] == 'i':
-                newdata['fillcolor'] = GRAPH_COLORS['input']
+            if node[0] == "i":
+                newdata["fillcolor"] = GRAPH_COLORS["input"]
             else:
-                newdata['fillcolor'] = GRAPH_COLORS['output']
+                newdata["fillcolor"] = GRAPH_COLORS["output"]
 
             if meta.ambiguous:
-                newdata['color'] = GRAPH_COLORS['ambiguous']
-                newdata['penwidth'] = '4'  # Thick border
+                newdata["color"] = GRAPH_COLORS["ambiguous"]
+                newdata["penwidth"] = "4"  # Thick border
 
-            newdata['html_label'] = self.create_node_label(node)
-            newdata['tooltip'] = (meta.pathname, meta.rel_name)
-            newdata['style'] = 'filled,rounded'
-            newdata['shape'] = 'box'  # Use box shape with rounded corners
-            newdata['pathname'] = meta.pathname
-            newdata['rel_name'] = meta.rel_name
+            newdata["html_label"] = self.create_node_label(node)
+            newdata["tooltip"] = (meta.pathname, meta.rel_name)
+            newdata["style"] = "filled,rounded"
+            newdata["shape"] = "box"  # Use box shape with rounded corners
+            newdata["pathname"] = meta.pathname
+            newdata["rel_name"] = meta.rel_name
             yield node, newdata
 
-    def drawable_edge_iter(self, pathname='', show_cross_boundary=True, max_width=50):
+    def drawable_edge_iter(self, pathname="", show_cross_boundary=True, max_width=50):
         """
         Yield edges usable in a pydot graph.
 
@@ -4136,13 +4346,13 @@ class AllConnGraph(nx.DiGraph):
             The edge and its metadata.
         """
         if pathname:
-            pathname = pathname + '.'
+            pathname = pathname + "."
 
         # None means the edge is a promotion
-        type_map = {None: 'dashed', 'manual': None, 'implicit': 'dotted'}
+        type_map = {None: "dashed", "manual": None, "implicit": "dotted"}
 
         for u, v, data in self.edges(data=True):
-            style = type_map[data.get('type')]
+            style = type_map[data.get("type")]
 
             if pathname:
                 u_internal = self.startswith(pathname, u)
@@ -4158,25 +4368,25 @@ class AllConnGraph(nx.DiGraph):
 
             newdata = {}
             if style:
-                newdata['style'] = style
+                newdata["style"] = style
 
-            if u[0] == 'i' and v[0] == 'i':  # show promotion arrows in the right direction
+            if u[0] == "i" and v[0] == "i":  # show promotion arrows in the right direction
                 edge = (v, u)
-                newdata['dir'] = 'back'  # show arrows going backwards w/o messing up tree layout
+                newdata["dir"] = "back"  # show arrows going backwards w/o messing up tree layout
             else:
                 edge = (u, v)
 
-            src_indices = data.get('src_indices')
+            src_indices = data.get("src_indices")
             if src_indices is None:
-                newdata['tooltip'] = f"{edge[0]} -> {edge[1]}"
+                newdata["tooltip"] = f"{edge[0]} -> {edge[1]}"
             else:
                 src_indices = truncate_str(src_indices, max_len=max_width)
-                newdata['label'] = src_indices
-                newdata['tooltip'] = f"{edge[0][1]} -> {edge[1][1]}: src_indices: {src_indices}"
+                newdata["label"] = src_indices
+                newdata["tooltip"] = f"{edge[0][1]} -> {edge[1][1]}: src_indices: {src_indices}"
 
             yield u, v, newdata
 
-    def get_drawable_graph(self, pathname='', varname=None, show_cross_boundary=True):
+    def get_drawable_graph(self, pathname="", varname=None, show_cross_boundary=True):
         """
         Display the connection graph.
 
@@ -4195,17 +4405,17 @@ class AllConnGraph(nx.DiGraph):
             Whether to show cross boundary connections.
         """
         G = nx.DiGraph()
-        G.graph['orientation'] = 'TB'
+        G.graph["orientation"] = "TB"
         # Don't scale graph to fit - let it render at natural size for scrolling
-        G.graph['ratio'] = 'auto'
-        G.graph['margin'] = '0'
+        G.graph["ratio"] = "auto"
+        G.graph["margin"] = "0"
         # Set consistent node spacing to prevent nodes from being oversized in small graphs
-        G.graph['nodesep'] = '0.5'
-        G.graph['ranksep'] = '0.75'
+        G.graph["nodesep"] = "0.5"
+        G.graph["ranksep"] = "0.75"
         # Prevent graph from expanding to fill arbitrary width
-        G.graph['size'] = '20,100!'  # Max 20 inches wide, 100 height, don't expand
-        G.graph['pack'] = 'false'  # Don't pack components
-        G.graph['center'] = 'false'  # Don't center the graph
+        G.graph["size"] = "20,100!"  # Max 20 inches wide, 100 height, don't expand
+        G.graph["pack"] = "false"  # Don't pack components
+        G.graph["center"] = "false"  # Don't center the graph
 
         if pathname:
             # special handling for cross boundary connections
@@ -4219,15 +4429,15 @@ class AllConnGraph(nx.DiGraph):
 
                 nodes = self.nodes
                 for node in outside_nodes:
-                    node_meta = nodes[node]['attrs']
+                    node_meta = nodes[node]["attrs"]
                     meta = {
-                        'html_label': self.create_node_label(node),
-                        'tooltip': str((node_meta['pathname'], node_meta['rel_name'])),
-                        'style': 'filled,rounded',
-                        'shape': 'box',
-                        'pathname': node_meta['pathname'],
-                        'rel_name': node_meta['rel_name'],
-                        'fillcolor': GRAPH_COLORS['boundary'],
+                        "html_label": self.create_node_label(node),
+                        "tooltip": str((node_meta["pathname"], node_meta["rel_name"])),
+                        "style": "filled,rounded",
+                        "shape": "box",
+                        "pathname": node_meta["pathname"],
+                        "rel_name": node_meta["rel_name"],
+                        "fillcolor": GRAPH_COLORS["boundary"],
                     }
                     draw_nodes.append((node, meta))
 
@@ -4243,14 +4453,14 @@ class AllConnGraph(nx.DiGraph):
 
         if varname:
             varnode = self.find_node(pathname, varname)
-            G.nodes[varnode]['color'] = GRAPH_COLORS['highlight']
-            G.nodes[varnode]['penwidth'] = '4'  # Thick border
+            G.nodes[varnode]["color"] = GRAPH_COLORS["highlight"]
+            G.nodes[varnode]["penwidth"] = "4"  # Thick border
             tree = nx.node_connected_component(G.to_undirected(as_view=True), varnode)
             G = nx.subgraph(G, tree)
 
         return G
 
-    def get_dot(self, pathname='', varname=None, show_cross_boundary=True):
+    def get_dot(self, pathname="", varname=None, show_cross_boundary=True):
         """
         Get DOT representation of the connection graph.
 
@@ -4271,7 +4481,7 @@ class AllConnGraph(nx.DiGraph):
         """
         return networkx_to_dot(self.get_drawable_graph(pathname, varname, show_cross_boundary))
 
-    def display(self, varname=None, pathname='', show_cross_boundary=True, outfile='graph.html'):
+    def display(self, varname=None, pathname="", show_cross_boundary=True, outfile="graph.html"):
         """
         Display the connection graph.
 
@@ -4288,9 +4498,8 @@ class AllConnGraph(nx.DiGraph):
             The name of the file to write the graph to.
         """
         if outfile is None:
-            outfile = 'graph.html'
-        dot_to_html(self.get_dot(pathname, varname, show_cross_boundary),
-                                  outfile=outfile)
+            outfile = "graph.html"
+        dot_to_html(self.get_dot(pathname, varname, show_cross_boundary), outfile=outfile)
 
     def print_tree(self, name):
         """
@@ -4304,17 +4513,17 @@ class AllConnGraph(nx.DiGraph):
         if name in self:
             node = name
         else:
-            node = ('i', name)
+            node = ("i", name)
             if node not in self:
-                node = ('o', name)
+                node = ("o", name)
                 if node not in self:
                     raise ValueError(f"Variable '{name}' not found in the graph.")
 
         nodes = self.nodes
         for node, depth in self.get_tree_iter(node):
-            indent = '  ' * depth
-            meta = nodes[node]['attrs']
-            mnames = ['units', 'discrete', 'shape']
+            indent = "  " * depth
+            meta = nodes[node]["attrs"]
+            mnames = ["units", "discrete", "shape"]
             dismeta = {k: meta[k] for k in mnames if k in meta and meta[k] is not None}
             print(f"{indent}{node[1]}  {dismeta}")
 
@@ -4335,7 +4544,7 @@ class AllConnGraph(nx.DiGraph):
         def find_unused_port():
             """Find an unused port starting from 8001."""
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('', 0))
+                s.bind(("", 0))
                 return s.getsockname()[1]
 
         if port is None:
@@ -4363,9 +4572,10 @@ class AllConnGraph(nx.DiGraph):
         print(f"📱 Open your browser to: http://localhost:{port}")
 
         if open_browser:
+
             def open_browser():
                 time.sleep(1)
-                webbrowser.open(f'http://localhost:{port}')
+                webbrowser.open(f"http://localhost:{port}")
 
             threading.Thread(target=open_browser, daemon=True).start()
 
@@ -4394,29 +4604,30 @@ class AllConnGraph(nx.DiGraph):
             If the shape of the variable is known, return the shape.
             Otherwise, return None.
         """
-        from_conn_meta = self.nodes[from_node]['attrs']
+        from_conn_meta = self.nodes[from_node]["attrs"]
         if from_conn_meta.shape is None:
             return
-        to_conn_meta = self.nodes[to_node]['attrs']
+        to_conn_meta = self.nodes[to_node]["attrs"]
 
         from_io, from_name = from_node
         _, to_name = to_node
 
         # is this a connection internal to a component?
-        internal = to_name.rpartition('.')[0] == from_name.rpartition('.')[0]
+        internal = to_name.rpartition(".")[0] == from_name.rpartition(".")[0]
 
         if internal:  # if internal to a component, src_indices isn't used
-            fwd = from_io == 'i'
+            fwd = from_io == "i"
             src_inds_list = None
         else:
-            fwd = from_io == 'o'
+            fwd = from_io == "o"
             if fwd:
                 src_inds_list = to_conn_meta.src_inds_list
             else:  # rev
                 src_inds_list = from_conn_meta.src_inds_list
 
-        is_full_slice = \
+        is_full_slice = (
             src_inds_list and len(src_inds_list) == 1 and src_inds_list[0].is_full_slice()
+        )
 
         if self.comm.size > 1:
             dist_from = from_conn_meta.distributed
@@ -4446,8 +4657,8 @@ class AllConnGraph(nx.DiGraph):
         if self._var_existence is None:
             all_abs2meta = self._var_allprocs_abs2meta
             self._var_existence = {
-                'input': np.zeros((self.comm.size, len(all_abs2meta['input'])), dtype=bool),
-                'output': np.zeros((self.comm.size, len(all_abs2meta['output'])), dtype=bool),
+                "input": np.zeros((self.comm.size, len(all_abs2meta["input"])), dtype=bool),
+                "output": np.zeros((self.comm.size, len(all_abs2meta["output"])), dtype=bool),
             }
 
             iproc = self.comm.rank
@@ -4485,13 +4696,13 @@ class AllConnGraph(nx.DiGraph):
         tuple
             The shape.
         """
-        shp = self.nodes[from_node]['attrs'].shape
+        shp = self.nodes[from_node]["attrs"].shape
         if src_inds_list:
             for inds in src_inds_list:
                 inds.set_src_shape(shp)
                 shp = inds.indexed_src_shape
 
-        self.nodes[to_node]['attrs'].shape = shp
+        self.nodes[to_node]["attrs"].shape = shp
         return shp
 
     def serial2serial_rev_shape(self, from_node, to_node, src_inds_list, is_full_slice):
@@ -4515,14 +4726,16 @@ class AllConnGraph(nx.DiGraph):
             The shape.
         """
         if not src_inds_list or is_full_slice:
-            shp = self.nodes[from_node]['attrs'].shape
+            shp = self.nodes[from_node]["attrs"].shape
         else:
-            self._collect_error(f"Input '{from_node[1]}' has src_indices so the shape "
-                                f"of connected output '{to_node[1]}' cannot be "
-                                "determined.")
+            self._collect_error(
+                f"Input '{from_node[1]}' has src_indices so the shape "
+                f"of connected output '{to_node[1]}' cannot be "
+                "determined."
+            )
             return
 
-        self.nodes[to_node]['attrs'].shape = shp
+        self.nodes[to_node]["attrs"].shape = shp
         return shp
 
     def serial2dist_fwd_shape(self, from_node, to_node, src_inds_list, is_full_slice):
@@ -4545,11 +4758,11 @@ class AllConnGraph(nx.DiGraph):
         tuple
             The shape.
         """
-        from_shape = self.nodes[from_node]['attrs'].shape
+        from_shape = self.nodes[from_node]["attrs"].shape
         existence = self._get_var_existence()
-        exist_outs = existence['output'][:, self._var_allprocs_abs2idx[from_node[1]]]
-        exist_ins = existence['input'][:, self._var_allprocs_abs2idx[to_node[1]]]
-        to_meta = self.nodes[to_node]['attrs']
+        exist_outs = existence["output"][:, self._var_allprocs_abs2idx[from_node[1]]]
+        exist_ins = existence["input"][:, self._var_allprocs_abs2idx[to_node[1]]]
+        to_meta = self.nodes[to_node]["attrs"]
         num_exist = np.count_nonzero(exist_outs)
 
         if not src_inds_list:
@@ -4615,17 +4828,19 @@ class AllConnGraph(nx.DiGraph):
             shape0 = dshapes[0]
             for ds in dshapes:
                 if ds != shape0:
-                    to_io = 'input' if to_node[0] == 'i' else 'output'
-                    from_io = 'input' if from_node[0] == 'i' else 'output'
+                    to_io = "input" if to_node[0] == "i" else "output"
+                    from_io = "input" if from_node[0] == "i" else "output"
                     dshapes = [_strip_np(s) for s in dshapes]
                     self._collect_error(
                         f"{self.msginfo}: dynamic sizing of non-distributed {to_io} '{to_node[1]}' "
                         f"from distributed {from_io} '{from_node[1]}' is not supported because not "
                         f"all '{from_node[1]}' ranks are the same shape "
-                        f"(shapes={dshapes}).", ident=(from_node, to_node))
+                        f"(shapes={dshapes}).",
+                        ident=(from_node, to_node),
+                    )
                     return
 
-            self.nodes[to_node]['attrs'].shape = shape0
+            self.nodes[to_node]["attrs"].shape = shape0
             return shape0
 
     def dist2serial_fwd_shape(self, from_node, to_node, src_inds_list, is_full_slice):
@@ -4654,7 +4869,7 @@ class AllConnGraph(nx.DiGraph):
                 src_indices.set_src_shape(shp)
                 shp = src_indices.indexed_src_shape
 
-            self.nodes[to_node]['attrs'].shape = shp
+            self.nodes[to_node]["attrs"].shape = shp
             return shp
         else:
             # We don't allow this case because
@@ -4664,7 +4879,8 @@ class AllConnGraph(nx.DiGraph):
             self._collect_error(
                 f"{self.msginfo}: dynamic sizing of non-distributed input '{to_node[1]}' "
                 f"from distributed output '{from_node[1]}' without src_indices is not "
-                "supported.")
+                "supported."
+            )
 
     def dist2serial_rev_shape(self, from_node, to_node, src_inds_list, is_full_slice):
         """
@@ -4695,25 +4911,27 @@ class AllConnGraph(nx.DiGraph):
 
             # dist input may not exist on all procs, so distribute the serial
             # entries across only the procs where the dist output exists.
-            exist_procs = self._get_var_existence()['output'][:, abs2idx[to_node[1]]]
+            exist_procs = self._get_var_existence()["output"][:, abs2idx[to_node[1]]]
             split_num = np.count_nonzero(exist_procs)
 
             dist_shapes = self.get_dist_shapes()
             dist_sizes = self.get_dist_sizes()
 
-            from_shape = self.nodes[from_node]['attrs'].shape
+            from_shape = self.nodes[from_node]["attrs"].shape
             sz, _ = evenly_distrib_idxs(split_num, shape_to_len(from_shape))
             sizes = np.zeros(self.comm.size, dtype=int)
             sizes[exist_procs] = sz
             dist_sizes[to_node] = sizes.copy()
-            to_meta = self.nodes[to_node]['attrs']
+            to_meta = self.nodes[to_node]["attrs"]
             if len(from_shape) > 1:
                 if from_shape[0] != self.comm.size:
-                    self._collect_error(f"Serial input '{from_node[1]}' has shape "
-                                        f"{from_shape} but output '{to_node[1]}' "
-                                        f"is distributed over {self.comm.size} "
-                                        f"procs and {from_shape[0]} != "
-                                        f"{self.comm.size}.")
+                    self._collect_error(
+                        f"Serial input '{from_node[1]}' has shape "
+                        f"{from_shape} but output '{to_node[1]}' "
+                        f"is distributed over {self.comm.size} "
+                        f"procs and {from_shape[0]} != "
+                        f"{self.comm.size}."
+                    )
                     return
                 else:
                     dist_shapes[to_node] = [from_shape[1:]] * self.comm.size
@@ -4727,9 +4945,11 @@ class AllConnGraph(nx.DiGraph):
             return shp
 
         else:
-            self._collect_error(f"Input '{from_node[1]}' has src_indices so the shape "
-                                f"of connected output '{to_node[1]}' cannot be "
-                                "determined.")
+            self._collect_error(
+                f"Input '{from_node[1]}' has src_indices so the shape "
+                f"of connected output '{to_node[1]}' cannot be "
+                "determined."
+            )
 
     def dist2dist_fwd_shape(self, from_node, to_node, src_inds_list, is_full_slice):
         """
@@ -4752,13 +4972,15 @@ class AllConnGraph(nx.DiGraph):
             The shape.
         """
         if is_full_slice:
-            self._collect_error(f"Using a full slice [:] as src_indices between"
-                                f" distributed variables '{from_node[1]}' and "
-                                f"'{to_node[1]}' is invalid.")
+            self._collect_error(
+                f"Using a full slice [:] as src_indices between"
+                f" distributed variables '{from_node[1]}' and "
+                f"'{to_node[1]}' is invalid."
+            )
             return
 
-        from_conn_meta = self.nodes[from_node]['attrs']
-        to_conn_meta = self.nodes[to_node]['attrs']
+        from_conn_meta = self.nodes[from_node]["attrs"]
+        to_conn_meta = self.nodes[to_node]["attrs"]
         dist_shapes = self.get_dist_shapes()
         dist_sizes = self.get_dist_sizes()
 
@@ -4802,12 +5024,14 @@ class AllConnGraph(nx.DiGraph):
             The shape.
         """
         if is_full_slice:
-            self._collect_error(f"Using a full slice [:] as src_indices between"
-                                f" distributed variables '{from_node[1]}' and "
-                                f"'{to_node[1]}' is invalid.")
+            self._collect_error(
+                f"Using a full slice [:] as src_indices between"
+                f" distributed variables '{from_node[1]}' and "
+                f"'{to_node[1]}' is invalid."
+            )
         elif not src_inds_list:
-            shp = self.nodes[from_node]['attrs'].shape
-            to_conn_meta = self.nodes[to_node]['attrs']
+            shp = self.nodes[from_node]["attrs"].shape
+            to_conn_meta = self.nodes[to_node]["attrs"]
             to_conn_meta.shape = shp
             dist_shapes = self.get_dist_shapes()
             dist_sizes = self.get_dist_sizes()
@@ -4816,9 +5040,11 @@ class AllConnGraph(nx.DiGraph):
             to_conn_meta.global_shape = self.compute_global_shape(to_node)
             return shp
         else:
-            self._collect_error(f"Input '{from_node[1]}' has src_indices so the shape "
-                                f"of connected output '{to_node[1]}' cannot be "
-                                "determined.")
+            self._collect_error(
+                f"Input '{from_node[1]}' has src_indices so the shape "
+                f"of connected output '{to_node[1]}' cannot be "
+                "determined."
+            )
 
     def get_conn_tree_graph(self, node, inputs=True, outputs=True):
         """
@@ -4840,8 +5066,8 @@ class AllConnGraph(nx.DiGraph):
         """
         nodes = nx.node_connected_component(self.to_undirected(as_view=True), node)
         if not inputs:
-            nodes = [n for n in nodes if n[0] == 'o']
+            nodes = [n for n in nodes if n[0] == "o"]
         if not outputs:
-            nodes = [n for n in nodes if n[0] == 'i']
+            nodes = [n for n in nodes if n[0] == "i"]
 
         return self.subgraph(nodes)

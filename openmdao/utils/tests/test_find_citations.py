@@ -1,7 +1,17 @@
 import unittest
 from io import StringIO
 
-from openmdao.api import Problem, Group, ParallelGroup, ExecComp, IndepVarComp, NonlinearRunOnce, LinearRunOnce, NewtonSolver, ImplicitComponent
+from openmdao.api import (
+    Problem,
+    Group,
+    ParallelGroup,
+    ExecComp,
+    IndepVarComp,
+    NonlinearRunOnce,
+    LinearRunOnce,
+    NewtonSolver,
+    ImplicitComponent,
+)
 from openmdao.utils.mpi import MPI
 from openmdao.utils.find_cite import find_citations, print_citations
 
@@ -16,7 +26,6 @@ class MyImplComp(ImplicitComponent):
 
 
 class TestFindCite(unittest.TestCase):
-
     def setUp(self):
 
         p = Problem()
@@ -25,9 +34,9 @@ class TestFindCite(unittest.TestCase):
         p.model.nonlinear_solver.cite = "foobar nonlinear_solver"
         p.model.linear_solver.cite = "foobar linear_solver"
 
-        p.model.add_subsystem('indeps', IndepVarComp('x', 10), promotes=['*'])
+        p.model.add_subsystem("indeps", IndepVarComp("x", 10), promotes=["*"])
 
-        ec = p.model.add_subsystem('ec', MyImplComp(), promotes=['*'])
+        ec = p.model.add_subsystem("ec", MyImplComp(), promotes=["*"])
         ec.nonlinear_solver = NewtonSolver(solve_subsystems=False)
         ec.cite = "foobar impl comp"
 
@@ -49,32 +58,31 @@ class TestFindCite(unittest.TestCase):
             cite = citations[Problem]
             self.assertEqual(p.cite, cite)
         except KeyError:
-            self.fail('Citation for Problem class expected')
+            self.fail("Citation for Problem class expected")
 
         try:
             cite = citations[Group]
-            self.assertEqual('foobar model', cite)
+            self.assertEqual("foobar model", cite)
         except KeyError:
-            self.fail('Citation for Group class expected')
+            self.fail("Citation for Group class expected")
 
         try:
             cite = citations[NonlinearRunOnce]
-            self.assertEqual('foobar nonlinear_solver', cite)
+            self.assertEqual("foobar nonlinear_solver", cite)
         except KeyError:
-            self.fail('Citation for NonlinearRunOnce class expected')
+            self.fail("Citation for NonlinearRunOnce class expected")
 
         try:
             cite = citations[LinearRunOnce]
-            self.assertEqual('foobar linear_solver', cite)
+            self.assertEqual("foobar linear_solver", cite)
         except KeyError:
-            self.fail('Citation for LinearRunOnce class expected')
+            self.fail("Citation for LinearRunOnce class expected")
 
         try:
             cite = citations[MyImplComp]
-            self.assertEqual('foobar impl comp', cite)
+            self.assertEqual("foobar impl comp", cite)
         except KeyError:
-            self.fail('Citation for MyImplComp class expected')
-
+            self.fail("Citation for MyImplComp class expected")
 
     def test_print_citations(self):
 
@@ -115,7 +123,7 @@ Class: <class 'openmdao.utils.tests.test_find_citations.MyImplComp'>
         p.final_setup()
 
         dest = StringIO()
-        print_citations(p, classes=['Problem', 'LinearRunOnce'], out_stream=dest)
+        print_citations(p, classes=["Problem", "LinearRunOnce"], out_stream=dest)
 
         expected = """Class: <class 'openmdao.core.problem.Problem'>
     @article{openmdao_2019,
@@ -136,7 +144,6 @@ Class: <class 'openmdao.solvers.linear.linear_runonce.LinearRunOnce'>
 
 
 class TestFindCitePar(unittest.TestCase):
-
     N_PROCS = 2
 
     def setUp(self):
@@ -147,15 +154,15 @@ class TestFindCitePar(unittest.TestCase):
         p.model.nonlinear_solver.cite = "foobar nonlinear_solver"
         p.model.linear_solver.cite = "foobar linear_solver"
 
-        p.model.add_subsystem('indeps', IndepVarComp('x', 10), promotes=['*'])
+        p.model.add_subsystem("indeps", IndepVarComp("x", 10), promotes=["*"])
 
-        par = p.model.add_subsystem('par', ParallelGroup(), promotes=['*'])
+        par = p.model.add_subsystem("par", ParallelGroup(), promotes=["*"])
 
-        ec = p.model.add_subsystem('ec', MyImplComp(), promotes=['*'])
+        ec = p.model.add_subsystem("ec", MyImplComp(), promotes=["*"])
         ec.nonlinear_solver = NewtonSolver(solve_subsystems=False)
         ec.cite = "foobar impl comp"
-        c2 = par.add_subsystem('c2', ExecComp('y2=x'), promotes=['*'])
-        c2.cite = 'foobar exec comp'
+        c2 = par.add_subsystem("c2", ExecComp("y2=x"), promotes=["*"])
+        c2.cite = "foobar exec comp"
 
         self.prob = p
 
@@ -177,37 +184,37 @@ class TestFindCitePar(unittest.TestCase):
             cite = citations[Problem]
             self.assertEqual(p.cite, cite)
         except KeyError:
-            self.fail('Citation for Problem class expected')
+            self.fail("Citation for Problem class expected")
 
         try:
             cite = citations[Group]
-            self.assertEqual('foobar model', cite)
+            self.assertEqual("foobar model", cite)
         except KeyError:
-            self.fail('Citation for Group class expected')
+            self.fail("Citation for Group class expected")
 
         try:
             cite = citations[NonlinearRunOnce]
-            self.assertEqual('foobar nonlinear_solver', cite)
+            self.assertEqual("foobar nonlinear_solver", cite)
         except KeyError:
-            self.fail('Citation for NonlinearRunOnce class expected')
+            self.fail("Citation for NonlinearRunOnce class expected")
 
         try:
             cite = citations[LinearRunOnce]
-            self.assertEqual('foobar linear_solver', cite)
+            self.assertEqual("foobar linear_solver", cite)
         except KeyError:
-            self.fail('Citation for LinearRunOnce class expected')
+            self.fail("Citation for LinearRunOnce class expected")
 
         try:
             cite = citations[MyImplComp]
-            self.assertEqual('foobar impl comp', cite)
+            self.assertEqual("foobar impl comp", cite)
         except KeyError:
-            self.fail('Citation for MyImplComp class expected')
+            self.fail("Citation for MyImplComp class expected")
 
         try:
             cite = citations[PETScVector]
-            self.assertEqual('foobar PETScVector', cite)
+            self.assertEqual("foobar PETScVector", cite)
         except KeyError:
-            self.fail('Citation for PETScVector class expected')
+            self.fail("Citation for PETScVector class expected")
 
 
 if __name__ == "__main__":

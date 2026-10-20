@@ -1,6 +1,7 @@
 """
 OpenMDAO custom error: AnalysisError.
 """
+
 from openmdao.utils.om_warnings import _warn_simple_format, reset_warning_registry
 import warnings
 
@@ -28,7 +29,7 @@ class AnalysisError(Exception):
         """
         super().__init__(error)
         if location is not None:
-            if hasattr(location, 'f_lineno'):
+            if hasattr(location, "f_lineno"):
                 # from inspect.currentframe()
                 line_num = location.f_lineno
                 file_name = location.f_code.co_filename
@@ -38,5 +39,5 @@ class AnalysisError(Exception):
                 file_name = location.filename
             with reset_warning_registry():
                 warnings.formatwarning = _warn_simple_format
-                msg = (f"Analysis Error: {msginfo} Line {line_num} of file {file_name}")
+                msg = f"Analysis Error: {msginfo} Line {line_num} of file {file_name}"
                 warnings.warn(msg, UserWarning, 2)

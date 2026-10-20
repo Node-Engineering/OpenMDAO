@@ -49,45 +49,60 @@ class DOEDriver(Driver):
 
         elif generator and not isinstance(generator, DOEGenerator):
             if inspect.isclass(generator):
-                raise TypeError("DOEDriver requires an instance of DOEGenerator, "
-                                "but a class object was found: %s"
-                                % generator.__name__)
+                raise TypeError(
+                    "DOEDriver requires an instance of DOEGenerator, "
+                    "but a class object was found: %s" % generator.__name__
+                )
             else:
-                raise TypeError("DOEDriver requires an instance of DOEGenerator, "
-                                "but an instance of %s was found."
-                                % type(generator).__name__)
+                raise TypeError(
+                    "DOEDriver requires an instance of DOEGenerator, "
+                    "but an instance of %s was found." % type(generator).__name__
+                )
 
         super().__init__(**kwargs)
 
         # What we support
-        self.supports['integer_design_vars'] = True
+        self.supports["integer_design_vars"] = True
 
         # What we don't support
-        self.supports['distributed_design_vars'] = False
-        self.supports['optimization'] = False
+        self.supports["distributed_design_vars"] = False
+        self.supports["optimization"] = False
         self.supports._read_only = True
 
         if generator is not None:
-            self.options['generator'] = generator
+            self.options["generator"] = generator
 
-        self._name = ''
+        self._name = ""
         self._problem_comm = None
         self._color = None
 
         self._indep_list = []
         self._quantities = []
-        self._total_jac_format = 'dict'
+        self._total_jac_format = "dict"
 
     def _declare_options(self):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare('generator', types=(DOEGenerator), default=DOEGenerator(),
-                             desc='The case generator. If default, no cases are generated.')
-        self.options.declare('run_parallel', types=bool, default=False,
-                             desc='Set to True to execute cases in parallel.')
-        self.options.declare('procs_per_model', types=int, default=1, lower=1,
-                             desc='Number of processors to give each model under MPI.')
+        self.options.declare(
+            "generator",
+            types=(DOEGenerator),
+            default=DOEGenerator(),
+            desc="The case generator. If default, no cases are generated.",
+        )
+        self.options.declare(
+            "run_parallel",
+            types=bool,
+            default=False,
+            desc="Set to True to execute cases in parallel.",
+        )
+        self.options.declare(
+            "procs_per_model",
+            types=int,
+            default=1,
+            lower=1,
+            desc="Number of processors to give each model under MPI.",
+        )
 
     def _setup_comm(self, comm):
         """
@@ -108,16 +123,18 @@ class DOEDriver(Driver):
         if not MPI:
             return comm
         else:
-            procs_per_model = self.options['procs_per_model']
+            procs_per_model = self.options["procs_per_model"]
 
             full_size = comm.size
             ncolors = full_size // procs_per_model
             if full_size != ncolors * procs_per_model:
-                raise RuntimeError("The total number of processors is not evenly divisible by the "
-                                   "specified number of processors per model.\n Provide a "
-                                   "number of processors that is a multiple of %d, or "
-                                   "specify a number of processors per model that divides "
-                                   "into %d." % (procs_per_model, full_size))
+                raise RuntimeError(
+                    "The total number of processors is not evenly divisible by the "
+                    "specified number of processors per model.\n Provide a "
+                    "number of processors that is a multiple of %d, or "
+                    "specify a number of processors per model that divides "
+                    "into %d." % (procs_per_model, full_size)
+                )
 
             color = self._color = comm.rank % ncolors
             self.comm = comm.Split(color)
@@ -132,13 +149,13 @@ class DOEDriver(Driver):
         str
             The name of this DOE driver and its case generator.
         """
-        generator = self.options['generator']
+        generator = self.options["generator"]
 
-        gen_type = type(generator).__name__.replace('Generator', '')
-        if gen_type == 'DOEGenerator':
-            self._name = 'DOEDriver'  # Empty generator
+        gen_type = type(generator).__name__.replace("Generator", "")
+        if gen_type == "DOEGenerator":
+            self._name = "DOEDriver"  # Empty generator
         else:
-            self._name = 'DOEDriver_' + gen_type
+            self._name = "DOEDriver_" + gen_type
 
         return self._name
 
@@ -182,10 +199,10 @@ class DOEDriver(Driver):
         for name, _ in self._cons.items():
             self._quantities.append(name)
 
-        if MPI and self.options['run_parallel']:
+        if MPI and self.options["run_parallel"]:
             case_gen = self._parallel_generator
         else:
-            case_gen = self.options['generator']
+            case_gen = self.options["generator"]
 
         for case in case_gen(self._designvars, self._problem().model):
             self._run_case(case)
@@ -220,24 +237,26 @@ class DOEDriver(Driver):
         with RecordingDebugging(self._get_name(), self.iter_count, self):
             try:
                 self._run_solve_nonlinear()
-                metadata['success'] = 1
-                metadata['msg'] = ''
+                metadata["success"] = 1
+                metadata["msg"] = ""
             except AnalysisError:
-                metadata['success'] = 0
-                metadata['msg'] = traceback.format_exc()
+                metadata["success"] = 0
+                metadata["msg"] = traceback.format_exc()
             except Exception:
-                metadata['success'] = 0
-                metadata['msg'] = traceback.format_exc()
-                print(metadata['msg'])
+                metadata["success"] = 0
+                metadata["msg"] = traceback.format_exc()
+                print(metadata["msg"])
 
             # save reference to metadata for use in record_iteration
             self._metadata = metadata
 
-        if self.recording_options['record_derivatives']:
-            self._compute_totals(of=self._quantities,
-                                 wrt=self._indep_list,
-                                 return_format=self._total_jac_format,
-                                 driver_scaling=False)
+        if self.recording_options["record_derivatives"]:
+            self._compute_totals(
+                of=self._quantities,
+                wrt=self._indep_list,
+                return_format=self._total_jac_format,
+                driver_scaling=False,
+            )
 
     def _parallel_generator(self, design_vars, model=None):
         """
@@ -256,10 +275,10 @@ class DOEDriver(Driver):
         list
             list of name, value tuples for the design variables.
         """
-        ncolors = self._problem_comm.size // self.options['procs_per_model']
+        ncolors = self._problem_comm.size // self.options["procs_per_model"]
         color = self._color
 
-        for i, case in enumerate(self.options['generator'](design_vars, model)):
+        for i, case in enumerate(self.options["generator"](design_vars, model)):
             if i % ncolors == color:
                 yield case
 
@@ -268,8 +287,8 @@ class DOEDriver(Driver):
         Set up case recording.
         """
         if MPI:
-            run_parallel = self.options['run_parallel']
-            procs_per_model = self.options['procs_per_model']
+            run_parallel = self.options["run_parallel"]
+            procs_per_model = self.options["procs_per_model"]
 
             for recorder in self._rec_mgr:
                 if run_parallel:

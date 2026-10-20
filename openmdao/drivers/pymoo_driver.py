@@ -72,12 +72,14 @@ For additional processing, the pymoo results object can be accessed at the
 See the pymoo documentation at https://pymoo.org/index.html for detailed information
 on algorithm-specific options and capabilities.
 """
+
 import sys
 import importlib
 import numpy as np
 from openmdao.core.driver import Driver, RecordingDebugging
 from openmdao.core.constants import _FINITE_INF_BOUND
 from openmdao.utils.mpi import MPI
+
 try:
     import pymoo
     from pymoo.core.problem import ElementwiseProblem as problem
@@ -101,25 +103,78 @@ except Exception as err:
 # Not all algorithms are explicilty mentioned in the documentation as supporting
 # constraints or not, so I had to make an educated guess based on what was in the
 # algorithm.
-_constraint_optimizers = {'GA', 'DE', 'BRKGA', 'NelderMead', 'PatternSearch',
-                          'ES', 'SRES', 'ISRES', 'NRBO', 'DIRECT', 'NicheGA',
-                          'Optuna', 'NSGA2', 'RNSGA2', 'PINSGA2', 'NSGA3',
-                          'UNSGA3', 'RNSGA3', 'CTAEA', 'SMSEMOA', 'CMOPSO',
-                          'MOPSO_CD', 'SPEA2', 'MixedVariableGA'}
+_constraint_optimizers = {
+    "GA",
+    "DE",
+    "BRKGA",
+    "NelderMead",
+    "PatternSearch",
+    "ES",
+    "SRES",
+    "ISRES",
+    "NRBO",
+    "DIRECT",
+    "NicheGA",
+    "Optuna",
+    "NSGA2",
+    "RNSGA2",
+    "PINSGA2",
+    "NSGA3",
+    "UNSGA3",
+    "RNSGA3",
+    "CTAEA",
+    "SMSEMOA",
+    "CMOPSO",
+    "MOPSO_CD",
+    "SPEA2",
+    "MixedVariableGA",
+}
 
 # Algorithms that only support a single objective
-_single_obj_optimizers = {'GA', 'DE', 'BRKGA', 'NelderMead', 'PatternSearch',
-                          'CMAES', 'ES', 'SRES', 'ISRES', 'NRBO', 'DIRECT',
-                          'G3PCX', 'NicheGA', 'PSO', 'EPPSO', 'RandomSearch',
-                          'Optuna', 'MixedVariableGA'}
+_single_obj_optimizers = {
+    "GA",
+    "DE",
+    "BRKGA",
+    "NelderMead",
+    "PatternSearch",
+    "CMAES",
+    "ES",
+    "SRES",
+    "ISRES",
+    "NRBO",
+    "DIRECT",
+    "G3PCX",
+    "NicheGA",
+    "PSO",
+    "EPPSO",
+    "RandomSearch",
+    "Optuna",
+    "MixedVariableGA",
+}
 
 # Algorithms that support discrete (integer) and mixed integer design variables
-_mixed_var_optimizers = {'MixedVariableGA'}
+_mixed_var_optimizers = {"MixedVariableGA"}
 
 # Algorithms that support multiple objectives
-_multi_obj_optimizers = {'NSGA2', 'RNSGA2', 'PINSGA2', 'NSGA3', 'UNSGA3', 'RNSGA3',
-                         'MOEAD', 'AGEMOEA', 'AGEMOEA2', 'CTAEA', 'SMSEMOA', 'RVEA',
-                         'CMOPSO', 'MOPSO_CD', 'DNSGA2', 'KGB', 'SPEA2'}
+_multi_obj_optimizers = {
+    "NSGA2",
+    "RNSGA2",
+    "PINSGA2",
+    "NSGA3",
+    "UNSGA3",
+    "RNSGA3",
+    "MOEAD",
+    "AGEMOEA",
+    "AGEMOEA2",
+    "CTAEA",
+    "SMSEMOA",
+    "RVEA",
+    "CMOPSO",
+    "MOPSO_CD",
+    "DNSGA2",
+    "KGB",
+    "SPEA2",
+}
 
 # All available optimizers
 _all_optimizers = _single_obj_optimizers | _multi_obj_optimizers
@@ -339,45 +394,46 @@ class pymooProblem(problem):
         self.obj_info = obj_info
         self.fail = False
 
-        n_obj = obj_info['size']
-        n_ieq_constr = len(ieq_con_info['bound'])
-        n_eq_constr = len(eq_con_info['equals'])
+        n_obj = obj_info["size"]
+        n_ieq_constr = len(ieq_con_info["bound"])
+        n_eq_constr = len(eq_con_info["equals"])
 
-        use_vars_dict = (driver._designvars_discrete or
-                         driver.options['optimizer'] in _mixed_var_optimizers)
+        use_vars_dict = (
+            driver._designvars_discrete or driver.options["optimizer"] in _mixed_var_optimizers
+        )
         if use_vars_dict:
             # Build a vars dict so pymoo samples integers and reals correctly.
             # Required for MixedVariableGA regardless of whether discrete variables
             # are present. Each scalar element of each design variable gets its own
             # entry using the key '{om_name}__{i}'.
             vars_dict = {}
-            for name, indices in zip(x_info['vars'], x_info['indices']):
-                lower = x_info['lower'][indices]
-                upper = x_info['upper'][indices]
+            for name, indices in zip(x_info["vars"], x_info["indices"]):
+                lower = x_info["lower"][indices]
+                upper = x_info["upper"][indices]
                 for i, (lb, ub) in enumerate(zip(lower, upper)):
-                    key = f'{name}__{i}'
+                    key = f"{name}__{i}"
                     if name in driver._designvars_discrete:
                         vars_dict[key] = Integer(bounds=(int(lb), int(ub)))
                     else:
                         vars_dict[key] = Real(bounds=(lb, ub))
 
-            runner_kwargs = {'elementwise_runner': runner} if runner is not None else {}
+            runner_kwargs = {"elementwise_runner": runner} if runner is not None else {}
             super().__init__(
                 vars=vars_dict,
                 n_obj=n_obj,
                 n_ieq_constr=n_ieq_constr,
                 n_eq_constr=n_eq_constr,
-                **runner_kwargs
+                **runner_kwargs,
             )
         else:
-            runner_kwargs = {'elementwise_runner': runner} if runner is not None else {}
+            runner_kwargs = {"elementwise_runner": runner} if runner is not None else {}
             super().__init__(
-                n_var=len(x_info['upper']),
+                n_var=len(x_info["upper"]),
                 n_obj=n_obj,
                 n_ieq_constr=n_ieq_constr,
                 n_eq_constr=n_eq_constr,
-                xl=x_info['lower'],
-                xu=x_info['upper'],
+                xl=x_info["lower"],
+                xu=x_info["upper"],
                 **runner_kwargs,
             )
 
@@ -405,9 +461,9 @@ class pymooProblem(problem):
         model = self.driver._problem().model
 
         # Start empty and need to be populated
-        out['F'] = np.empty(self.obj_info['size'])
-        out['G'] = np.empty(len(self.ieq_con_info['bound']))
-        out['H'] = np.empty(len(self.eq_con_info['equals']))
+        out["F"] = np.empty(self.obj_info["size"])
+        out["G"] = np.empty(len(self.ieq_con_info["bound"]))
+        out["H"] = np.empty(len(self.eq_con_info["equals"]))
 
         try:
             self._update_desvar_values(x)
@@ -415,32 +471,38 @@ class pymooProblem(problem):
 
             # Get the objective function evaluations
             obj_vals = self.driver.get_objective_values()
-            obj_zip = zip(self.obj_info['vars'], self.obj_info['indices'])
-            for name, indices, in obj_zip:
-                out['F'][indices] = obj_vals[name].flatten()
+            obj_zip = zip(self.obj_info["vars"], self.obj_info["indices"])
+            for (
+                name,
+                indices,
+            ) in obj_zip:
+                out["F"][indices] = obj_vals[name].flatten()
 
             # Get the constraint evaluations. In pymoo all inequality constraints
             # must be <= 0.0 and all equality constraints must be == 0.0
             con_vals = self.driver.get_constraint_values()
-            ieq_zip = zip(self.ieq_con_info['vars'], self.ieq_con_info['indices'],
-                          self.ieq_con_info['is_upper'])
-            eq_zip = zip(self.eq_con_info['vars'], self.eq_con_info['indices'])
+            ieq_zip = zip(
+                self.ieq_con_info["vars"],
+                self.ieq_con_info["indices"],
+                self.ieq_con_info["is_upper"],
+            )
+            eq_zip = zip(self.eq_con_info["vars"], self.eq_con_info["indices"])
             for name, indices, is_upper in ieq_zip:
-                bound = self.ieq_con_info['bound'][indices]
+                bound = self.ieq_con_info["bound"][indices]
                 if is_upper:
-                    out['G'][indices] = con_vals[name].flatten() - bound
+                    out["G"][indices] = con_vals[name].flatten() - bound
                 else:
-                    out['G'][indices] = bound - con_vals[name].flatten()
+                    out["G"][indices] = bound - con_vals[name].flatten()
             for name, indices in eq_zip:
-                equals = self.eq_con_info['equals'][indices]
-                out['H'][indices] = equals - con_vals[name].flatten()
+                equals = self.eq_con_info["equals"][indices]
+                out["H"][indices] = equals - con_vals[name].flatten()
 
         except Exception:
             # Clean up solver print stack and store exception for re-raising later
             self._handle_callback_exception(model)
-            out['F'] = np.full(len(out['F']), np.nan)
-            out['G'] = np.full(len(out['G']), np.nan)
-            out['H'] = np.full(len(out['H']), np.nan)
+            out["F"] = np.full(len(out["F"]), np.nan)
+            out["G"] = np.full(len(out["G"]), np.nan)
+            out["H"] = np.full(len(out["H"]), np.nan)
 
     def _update_desvar_values(self, x):
         """
@@ -459,14 +521,14 @@ class pymooProblem(problem):
             or a flat array for all other optimizers.
         """
         driver = self.driver
-        dv_vec = driver._vectors['design_var']
+        dv_vec = driver._vectors["design_var"]
 
         if isinstance(x, dict):
             # MixedVariableGA path: x is a dict, may include discrete variables.
             # Populate continuous variable slices of dv_vec; set discrete vars directly.
             continuous_names = []
-            for name, indices in zip(self.x_info['vars'], self.x_info['indices']):
-                vals = np.array([x[f'{name}__{i}'] for i in range(len(indices))])
+            for name, indices in zip(self.x_info["vars"], self.x_info["indices"]):
+                vals = np.array([x[f"{name}__{i}"] for i in range(len(indices))])
                 if name in driver._designvars_discrete:
                     driver._set_design_var(name, vals)
                 else:
@@ -491,7 +553,7 @@ class pymooProblem(problem):
             self.driver.iter_count += 1
             # if coloring is enabled, pre and iter have run.
             # if coloring is disabled, pre has run.
-            with model._relevance.nonlinear_active('iter'):
+            with model._relevance.nonlinear_active("iter"):
                 self.driver._run_solve_nonlinear()
                 self.driver._model_ran = True
 
@@ -592,8 +654,7 @@ class pymooDriver(Driver):
             Keyword arguments that will be mapped into the Driver options.
         """
         if pymoo is None:
-            raise RuntimeError('pymooDriver is not available, pymoo is not'
-                               ' installed.')
+            raise RuntimeError("pymooDriver is not available, pymoo is not installed.")
 
         if isinstance(pymoo, Exception):
             # there is some other issue with the pymoo installation
@@ -602,19 +663,19 @@ class pymooDriver(Driver):
         super().__init__(**kwargs)
 
         # What we support
-        self.supports['optimization'] = True
-        self.supports['inequality_constraints'] = True
-        self.supports['equality_constraints'] = True
-        self.supports['two_sided_constraints'] = True
-        self.supports['linear_constraints'] = True
-        self.supports['linear_only_designvars'] = True
-        self.supports['multiple_objectives'] = True
-        self.supports['integer_design_vars'] = True
+        self.supports["optimization"] = True
+        self.supports["inequality_constraints"] = True
+        self.supports["equality_constraints"] = True
+        self.supports["two_sided_constraints"] = True
+        self.supports["linear_constraints"] = True
+        self.supports["linear_only_designvars"] = True
+        self.supports["multiple_objectives"] = True
+        self.supports["integer_design_vars"] = True
 
         # What we don't support
-        self.supports['active_set'] = False
-        self.supports['distributed_design_vars'] = False
-        self.supports['gradients'] = False
+        self.supports["active_set"] = False
+        self.supports["distributed_design_vars"] = False
+        self.supports["gradients"] = False
         self.supports._read_only = True
 
         # The user places algorithm-specific settings in here that are passed
@@ -627,7 +688,7 @@ class pymooDriver(Driver):
         self._model_ran = False
         self._moo_prob = None
         self.alg_class = None
-        self.pareto = {'X': None, 'F': None, 'X_raw': None, 'F_raw': None}
+        self.pareto = {"X": None, "F": None, "X_raw": None, "F_raw": None}
 
         # Full communicator across all ranks, stored in _setup_comm before
         # Problem.setup() runs. Used by the MPI runner to coordinate population
@@ -640,13 +701,22 @@ class pymooDriver(Driver):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare('optimizer', 'GA', values=_all_optimizers,
-                             desc='Name of optimizer to use')
-        self.options.declare('disp', default=True, types=(int, bool),
-                             desc='Controls optimizer output verbosity. Not used '
-                                  'if "verbose" is manually set in "self.run_settings".')
-        self.options.declare('procs_per_model', default=1, lower=1,
-                             desc='Number of processors to give each model under MPI.')
+        self.options.declare(
+            "optimizer", "GA", values=_all_optimizers, desc="Name of optimizer to use"
+        )
+        self.options.declare(
+            "disp",
+            default=True,
+            types=(int, bool),
+            desc="Controls optimizer output verbosity. Not used "
+            'if "verbose" is manually set in "self.run_settings".',
+        )
+        self.options.declare(
+            "procs_per_model",
+            default=1,
+            lower=1,
+            desc="Number of processors to give each model under MPI.",
+        )
 
     def _setup_comm(self, comm):
         """
@@ -685,29 +755,30 @@ class pymooDriver(Driver):
         self._problem_comm = comm
 
         if not MPI:
-            if self.options['procs_per_model'] != 1:
-                raise RuntimeError(f'{self.msginfo}: procs_per_model != 1 requires '
-                                   'MPI but MPI is not being used.')
+            if self.options["procs_per_model"] != 1:
+                raise RuntimeError(
+                    f"{self.msginfo}: procs_per_model != 1 requires MPI but MPI is not being used."
+                )
             return comm
 
         if comm.size == 1:
             return comm
 
-        procs_per_model = self.options['procs_per_model']
+        procs_per_model = self.options["procs_per_model"]
         full_size = comm.size
         if procs_per_model > full_size:
             raise RuntimeError(
-                f'{self.msginfo}: procs_per_model ({procs_per_model}) is greater than '
-                f'the total number of MPI processors ({full_size}).'
+                f"{self.msginfo}: procs_per_model ({procs_per_model}) is greater than "
+                f"the total number of MPI processors ({full_size})."
             )
 
         n_groups = full_size // procs_per_model
         if full_size != n_groups * procs_per_model:
             raise RuntimeError(
-                f'{self.msginfo}: Total number of processors ({full_size}) is not '
-                f'evenly divisible by procs_per_model ({procs_per_model}). '
-                f'Provide a number of processors that is a multiple of '
-                f'{procs_per_model}.'
+                f"{self.msginfo}: Total number of processors ({full_size}) is not "
+                f"evenly divisible by procs_per_model ({procs_per_model}). "
+                f"Provide a number of processors that is a multiple of "
+                f"{procs_per_model}."
             )
 
         color = comm.rank % n_groups
@@ -722,7 +793,7 @@ class pymooDriver(Driver):
         records.
         """
         if MPI:
-            procs_per_model = self.options['procs_per_model']
+            procs_per_model = self.options["procs_per_model"]
 
             for recorder in self._rec_mgr:
                 if procs_per_model == 1:
@@ -759,27 +830,27 @@ class pymooDriver(Driver):
             The OpenMDAO Problem being optimized.
         """
         super()._setup_driver(problem)
-        opt = self.options['optimizer']
+        opt = self.options["optimizer"]
 
         # Update support flags based on optimizer capabilities
         self.supports._read_only = False
-        self.supports['inequality_constraints'] = opt in _constraint_optimizers
-        self.supports['two_sided_constraints'] = opt in _constraint_optimizers
-        self.supports['equality_constraints'] = opt in _constraint_optimizers
-        self.supports['linear_constraints'] = opt in _constraint_optimizers
-        self.supports['multiple_objectives'] = opt in _multi_obj_optimizers
-        self.supports['integer_design_vars'] = opt in _mixed_var_optimizers
+        self.supports["inequality_constraints"] = opt in _constraint_optimizers
+        self.supports["two_sided_constraints"] = opt in _constraint_optimizers
+        self.supports["equality_constraints"] = opt in _constraint_optimizers
+        self.supports["linear_constraints"] = opt in _constraint_optimizers
+        self.supports["multiple_objectives"] = opt in _multi_obj_optimizers
+        self.supports["integer_design_vars"] = opt in _mixed_var_optimizers
         self.supports._read_only = True
 
         # Validate problem formulation
-        if not self.supports['multiple_objectives'] and len(self._objs) > 1:
-            msg = 'The {} algorithm in {} currently does not support multiple objectives.'
+        if not self.supports["multiple_objectives"] and len(self._objs) > 1:
+            msg = "The {} algorithm in {} currently does not support multiple objectives."
             raise RuntimeError(msg.format(opt, self.msginfo))
 
         if self._designvars_discrete and opt not in _mixed_var_optimizers:
             raise RuntimeError(
-                f'{self.msginfo}: Optimizer {opt!r} does not support discrete design '
-                f'variables. Use MixedVariableGA for mixed integer problems.'
+                f"{self.msginfo}: Optimizer {opt!r} does not support discrete design "
+                f"variables. Use MixedVariableGA for mixed integer problems."
             )
 
         self._model_ran = False
@@ -797,7 +868,7 @@ class pymooDriver(Driver):
         """
         self.result.reset()
         prob = self._problem()
-        opt = self.options['optimizer']
+        opt = self.options["optimizer"]
         self.iter_count = 0
         self._desvar_array_cache = None
 
@@ -821,38 +892,44 @@ class pymooDriver(Driver):
                 val = desvar_vals[name]
                 ndesvar += 1 if np.ndim(val) == 0 else len(val)
             else:
-                ndesvar += meta['global_size'] if meta['distributed'] else meta['size']
+                ndesvar += meta["global_size"] if meta["distributed"] else meta["size"]
 
         if ndesvar == 0:
-            raise RuntimeError('Problem has no design variables.')
+            raise RuntimeError("Problem has no design variables.")
 
         # Collect design variable information (initial values and bounds)
-        x_info = {'vars': [], 'upper': np.full(ndesvar, self._inf_bound),
-                  'lower': np.full(ndesvar, -self._inf_bound), 'indices': []}
-        dv_bounds = self._autoscaler.get_bounds_scaling('design_var')
+        x_info = {
+            "vars": [],
+            "upper": np.full(ndesvar, self._inf_bound),
+            "lower": np.full(ndesvar, -self._inf_bound),
+            "indices": [],
+        }
+        dv_bounds = self._autoscaler.get_bounds_scaling("design_var")
         current_idx = 0
         for name, meta in self._designvars.items():
-            x_info['vars'].append(name)
+            x_info["vars"].append(name)
 
             if name in self._designvars_discrete:
                 val = desvar_vals[name]
                 size = 1 if np.ndim(val) == 0 else len(val)
             else:
-                size = meta['global_size'] if meta['distributed'] else meta['size']
+                size = meta["global_size"] if meta["distributed"] else meta["size"]
             current_indices = list(range(current_idx, current_idx + size))
-            x_info['indices'].append(current_indices)
+            x_info["indices"].append(current_indices)
             if name in self._designvars_discrete:
-                lower, upper = meta['lower'], meta['upper']
+                lower, upper = meta["lower"], meta["upper"]
             else:
                 lower, upper = dv_bounds[name].lower, dv_bounds[name].upper
 
             # None means entirely unbounded; a partially unbounded array still carries
             # +/-inf elementwise, so both are mapped to the driver's finite sentinel.
             inf_bound = self._inf_bound
-            x_info['lower'][current_indices] = -inf_bound if lower is None \
-                else self._to_driver_bound(lower)
-            x_info['upper'][current_indices] = inf_bound if upper is None \
-                else self._to_driver_bound(upper)
+            x_info["lower"][current_indices] = (
+                -inf_bound if lower is None else self._to_driver_bound(lower)
+            )
+            x_info["upper"][current_indices] = (
+                inf_bound if upper is None else self._to_driver_bound(upper)
+            )
             current_idx += size
 
         # Determine total number of constraints
@@ -860,84 +937,86 @@ class pymooDriver(Driver):
         nieqcons = 0
         if opt in _constraint_optimizers:
             for name, meta in self._cons.items():
-                if meta['indices'] is not None:
-                    meta['size'] = size = meta['indices'].indexed_src_size
+                if meta["indices"] is not None:
+                    meta["size"] = size = meta["indices"].indexed_src_size
                 else:
-                    size = meta['global_size'] if meta['distributed'] else meta['size']
+                    size = meta["global_size"] if meta["distributed"] else meta["size"]
 
-                if meta['equals'] is not None:
+                if meta["equals"] is not None:
                     neqcons += size
                 else:
-                    if meta['upper'] is not None and \
-                            not np.all(np.isposinf(np.atleast_1d(meta['upper']))):
+                    if meta["upper"] is not None and not np.all(
+                        np.isposinf(np.atleast_1d(meta["upper"]))
+                    ):
                         nieqcons += size
-                    if meta['lower'] is not None and \
-                            not np.all(np.isneginf(np.atleast_1d(meta['lower']))):
+                    if meta["lower"] is not None and not np.all(
+                        np.isneginf(np.atleast_1d(meta["lower"]))
+                    ):
                         nieqcons += size
 
         # Collect constraint information
-        ieq_con_info = {'vars': [], 'indices': [], 'is_upper': [], 'bound': np.empty(nieqcons)}
-        eq_con_info = {'vars': [], 'indices': [], 'equals': np.empty(neqcons)}
+        ieq_con_info = {"vars": [], "indices": [], "is_upper": [], "bound": np.empty(nieqcons)}
+        eq_con_info = {"vars": [], "indices": [], "equals": np.empty(neqcons)}
         current_eq_idx = 0
         current_ieq_idx = 0
         if opt in _constraint_optimizers:
-            con_bounds = self._autoscaler.get_bounds_scaling('constraint')
+            con_bounds = self._autoscaler.get_bounds_scaling("constraint")
             for name, meta in self._cons.items():
-                if meta['indices'] is not None:
-                    size = meta['indices'].indexed_src_size
+                if meta["indices"] is not None:
+                    size = meta["indices"].indexed_src_size
                 else:
-                    size = meta['global_size'] if meta['distributed'] else meta['size']
+                    size = meta["global_size"] if meta["distributed"] else meta["size"]
 
                 # Separate equality and inequality constraints
-                if meta['equals'] is not None:
+                if meta["equals"] is not None:
                     current_eq_indices = list(range(current_eq_idx, current_eq_idx + size))
-                    eq_con_info['vars'].append(name)
-                    eq_con_info['indices'].append(current_eq_indices)
-                    eq_con_info['equals'][current_eq_indices] = con_bounds[name].equals
+                    eq_con_info["vars"].append(name)
+                    eq_con_info["indices"].append(current_eq_indices)
+                    eq_con_info["equals"][current_eq_indices] = con_bounds[name].equals
                     current_eq_idx += size
 
                 else:
                     # Need to log upper and lower as separate inequality constraints
-                    if meta['upper'] is not None and \
-                            not np.all(np.isposinf(np.atleast_1d(meta['upper']))):
+                    if meta["upper"] is not None and not np.all(
+                        np.isposinf(np.atleast_1d(meta["upper"]))
+                    ):
                         current_ieq_indices = list(range(current_ieq_idx, current_ieq_idx + size))
-                        ieq_con_info['vars'].append(name)
-                        ieq_con_info['indices'].append(current_ieq_indices)
-                        ieq_con_info['is_upper'].append(True)
-                        ieq_con_info['bound'][current_ieq_indices] = con_bounds[name].upper
+                        ieq_con_info["vars"].append(name)
+                        ieq_con_info["indices"].append(current_ieq_indices)
+                        ieq_con_info["is_upper"].append(True)
+                        ieq_con_info["bound"][current_ieq_indices] = con_bounds[name].upper
                         current_ieq_idx += size
 
-                    if meta['lower'] is not None and \
-                            not np.all(np.isneginf(np.atleast_1d(meta['lower']))):
+                    if meta["lower"] is not None and not np.all(
+                        np.isneginf(np.atleast_1d(meta["lower"]))
+                    ):
                         current_ieq_indices = list(range(current_ieq_idx, current_ieq_idx + size))
-                        ieq_con_info['vars'].append(name)
-                        ieq_con_info['indices'].append(current_ieq_indices)
-                        ieq_con_info['is_upper'].append(False)
-                        ieq_con_info['bound'][current_ieq_indices] = con_bounds[name].lower
+                        ieq_con_info["vars"].append(name)
+                        ieq_con_info["indices"].append(current_ieq_indices)
+                        ieq_con_info["is_upper"].append(False)
+                        ieq_con_info["bound"][current_ieq_indices] = con_bounds[name].lower
                         current_ieq_idx += size
 
         # Collect objective information
-        obj_info = {'vars': [], 'indices': [], 'size': 1}
+        obj_info = {"vars": [], "indices": [], "size": 1}
         current_idx = 0
         for name, meta in self._objs.items():
-            if meta['indices'] is not None:
-                meta['size'] = size = meta['indices'].indexed_src_size
+            if meta["indices"] is not None:
+                meta["size"] = size = meta["indices"].indexed_src_size
             else:
-                size = meta['global_size'] if meta['distributed'] else meta['size']
+                size = meta["global_size"] if meta["distributed"] else meta["size"]
 
             current_indices = list(range(current_idx, current_idx + size))
-            obj_info['vars'].append(name)
-            obj_info['indices'].append(current_indices)
+            obj_info["vars"].append(name)
+            obj_info["indices"].append(current_indices)
             current_idx += size
-        obj_info['size'] = current_idx
+        obj_info["size"] = current_idx
 
         # Use the MPI runner only when there are multiple evaluation groups, i.e.
         # when cases are actually being evaluated in parallel across ranks.
-        n_groups = (self._problem_comm.size // self.options['procs_per_model']
-                    if MPI else 1)
+        n_groups = self._problem_comm.size // self.options["procs_per_model"] if MPI else 1
         if n_groups > 1:
-            runner = MPIElementwiseRunner(self._problem_comm,
-                                          self.options['procs_per_model'])
+            runner = MPIElementwiseRunner(self._problem_comm, self.options["procs_per_model"])
         else:
             runner = None  # use pymoo's default LoopedElementwiseEvaluation
 
@@ -959,9 +1038,9 @@ class pymooDriver(Driver):
             # via alg_settings. To disable file output entirely, set
             # alg_settings['verb_log'] = 0.
             alg_settings = dict(self.alg_settings)
-            if opt == 'CMAES' and 'verb_filenameprefix' not in alg_settings:
+            if opt == "CMAES" and "verb_filenameprefix" not in alg_settings:
                 outputs_dir = prob.get_outputs_dir(mkdir=True)
-                alg_settings['verb_filenameprefix'] = str(outputs_dir / 'cmaes_')
+                alg_settings["verb_filenameprefix"] = str(outputs_dir / "cmaes_")
 
             # Instantiate and run optimizer
             optimizer = self.alg_class(**alg_settings)
@@ -970,9 +1049,9 @@ class pymooDriver(Driver):
             run_settings = {**self.run_settings}
             if prob.comm.rank == 0:
                 if "verbose" not in self.run_settings:
-                    run_settings['verbose'] = self.options['disp']
+                    run_settings["verbose"] = self.options["disp"]
             else:
-                run_settings['verbose'] = False
+                run_settings["verbose"] = False
 
             self.pymoo_results = minimize(
                 problem=self._moo_prob,
@@ -992,11 +1071,11 @@ class pymooDriver(Driver):
                 if x_opt is not None:
                     # Update OpenMDAO design variables with optimal values.
                     # x_opt is in optimizer-scaled space; unscale before writing to model.
-                    dv_vec = self._vectors['design_var']
+                    dv_vec = self._vectors["design_var"]
                     if isinstance(x_opt, dict):
                         continuous_names = []
-                        for name, indices in zip(x_info['vars'], x_info['indices']):
-                            vals = np.array([x_opt[f'{name}__{i}'] for i in range(len(indices))])
+                        for name, indices in zip(x_info["vars"], x_info["indices"]):
+                            vals = np.array([x_opt[f"{name}__{i}"] for i in range(len(indices))])
                             if name in self._designvars_discrete:
                                 self._set_design_var(name, vals)
                             else:
@@ -1016,34 +1095,34 @@ class pymooDriver(Driver):
 
             # For pareto frontiers, just leave the model in whatever its last state was
             else:
-                self.pareto['X_raw'] = x_opt
-                self.pareto['F_raw'] = F_opt
+                self.pareto["X_raw"] = x_opt
+                self.pareto["F_raw"] = F_opt
                 if x_opt is not None:
-                    self.pareto['X'] = {}
+                    self.pareto["X"] = {}
                     # Pre-allocate output arrays for continuous variables.
-                    for name, indices in zip(x_info['vars'], x_info['indices']):
+                    for name, indices in zip(x_info["vars"], x_info["indices"]):
                         if name in self._designvars_discrete:
-                            self.pareto['X'][name] = x_opt[:, indices]
+                            self.pareto["X"][name] = x_opt[:, indices]
                         else:
-                            self.pareto['X'][name] = np.empty((x_opt.shape[0], len(indices)))
+                            self.pareto["X"][name] = np.empty((x_opt.shape[0], len(indices)))
 
                     # Unscale each Pareto solution via the autoscaler, then read back.
-                    dv_vec = self._vectors['design_var']
+                    dv_vec = self._vectors["design_var"]
                     for sol_idx in range(x_opt.shape[0]):
                         dv_vec.set_data(x_opt[sol_idx], driver_scaling=True)
                         self._autoscaler.apply_design_var_unscaling(dv_vec)
-                        for name, indices in zip(x_info['vars'], x_info['indices']):
+                        for name, indices in zip(x_info["vars"], x_info["indices"]):
                             if name not in self._designvars_discrete:
-                                self.pareto['X'][name][sol_idx] = dv_vec[name]
+                                self.pareto["X"][name][sol_idx] = dv_vec[name]
 
-                    self.pareto['F'] = {}
-                    for name, indices in zip(obj_info['vars'], obj_info['indices']):
-                        self.pareto['F'][name] = F_opt[:, indices]
+                    self.pareto["F"] = {}
+                    for name, indices in zip(obj_info["vars"], obj_info["indices"]):
+                        self.pareto["F"][name] = F_opt[:, indices]
 
-            if run_settings['verbose']:
+            if run_settings["verbose"]:
                 if prob.comm.rank == 0:
-                    print('Optimization Complete')
-                    print('-' * 35)
+                    print("Optimization Complete")
+                    print("-" * 35)
 
         except Exception:
             # If an exception occurred in one of our callbacks, re-raise it with
@@ -1071,27 +1150,27 @@ class pymooDriver(Driver):
             The pymoo algorithm class corresponding to ``alg_name``.
         """
         if alg_name in _mixed_var_optimizers:
-            module = importlib.import_module('pymoo.core.mixed')
+            module = importlib.import_module("pymoo.core.mixed")
             return getattr(module, alg_name)
 
         if alg_name in _single_obj_optimizers:
-            base = 'pymoo.algorithms.soo.nonconvex'
+            base = "pymoo.algorithms.soo.nonconvex"
         else:
-            base = 'pymoo.algorithms.moo'
+            base = "pymoo.algorithms.moo"
 
         # The script where the algorithm classes are located are all just a
         # lowercase of the algorithm name, except for the specifically called
         # out algorithms
         non_default_mapping = {
-            'NelderMead': 'nelder',
-            'PatternSearch': 'pattern',
-            'AGEMOEA': 'age',
-            'AGEMOEA2': 'age2',
-            'SMSEMOA': 'sms',
-            'NicheGA': 'ga_niching',
-            'EPPSO': 'pso_ep',
-            'RandomSearch': 'random_search',
+            "NelderMead": "nelder",
+            "PatternSearch": "pattern",
+            "AGEMOEA": "age",
+            "AGEMOEA2": "age2",
+            "SMSEMOA": "sms",
+            "NicheGA": "ga_niching",
+            "EPPSO": "pso_ep",
+            "RandomSearch": "random_search",
         }
         module_name = non_default_mapping.get(alg_name, alg_name.lower())
-        module = importlib.import_module(f'{base}.{module_name}')
+        module = importlib.import_module(f"{base}.{module_name}")
         return getattr(module, alg_name)

@@ -28,22 +28,22 @@ def clean_outfile(outFile):
 # Test model derived from one contributed by Anil Yildirim at U-Mich MDO lab
 class myComp(om.ExplicitComponent):
     def setup(self):
-        self.add_input('x2', distributed=True)
-        self.add_output('x3', shape=MPI.COMM_WORLD.rank, distributed=True)
+        self.add_input("x2", distributed=True)
+        self.add_output("x3", shape=MPI.COMM_WORLD.rank, distributed=True)
 
     def compute(self, inputs, outputs):
-        outputs['x3'] = inputs['x2'] + 1
+        outputs["x3"] = inputs["x2"] + 1
 
 
 class Top(om.Group):
     def setup(self):
 
-        indep_var = self.add_subsystem('indep_var', om.IndepVarComp())
-        self.add_subsystem('myComp', myComp())
+        indep_var = self.add_subsystem("indep_var", om.IndepVarComp())
+        self.add_subsystem("myComp", myComp())
 
-        indep_var.add_output('x1', 2.0)
+        indep_var.add_output("x1", 2.0)
 
-        self.connect('indep_var.x1', 'myComp.x2')
+        self.connect("indep_var.x1", "myComp.x2")
 
 
 @use_tempdirs

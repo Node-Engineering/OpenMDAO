@@ -1,4 +1,3 @@
-
 from openmdao.api import ExplicitComponent
 
 try:
@@ -8,20 +7,19 @@ except ImportError:
 
 
 class ADFLOWComp(ExplicitComponent):
-
     def setup(self):
         # self.options['distributed'] = True
-        self.add_input('shape', shape=8 * 12 * 2)
+        self.add_input("shape", shape=8 * 12 * 2)
 
-        self.add_output('cl')
-        self.add_output('cd')
+        self.add_output("cl")
+        self.add_output("cd")
 
-        self.add_output('lete_1', shape=8)
-        self.add_output('lete_2', shape=8)
+        self.add_output("lete_1", shape=8)
+        self.add_output("lete_2", shape=8)
 
-        self.add_output('vol_constraint', val=0.)
+        self.add_output("vol_constraint", val=0.0)
 
-        self.add_output('thickness', shape=30 * 25)
+        self.add_output("thickness", shape=30 * 25)
 
     def compute(self, inputs, outputs):
         pass
@@ -32,4 +30,5 @@ class ADFLOWComp(ExplicitComponent):
 
 if __name__ == "__main__":
     from openmdao.utils.mpi import mpirun_tests
+
     mpirun_tests()

@@ -9,16 +9,19 @@ def get_tag_info():
     Return the latest git tag (highest numerically) as a string, and the associated commit ID.
     """
     # using a pattern to only grab tags that are in version format "X.Y.Z"
-    git_versions = subprocess.Popen(['git', 'tag', '-l', '*.*.*'],  # nosec: trusted input
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    git_versions = subprocess.Popen(
+        ["git", "tag", "-l", "*.*.*"],  # nosec: trusted input
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     cmd_out, _ = git_versions.communicate()
 
-    cmd_out = cmd_out.decode('utf8')
+    cmd_out = cmd_out.decode("utf8")
     # take the output of git tag -l *.*.*, and split it from one string into a list.
     version_tags = cmd_out.split()
 
     if not version_tags:
-        warn('No tags found in repository')
+        warn("No tags found in repository")
         return None, None
 
     # use sort to put the versions list in order from lowest to highest
@@ -27,11 +30,14 @@ def get_tag_info():
     # grab the highest tag that this repo knows about
     latest_tag = version_tags[-1]
 
-    cmd = subprocess.Popen(['git', 'rev-list', '-1', latest_tag, '-s'],  # nosec: trusted input
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cmd = subprocess.Popen(
+        ["git", "rev-list", "-1", latest_tag, "-s"],  # nosec: trusted input
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     cmd_out, _ = cmd.communicate()
 
-    cmd_out = cmd_out.decode('utf8')
+    cmd_out = cmd_out.decode("utf8")
     commit_id = cmd_out.strip()
 
     return latest_tag, commit_id
@@ -41,11 +47,14 @@ def get_commit_info():
     """
     Return the commit number of the most recent git commit as a string.
     """
-    git_commit = subprocess.Popen(['git', 'show', '--pretty=oneline', '-s'],  # nosec: trusted input
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    git_commit = subprocess.Popen(
+        ["git", "show", "--pretty=oneline", "-s"],  # nosec: trusted input
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     cmd_out, _ = git_commit.communicate()
 
-    cmd_out = cmd_out.decode('utf8')
+    cmd_out = cmd_out.decode("utf8")
     commit_id = cmd_out.split()[0]
 
     return commit_id
@@ -82,8 +91,8 @@ def upload_doc_version(source_dir, destination, *args):
     """
     name, rel = get_doc_version()
 
-    if not destination.endswith('/'):
-        destination += '/'
+    if not destination.endswith("/"):
+        destination += "/"
 
     # if release, send to version-numbered dir
     if rel:
@@ -104,14 +113,16 @@ def upload_doc_version(source_dir, destination, *args):
     try:
         subprocess.run(cmd, shell=True, check=True)  # nosec: trusted input
     except Exception:
-        raise Exception('Doc transfer failed.')
+        raise Exception("Doc transfer failed.")
     else:
         print("Uploaded documentation for", name if rel else "latest")
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Source and Destination required: "
-              f"python {sys.argv[0]} [PATH]/_build/html [USER@]HOST:DIRECTORY")
+        print(
+            "Source and Destination required: "
+            f"python {sys.argv[0]} [PATH]/_build/html [USER@]HOST:DIRECTORY"
+        )
     else:
         upload_doc_version(*sys.argv[1:])

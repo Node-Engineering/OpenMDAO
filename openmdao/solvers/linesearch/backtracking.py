@@ -31,11 +31,11 @@ def _print_violations(outputs, lower, upper):
     for name, val in outputs._abs_item_iter():
         end += val.size
         if upper is not None and any(val > upper[start:end]):
-            msg = (f"'{name}' exceeds upper bounds\n  Val: {val}\n  Upper: {upper[start:end]}\n")
+            msg = f"'{name}' exceeds upper bounds\n  Val: {val}\n  Upper: {upper[start:end]}\n"
             issue_warning(msg, category=SolverWarning)
 
         if lower is not None and any(val < lower[start:end]):
-            msg = (f"'{name}' exceeds lower bounds\n  Val: {val}\n  Lower: {lower[start:end]}\n")
+            msg = f"'{name}' exceeds lower bounds\n  Val: {val}\n  Lower: {lower[start:end]}\n"
             issue_warning(msg, category=SolverWarning)
 
         start = end
@@ -83,16 +83,22 @@ class LinesearchSolver(NonlinearSolver):
         super()._declare_options()
         opt = self.options
         opt.declare(
-            'bound_enforcement', default='scalar', values=['vector', 'scalar', 'wall'],
-            desc="If this is set to 'vector', the entire vector is backtracked together " +
-                 "when a bound is violated. If this is set to 'scalar', only the violating " +
-                 "entries are set to the bound and then the backtracking occurs on the vector " +
-                 "as a whole. If this is set to 'wall', only the violating entries are set " +
-                 "to the bound, and then the backtracking follows the wall - i.e., the " +
-                 "violating entries do not change during the line search.")
-        opt.declare('print_bound_enforce', default=False,
-                    desc="Set to True to print out names and values of variables that are pulled "
-                    "back to their bounds.")
+            "bound_enforcement",
+            default="scalar",
+            values=["vector", "scalar", "wall"],
+            desc="If this is set to 'vector', the entire vector is backtracked together "
+            + "when a bound is violated. If this is set to 'scalar', only the violating "
+            + "entries are set to the bound and then the backtracking occurs on the vector "
+            + "as a whole. If this is set to 'wall', only the violating entries are set "
+            + "to the bound, and then the backtracking follows the wall - i.e., the "
+            + "violating entries do not change during the line search.",
+        )
+        opt.declare(
+            "print_bound_enforce",
+            default=False,
+            desc="Set to True to print out names and values of variables that are pulled "
+            "back to their bounds.",
+        )
 
     def _setup_solvers(self, system, depth):
         """
@@ -107,20 +113,20 @@ class LinesearchSolver(NonlinearSolver):
         """
         super()._setup_solvers(system, depth)
         if system._has_bounds:
-            abs2meta_out = system._var_abs2meta['output']
+            abs2meta_out = system._var_abs2meta["output"]
             start = end = 0
             for abs_name, val in system._outputs._abs_item_iter():
                 end += val.size
                 meta = abs2meta_out[abs_name]
-                var_lower = meta['lower']
-                var_upper = meta['upper']
+                var_lower = meta["lower"]
+                var_upper = meta["upper"]
 
                 if var_lower is None and var_upper is None:
                     start = end
                     continue
 
-                ref0 = meta['ref0']
-                ref = meta['ref']
+                ref0 = meta["ref0"]
+                ref = meta["ref"]
 
                 if not np.isscalar(ref0):
                     ref0 = ref0.ravel()
@@ -163,18 +169,18 @@ class LinesearchSolver(NonlinearSolver):
             return
 
         options = self.options
-        method = options['bound_enforcement']
+        method = options["bound_enforcement"]
         lower = self._lower_bounds
         upper = self._upper_bounds
 
-        if options['print_bound_enforce']:
+        if options["print_bound_enforce"]:
             _print_violations(system._outputs, lower, upper)
 
-        if method == 'vector':
+        if method == "vector":
             _enforce_bounds_vector(system._outputs, step, alpha, lower, upper)
-        elif method == 'scalar':
+        elif method == "scalar":
             _enforce_bounds_scalar(system._outputs, step, alpha, lower, upper)
-        elif method == 'wall':
+        elif method == "wall":
             _enforce_bounds_wall(system._outputs, step, alpha, lower, upper)
 
 
@@ -191,7 +197,7 @@ class BoundsEnforceLS(LinesearchSolver):
         Options dictionary.
     """
 
-    SOLVER = 'LS: BCHK'
+    SOLVER = "LS: BCHK"
 
     def _declare_options(self):
         """
@@ -202,8 +208,13 @@ class BoundsEnforceLS(LinesearchSolver):
 
         # Remove unused options from base options here, so that users
         # attempting to set them will get KeyErrors.
-        unused_options = ("atol", "rtol", "maxiter", "err_on_non_converge",
-                          "restart_from_successful")
+        unused_options = (
+            "atol",
+            "rtol",
+            "maxiter",
+            "err_on_non_converge",
+            "restart_from_successful",
+        )
         for unused_option in unused_options:
             opt.undeclare(unused_option)
 
@@ -229,7 +240,7 @@ class BoundsEnforceLS(LinesearchSolver):
         self._norm0 = norm0
         u += du
 
-        with Recording('BoundsEnforceLS', self._iter_count, self) as rec:
+        with Recording("BoundsEnforceLS", self._iter_count, self) as rec:
             self._enforce_bounds(step=du, alpha=1.0)
 
             self._run_apply()
@@ -257,7 +268,7 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         Flag is set to True if a subsystem raises an AnalysisError.
     """
 
-    SOLVER = 'LS: AG'
+    SOLVER = "LS: AG"
 
     def __init__(self, **kwargs):
         """
@@ -290,7 +301,7 @@ class ArmijoGoldsteinLS(LinesearchSolver):
             error at the first iteration.
         """
         system = self._system()
-        self.alpha = alpha = self.options['alpha']
+        self.alpha = alpha = self.options["alpha"]
 
         u = system._outputs
         du = system._doutputs
@@ -318,7 +329,7 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         except AnalysisError as err:
             self._solver_info.restore_cache(cache)
 
-            if self.options['retry_on_analysis_error']:
+            if self.options["retry_on_analysis_error"]:
                 self._analysis_error_raised = True
             else:
                 raise err
@@ -333,16 +344,29 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         """
         super()._declare_options()
         opt = self.options
-        opt['maxiter'] = 5
-        opt.declare('c', default=0.1, lower=0.0, upper=1.0, desc="Slope parameter for line of "
-                    "sufficient decrease. The larger the step, the more decrease is required to "
-                    "terminate the line search.")
-        opt.declare('rho', default=0.5, lower=0.0, upper=1.0, desc="Contraction factor.")
-        opt.declare('alpha', default=1.0, lower=0.0, desc="Initial line search step.")
-        opt.declare('retry_on_analysis_error', default=True,
-                    desc="Backtrack and retry if an AnalysisError is raised.")
-        opt.declare('method', default='Armijo', values=['Armijo', 'Goldstein'],
-                    desc="Method to calculate stopping condition.")
+        opt["maxiter"] = 5
+        opt.declare(
+            "c",
+            default=0.1,
+            lower=0.0,
+            upper=1.0,
+            desc="Slope parameter for line of "
+            "sufficient decrease. The larger the step, the more decrease is required to "
+            "terminate the line search.",
+        )
+        opt.declare("rho", default=0.5, lower=0.0, upper=1.0, desc="Contraction factor.")
+        opt.declare("alpha", default=1.0, lower=0.0, desc="Initial line search step.")
+        opt.declare(
+            "retry_on_analysis_error",
+            default=True,
+            desc="Backtrack and retry if an AnalysisError is raised.",
+        )
+        opt.declare(
+            "method",
+            default="Armijo",
+            values=["Armijo", "Goldstein"],
+            desc="Method to calculate stopping condition.",
+        )
 
     def _single_iteration(self):
         """
@@ -362,7 +386,7 @@ class ArmijoGoldsteinLS(LinesearchSolver):
             except AnalysisError as err:
                 self._solver_info.restore_cache(cache)
 
-                if self.options['retry_on_analysis_error']:
+                if self.options["retry_on_analysis_error"]:
                     self._analysis_error_raised = True
 
                 else:
@@ -396,11 +420,11 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         method = method.lower()
         fval0 = self._phi0
         df_dalpha = self._dir_derivative
-        c1 = self.options['c']
+        c1 = self.options["c"]
         alpha = self.alpha
-        if method == 'armijo':
+        if method == "armijo":
             return fval <= fval0 + c1 * alpha * df_dalpha
-        elif method == 'goldstein':
+        elif method == "goldstein":
             return fval0 + (1 - c1) * alpha * df_dalpha <= fval <= fval0 + c1 * alpha * df_dalpha
 
     def _update_step_length_parameter(self, rho):
@@ -419,9 +443,9 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         Run the iterative solver.
         """
         options = self.options
-        maxiter = options['maxiter']
-        rho = options['rho']
-        method = options['method']
+        maxiter = options["maxiter"]
+        rho = options["rho"]
+        method = options["method"]
 
         system = self._system()
         u = system._outputs
@@ -432,11 +456,10 @@ class ArmijoGoldsteinLS(LinesearchSolver):
         phi0 = self._phi0
 
         # Further backtracking if needed.
-        while (self._iter_count < maxiter and
-               (not self._stopping_criteria(phi, method) or self._analysis_error_raised)):
-
-            with Recording('ArmijoGoldsteinLS', self._iter_count, self) as rec:
-
+        while self._iter_count < maxiter and (
+            not self._stopping_criteria(phi, method) or self._analysis_error_raised
+        ):
+            with Recording("ArmijoGoldsteinLS", self._iter_count, self) as rec:
                 if self._iter_count > 0:
                     alpha_old = self.alpha
                     self._update_step_length_parameter(rho)
@@ -458,7 +481,7 @@ class ArmijoGoldsteinLS(LinesearchSolver):
                     self._solver_info.restore_cache(cache)
                     self._iter_count += 1
 
-                    if self.options['retry_on_analysis_error']:
+                    if self.options["retry_on_analysis_error"]:
                         self._analysis_error_raised = True
                         rec.abs = np.nan
                         rec.rel = np.nan
@@ -565,12 +588,12 @@ def _enforce_bounds_scalar(u, du, alpha, lower_bounds, upper_bounds):
     # the step required to get up to the lower bound.
     # For du, we normalize by alpha since du eventually gets
     # multiplied by alpha.
-    change_lower = 0. if lower_bounds is None else np.maximum(u_data, lower_bounds) - u_data
+    change_lower = 0.0 if lower_bounds is None else np.maximum(u_data, lower_bounds) - u_data
 
     # If u < upper, we're just adding zero. Otherwise, we're adding
     # the step required to get down to the upper bound, but normalized
     # by alpha since du eventually gets multiplied by alpha.
-    change_upper = 0. if upper_bounds is None else np.minimum(u_data, upper_bounds) - u_data
+    change_upper = 0.0 if upper_bounds is None else np.minimum(u_data, upper_bounds) - u_data
 
     change = change_lower + change_upper
     u_data += change
@@ -610,12 +633,12 @@ def _enforce_bounds_wall(u, du, alpha, lower_bounds, upper_bounds):
     # the step required to get up to the lower bound.
     # For du, we normalize by alpha since du eventually gets
     # multiplied by alpha.
-    change_lower = 0. if lower_bounds is None else np.maximum(u_data, lower_bounds) - u_data
+    change_lower = 0.0 if lower_bounds is None else np.maximum(u_data, lower_bounds) - u_data
 
     # If u < upper, we're just adding zero. Otherwise, we're adding
     # the step required to get down to the upper bound, but normalized
     # by alpha since du eventually gets multiplied by alpha.
-    change_upper = 0. if upper_bounds is None else np.minimum(u_data, upper_bounds) - u_data
+    change_upper = 0.0 if upper_bounds is None else np.minimum(u_data, upper_bounds) - u_data
 
     change = change_lower + change_upper
 
@@ -625,4 +648,4 @@ def _enforce_bounds_wall(u, du, alpha, lower_bounds, upper_bounds):
     # Now we ensure that we will backtrack along the wall during the
     # line search by setting the entries of du at the bounds to zero.
     changed_either = change.astype(bool)
-    du_data[changed_either] = 0.
+    du_data[changed_either] = 0.0

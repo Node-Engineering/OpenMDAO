@@ -1,6 +1,7 @@
 """
 Class definitions for Relevance and related classes.
 """
+
 from contextlib import contextmanager
 from collections import defaultdict
 
@@ -12,7 +13,7 @@ from openmdao.utils.array_utils import array_hash
 from openmdao.utils.om_warnings import issue_warning
 
 
-_no_relevance = env_truthy('OPENMDAO_NO_RELEVANCE')
+_no_relevance = env_truthy("OPENMDAO_NO_RELEVANCE")
 
 
 def get_relevance(model, of, wrt):
@@ -41,11 +42,11 @@ def get_relevance(model, of, wrt):
         wrt = {}
 
     key = (id(model), tuple(sorted(wrt)), tuple(sorted(of)))
-    cache = model._problem_meta['relevance_cache']
+    cache = model._problem_meta["relevance_cache"]
     if key in cache:
         return cache[key]
 
-    relevance = Relevance(model, wrt, of, model._problem_meta['rel_array_cache'])
+    relevance = Relevance(model, wrt, of, model._problem_meta["rel_array_cache"])
     cache[key] = relevance
     return relevance
 
@@ -132,7 +133,7 @@ class Relevance(object):
         """
         Initialize all attributes.
         """
-        assert model.pathname == '', "Relevance can only be initialized on the top level Group."
+        assert model.pathname == "", "Relevance can only be initialized on the top level Group."
 
         # permanently disable relevance if _no_relevance is True
         self._active = False if _no_relevance else None
@@ -145,9 +146,9 @@ class Relevance(object):
         self.empty = False
 
         # seed var(s) for the current derivative operation
-        self._seed_vars = {'fwd': (), 'rev': ()}
+        self._seed_vars = {"fwd": (), "rev": ()}
         # all seed vars for the entire derivative computation
-        self._all_seed_vars = {'fwd': (), 'rev': ()}
+        self._all_seed_vars = {"fwd": (), "rev": ()}
 
         self._set_all_seeds(model, fwd_meta, rev_meta)
 
@@ -199,9 +200,12 @@ class Relevance(object):
         try:
             return self._seed_cache[names]
         except TypeError:  # names is not hashable
-            issue_warning("Relevance seeds should be hashable, but the following seed is not: "
-                          f"{names}. It will be converted to a hashable form, but this could "
-                          "cause performance issues.", category=RuntimeWarning)
+            issue_warning(
+                "Relevance seeds should be hashable, but the following seed is not: "
+                f"{names}. It will be converted to a hashable form, but this could "
+                "cause performance issues.",
+                category=RuntimeWarning,
+            )
             hashable = False
         except KeyError:  # names is not in the cache
             hashable = names
@@ -253,13 +257,13 @@ class Relevance(object):
         for compname in model._pre_components:
             pre_systems.update(all_ancestors(compname))
         if pre_systems:
-            pre_systems.add('')  # include top level group
+            pre_systems.add("")  # include top level group
 
         post_systems = set()
         for compname in model._post_components:
             post_systems.update(all_ancestors(compname))
         if post_systems:
-            post_systems.add('')
+            post_systems.add("")
 
         pre_array = self._sys2rel_array(pre_systems)
         post_array = self._sys2rel_array(post_systems)
@@ -271,11 +275,11 @@ class Relevance(object):
             for compname in model._iterated_components:
                 iter_systems.update(all_ancestors(compname))
             if iter_systems:
-                iter_systems.add('')
+                iter_systems.add("")
 
             iter_array = self._sys2rel_array(iter_systems)
 
-        self._nonlinear_sets = {'pre': pre_array, 'iter': iter_array, 'post': post_array}
+        self._nonlinear_sets = {"pre": pre_array, "iter": iter_array, "post": post_array}
 
     def _single_seed_array_iter(self, group, seed_meta, direction, all_systems):
         """
@@ -310,10 +314,10 @@ class Relevance(object):
         nprocs = group.comm.size
 
         for meta in seed_meta.values():
-            src = meta['source']
-            local = nprocs > 1 and meta['parallel_deriv_color'] is not None
+            src = meta["source"]
+            local = nprocs > 1 and meta["parallel_deriv_color"] is not None
             if local:
-                if src in group._var_abs2meta['output']:  # src is local
+                if src in group._var_abs2meta["output"]:  # src is local
                     depnodes = self._dependent_nodes(src, direction, local=True)
                     group.comm.bcast(depnodes, root=group._owning_rank[src])
                 else:
@@ -410,7 +414,7 @@ class Relevance(object):
                 if combined is None:
                     combined = farr & rmap[rseed]
                 else:
-                    combined |= (farr & rmap[rseed])
+                    combined |= farr & rmap[rseed]
 
         return np.zeros(0, dtype=bool) if combined is None else self._get_cached_array(combined)
 
@@ -472,13 +476,13 @@ class Relevance(object):
         fwd_seeds = []
         rev_seeds = []
         for name, meta in fwd_meta.items():
-            src = meta['source']
+            src = meta["source"]
             self._seed_cache[name] = src
             self._seed_cache[src] = src
             fwd_seeds.append(src)
 
         for name, meta in rev_meta.items():
-            src = meta['source']
+            src = meta["source"]
             self._seed_cache[name] = src
             self._seed_cache[src] = src
             rev_seeds.append(src)
@@ -489,11 +493,11 @@ class Relevance(object):
         self._seed_var_map = seed_var_map = {}
         self._seed_sys_map = seed_sys_map = {}
 
-        self._all_seed_vars['fwd'] = fwd_seeds
-        self._all_seed_vars['rev'] = rev_seeds
+        self._all_seed_vars["fwd"] = fwd_seeds
+        self._all_seed_vars["rev"] = rev_seeds
 
-        self._single_seed2relvars = {'fwd': {}, 'rev': {}}
-        self._single_seed2relsys = {'fwd': {}, 'rev': {}}
+        self._single_seed2relvars = {"fwd": {}, "rev": {}}
+        self._single_seed2relsys = {"fwd": {}, "rev": {}}
 
         if not fwd_meta or not rev_meta:
             self.empty = True
@@ -505,11 +509,11 @@ class Relevance(object):
         # in the graph.  Components are included if all of their outputs
         # depend on all of their inputs.
         all_vars = set()
-        all_systems = {''}
+        all_systems = {""}
         for node, data in self._graph.nodes(data=True):
-            if 'type_' in data:
+            if "type_" in data:
                 all_vars.add(node)
-                sysname = node.rpartition('.')[0]
+                sysname = node.rpartition(".")[0]
                 if sysname not in all_systems:
                     all_systems.update(all_ancestors(sysname))
             elif node not in all_systems:
@@ -523,13 +527,14 @@ class Relevance(object):
         self._sys2idx = {n: i for i, n in enumerate(sorted(all_systems))}
         self._var2idx = {n: i for i, n in enumerate(sorted(all_vars))}
 
-        meta = {'fwd': fwd_meta, 'rev': rev_meta}
+        meta = {"fwd": fwd_meta, "rev": rev_meta}
 
         # map each seed to its variable and system relevance arrays
         has_par_derivs = {}
-        for io in ('fwd', 'rev'):
-            for seed, local, var_array, sys_array in self._single_seed_array_iter(group, meta[io],
-                                                                                  io, all_systems):
+        for io in ("fwd", "rev"):
+            for seed, local, var_array, sys_array in self._single_seed_array_iter(
+                group, meta[io], io, all_systems
+            ):
                 self._single_seed2relvars[io][seed] = self._get_cached_array(var_array)
                 self._single_seed2relsys[io][seed] = self._get_cached_array(sys_array)
                 if local:
@@ -537,41 +542,47 @@ class Relevance(object):
 
         # in seed_map, add keys for both fseed and (fseed,) and similarly for rseed
         # because both forms of keys may be used depending on the context.
-        for fseed, fvarr in self._single_seed2relvars['fwd'].items():
-            fsarr = self._single_seed2relsys['fwd'][fseed]
+        for fseed, fvarr in self._single_seed2relvars["fwd"].items():
+            fsarr = self._single_seed2relsys["fwd"][fseed]
             seed_var_map[fseed] = seed_var_map[(fseed,)] = vsub = {}
             seed_sys_map[fseed] = seed_sys_map[(fseed,)] = ssub = {}
-            for rseed, rvarr in self._single_seed2relvars['rev'].items():
-                rsysarr = self._single_seed2relsys['rev'][rseed]
+            for rseed, rvarr in self._single_seed2relvars["rev"].items():
+                rsysarr = self._single_seed2relsys["rev"][rseed]
                 vsub[rseed] = vsub[(rseed,)] = self._get_cached_array(fvarr & rvarr)
                 ssub[rseed] = ssub[(rseed,)] = self._get_cached_array(fsarr & rsysarr)
 
         # now add entries for each (fseed, all_rseeds) and each (all_fseeds, rseed)
-        for fsrc, farr in self._single_seed2relvars['fwd'].items():
-            seed_var_map[fsrc][rev_seeds] = \
-                self._combine_relevance(self._single_seed2relvars['fwd'], [fsrc],
-                                        self._single_seed2relvars['rev'], rev_seeds)
-            seed_sys_map[fsrc][rev_seeds] = \
-                self._combine_relevance(self._single_seed2relsys['fwd'], [fsrc],
-                                        self._single_seed2relsys['rev'], rev_seeds)
+        for fsrc, farr in self._single_seed2relvars["fwd"].items():
+            seed_var_map[fsrc][rev_seeds] = self._combine_relevance(
+                self._single_seed2relvars["fwd"],
+                [fsrc],
+                self._single_seed2relvars["rev"],
+                rev_seeds,
+            )
+            seed_sys_map[fsrc][rev_seeds] = self._combine_relevance(
+                self._single_seed2relsys["fwd"], [fsrc], self._single_seed2relsys["rev"], rev_seeds
+            )
 
         seed_var_map[fwd_seeds] = {}
         seed_sys_map[fwd_seeds] = {}
-        for rsrc, rarr in self._single_seed2relvars['rev'].items():
-            seed_var_map[fwd_seeds][rsrc] = \
-                self._combine_relevance(self._single_seed2relvars['fwd'], fwd_seeds,
-                                        self._single_seed2relvars['rev'], [rsrc])
-            seed_sys_map[fwd_seeds][rsrc] = \
-                self._combine_relevance(self._single_seed2relsys['fwd'], fwd_seeds,
-                                        self._single_seed2relsys['rev'], [rsrc])
+        for rsrc, rarr in self._single_seed2relvars["rev"].items():
+            seed_var_map[fwd_seeds][rsrc] = self._combine_relevance(
+                self._single_seed2relvars["fwd"],
+                fwd_seeds,
+                self._single_seed2relvars["rev"],
+                [rsrc],
+            )
+            seed_sys_map[fwd_seeds][rsrc] = self._combine_relevance(
+                self._single_seed2relsys["fwd"], fwd_seeds, self._single_seed2relsys["rev"], [rsrc]
+            )
 
         # now add 'full' relevance for all seeds
-        seed_var_map[fwd_seeds][rev_seeds] = \
-            self._combine_relevance(self._single_seed2relvars['fwd'], fwd_seeds,
-                                    self._single_seed2relvars['rev'], rev_seeds)
-        seed_sys_map[fwd_seeds][rev_seeds] = \
-            self._combine_relevance(self._single_seed2relsys['fwd'], fwd_seeds,
-                                    self._single_seed2relsys['rev'], rev_seeds)
+        seed_var_map[fwd_seeds][rev_seeds] = self._combine_relevance(
+            self._single_seed2relvars["fwd"], fwd_seeds, self._single_seed2relvars["rev"], rev_seeds
+        )
+        seed_sys_map[fwd_seeds][rev_seeds] = self._combine_relevance(
+            self._single_seed2relsys["fwd"], fwd_seeds, self._single_seed2relsys["rev"], rev_seeds
+        )
 
         self._set_seeds(fwd_seeds, rev_seeds)
 
@@ -579,14 +590,15 @@ class Relevance(object):
             self._par_deriv_err_check(group, rev_meta, fwd_meta)
 
         found = set()
-        for fsrc, farr in self._single_seed2relvars['fwd'].items():
-            for rsrc, rarr in self._single_seed2relvars['rev'].items():
+        for fsrc, farr in self._single_seed2relvars["fwd"].items():
+            for rsrc, rarr in self._single_seed2relvars["rev"].items():
                 if rsrc not in found:
                     if (farr & rarr)[self._var2idx[fsrc]]:
                         found.add(rsrc)
 
-        self._no_dv_responses = \
-            [rsrc for rsrc in self._single_seed2relvars['rev'] if rsrc not in found]
+        self._no_dv_responses = [
+            rsrc for rsrc in self._single_seed2relvars["rev"] if rsrc not in found
+        ]
 
     def get_full_seeds(self):
         """
@@ -597,7 +609,7 @@ class Relevance(object):
         tuple
             Tuple of forward and reverse seeds.
         """
-        return self._all_seed_vars['fwd'], self._all_seed_vars['rev']
+        return self._all_seed_vars["fwd"], self._all_seed_vars["rev"]
 
     def get_redundant_adjoint_systems(self):
         """
@@ -614,15 +626,15 @@ class Relevance(object):
         if self._redundant_adjoint_systems is None:
             self._redundant_adjoint_systems = defaultdict(set)
             resp2resp_deps = set()
-            for rsrc, arr1 in self._single_seed2relvars['rev'].items():
-                for rsrc2 in self._single_seed2relvars['rev']:
+            for rsrc, arr1 in self._single_seed2relvars["rev"].items():
+                for rsrc2 in self._single_seed2relvars["rev"]:
                     if rsrc2 != rsrc:
                         if arr1[self._var2idx[rsrc2]]:
                             # add dependent pairs of responses
                             resp2resp_deps.add((rsrc, rsrc2))
 
             if resp2resp_deps:
-                fsystems = self._seed_sys_map[self._all_seed_vars['fwd']]
+                fsystems = self._seed_sys_map[self._all_seed_vars["fwd"]]
                 for rsrc, rsrc2 in resp2resp_deps:
                     relarr = fsystems[rsrc] & fsystems[rsrc2]  # intersection
                     for relevant_system in self._rel_names_iter(relarr, self._sys2idx):
@@ -706,11 +718,11 @@ class Relevance(object):
         if self._active is False:
             yield
         else:
-            save_fwd = self._seed_vars['fwd']
-            save_rev = self._seed_vars['rev']
+            save_fwd = self._seed_vars["fwd"]
+            save_rev = self._seed_vars["rev"]
             save_active = self._active
             self._active = True
-            self._set_seeds(self._all_seed_vars['fwd'], self._all_seed_vars['rev'])
+            self._set_seeds(self._all_seed_vars["fwd"], self._all_seed_vars["rev"])
             try:
                 yield
             finally:
@@ -738,14 +750,14 @@ class Relevance(object):
         if self._active is False:  # if already inactive from higher level, don't change anything
             yield
         else:
-            save_fwd = self._seed_vars['fwd']
-            save_rev = self._seed_vars['rev']
+            save_fwd = self._seed_vars["fwd"]
+            save_rev = self._seed_vars["rev"]
             save_active = self._active
             self._active = True
             if fwd_seeds is None:
-                fwd_seeds = self._seed_vars['fwd']
+                fwd_seeds = self._seed_vars["fwd"]
             if rev_seeds is None:
-                rev_seeds = self._seed_vars['rev']
+                rev_seeds = self._seed_vars["rev"]
             self._set_seeds(fwd_seeds, rev_seeds)
             try:
                 yield
@@ -795,18 +807,18 @@ class Relevance(object):
         fwd_seeds = self._to_seed(fwd_seeds)
         rev_seeds = self._to_seed(rev_seeds)
 
-        self._seed_vars['fwd'] = fwd_seeds
-        self._seed_vars['rev'] = rev_seeds
+        self._seed_vars["fwd"] = fwd_seeds
+        self._seed_vars["rev"] = rev_seeds
 
-        self._current_rel_varray = self._get_rel_array(self._seed_var_map,
-                                                       self._single_seed2relvars,
-                                                       fwd_seeds, rev_seeds)
+        self._current_rel_varray = self._get_rel_array(
+            self._seed_var_map, self._single_seed2relvars, fwd_seeds, rev_seeds
+        )
         if self._current_rel_varray.size == 0:
             self._active = False
 
-        self._current_rel_sarray = self._get_rel_array(self._seed_sys_map,
-                                                       self._single_seed2relsys,
-                                                       fwd_seeds, rev_seeds)
+        self._current_rel_sarray = self._get_rel_array(
+            self._seed_sys_map, self._single_seed2relsys, fwd_seeds, rev_seeds
+        )
 
     def _get_rel_array(self, seed_map, single_seed2rel, fwd_seeds, rev_seeds):
         """
@@ -835,8 +847,9 @@ class Relevance(object):
             return seed_map[fwd_seeds][rev_seeds]
         except KeyError:
             # don't have a relevance array for this seed combo, so create it
-            relarr = self._combine_relevance(single_seed2rel['fwd'], fwd_seeds,
-                                             single_seed2rel['rev'], rev_seeds)
+            relarr = self._combine_relevance(
+                single_seed2rel["fwd"], fwd_seeds, single_seed2rel["rev"], rev_seeds
+            )
             if fwd_seeds not in seed_map:
                 seed_map[fwd_seeds] = {}
             seed_map[fwd_seeds][rev_seeds] = relarr
@@ -962,9 +975,9 @@ class Relevance(object):
             return
 
         if fwd_seeds is None:
-            fwd_seeds = self._seed_vars['fwd']
+            fwd_seeds = self._seed_vars["fwd"]
         if rev_seeds is None:
-            rev_seeds = self._seed_vars['rev']
+            rev_seeds = self._seed_vars["rev"]
 
         if isinstance(fwd_seeds, str):
             fwd_seeds = [fwd_seeds]
@@ -973,8 +986,9 @@ class Relevance(object):
 
         for seed in fwd_seeds:
             for rseed in rev_seeds:
-                inter = self._get_rel_array(self._seed_var_map, self._single_seed2relvars,
-                                            seed, rseed)
+                inter = self._get_rel_array(
+                    self._seed_var_map, self._single_seed2relvars, seed, rseed
+                )
                 if np.any(inter):
                     inter = self._rel_names_iter(inter, self._var2idx)
                     yield seed, rseed, self._apply_node_filter(inter, filt)
@@ -1085,12 +1099,12 @@ class Relevance(object):
             Set of all dependent nodes.
         """
         if start in self._graph:
-            if local and not self._graph.nodes[start]['local']:
+            if local and not self._graph.nodes[start]["local"]:
                 return set()
 
-            if direction == 'fwd':
+            if direction == "fwd":
                 fnext = self._graph.successors
-            elif direction == 'rev':
+            elif direction == "rev":
                 fnext = self._graph.predecessors
             else:
                 raise ValueError("direction must be 'fwd' or 'rev'")
@@ -1105,7 +1119,7 @@ class Relevance(object):
                         if local:
                             node = self._graph.nodes[tgt]
                             # stop local traversal at the first non-local node
-                            if 'local' in node and not node['local']:
+                            if "local" in node and not node["local"]:
                                 return visited
 
                         visited.add(tgt)
@@ -1117,35 +1131,39 @@ class Relevance(object):
 
     def _par_deriv_err_check(self, group, responses, desvars):
         pd_err_chk = defaultdict(dict)
-        mode = group._problem_meta['mode']  # 'fwd', 'rev', or 'auto'
-        model = group._problem_meta['model_ref']()
-        distvars = {n for n, m in model._var_allprocs_abs2meta['output'].items()
-                    if m['distributed']}
-        distvars.update(n for n, m in model._var_allprocs_abs2meta['input'].items()
-                        if m['distributed'])
+        mode = group._problem_meta["mode"]  # 'fwd', 'rev', or 'auto'
+        model = group._problem_meta["model_ref"]()
+        distvars = {
+            n for n, m in model._var_allprocs_abs2meta["output"].items() if m["distributed"]
+        }
+        distvars.update(
+            n for n, m in model._var_allprocs_abs2meta["input"].items() if m["distributed"]
+        )
 
-        if mode in ('fwd', 'auto'):
+        if mode in ("fwd", "auto"):
             for dvmeta in desvars.values():
-                desvar = dvmeta['source']
-                resps = tuple(sorted(m['source'] for m in responses.values()))
-                if self._graph.nodes[desvar]['local']:
-                    dvcolor = dvmeta['parallel_deriv_color']
+                desvar = dvmeta["source"]
+                resps = tuple(sorted(m["source"] for m in responses.values()))
+                if self._graph.nodes[desvar]["local"]:
+                    dvcolor = dvmeta["parallel_deriv_color"]
                     if dvcolor:
-                        inter = self._get_rel_array(self._seed_var_map, self._single_seed2relvars,
-                                                    desvar, resps)
+                        inter = self._get_rel_array(
+                            self._seed_var_map, self._single_seed2relvars, desvar, resps
+                        )
                         if np.any(inter):
                             inter = list(self._rel_names_iter(inter, self._var2idx))
                             pd_err_chk[dvcolor][desvar] = set(inter)
 
-        if mode in ('rev', 'auto'):
+        if mode in ("rev", "auto"):
             for resmeta in responses.values():
-                response = resmeta['source']
-                dvs = tuple(sorted(m['source'] for m in desvars.values()))
-                if self._graph.nodes[response]['local']:
-                    rescolor = resmeta['parallel_deriv_color']
+                response = resmeta["source"]
+                dvs = tuple(sorted(m["source"] for m in desvars.values()))
+                if self._graph.nodes[response]["local"]:
+                    rescolor = resmeta["parallel_deriv_color"]
                     if rescolor:
-                        inter = self._get_rel_array(self._seed_var_map, self._single_seed2relvars,
-                                                    dvs, response)
+                        inter = self._get_rel_array(
+                            self._seed_var_map, self._single_seed2relvars, dvs, response
+                        )
                         if np.any(inter):
                             inter = list(self._rel_names_iter(inter, self._var2idx))
                             pd_err_chk[rescolor][response] = set(inter)
@@ -1180,20 +1198,24 @@ class Relevance(object):
 
         msg = []
         for color, names in colors.items():
-            vtype = 'design variable' if mode == 'fwd' else 'response'
-            msg.append(f"Parallel derivative color '{color}' has {vtype}s "
-                       f"{sorted(names)} with overlapping dependencies on the same rank.")
+            vtype = "design variable" if mode == "fwd" else "response"
+            msg.append(
+                f"Parallel derivative color '{color}' has {vtype}s "
+                f"{sorted(names)} with overlapping dependencies on the same rank."
+            )
 
         if msg:
-            raise RuntimeError('\n'.join(msg))
+            raise RuntimeError("\n".join(msg))
 
         if wcolors:
             for color, names in wcolors.items():
-                vtype = 'design variable' if mode == 'fwd' else 'response'
-                issue_warning(f"Parallel derivative color '{color}' has {vtype}s "
-                              f"{sorted(names)} with overlapping dependencies on distributed "
-                              "variables. This may be valid, but OpenMDAO doesn't check for "
-                              "same rank overlaps at the index level.")
+                vtype = "design variable" if mode == "fwd" else "response"
+                issue_warning(
+                    f"Parallel derivative color '{color}' has {vtype}s "
+                    f"{sorted(names)} with overlapping dependencies on distributed "
+                    "variables. This may be valid, but OpenMDAO doesn't check for "
+                    "same rank overlaps at the index level."
+                )
 
     def _setup_nonlinear_relevance(self, model, designvars, responses):
         """
@@ -1214,7 +1236,7 @@ class Relevance(object):
         if model._pre_components is not None:
             return
 
-        if not designvars or not responses or not model._problem_meta['group_by_pre_opt_post']:
+        if not designvars or not responses or not model._problem_meta["group_by_pre_opt_post"]:
             return
 
         model._pre_components = set()
@@ -1228,19 +1250,21 @@ class Relevance(object):
         always_opt = set()
         model._get_relevance_modifiers(grad_groups, always_opt)
 
-        if '' in grad_groups:
-            issue_warning("The top level group has a nonlinear solver that computes gradients, so "
-                          "the entire model will be included in the optimization iteration.")
+        if "" in grad_groups:
+            issue_warning(
+                "The top level group has a nonlinear solver that computes gradients, so "
+                "the entire model will be included in the optimization iteration."
+            )
             return
 
-        dvs = [meta['source'] for meta in designvars.values()]
-        responses = [meta['source'] for meta in responses.values()]
+        dvs = [meta["source"] for meta in designvars.values()]
+        responses = [meta["source"] for meta in responses.values()]
         responses = set(responses)  # get rid of dups due to aliases
 
         graph = model.compute_sys_graph(comps_only=True, add_edge_info=False)
 
-        auto_dvs = [dv for dv in dvs if dv.startswith('_auto_ivc.')]
-        dv0 = auto_dvs[0] if auto_dvs else dvs[0].rpartition('.')[0]
+        auto_dvs = [dv for dv in dvs if dv.startswith("_auto_ivc.")]
+        dv0 = auto_dvs[0] if auto_dvs else dvs[0].rpartition(".")[0]
 
         rev_conns = None
         if auto_dvs:
@@ -1248,10 +1272,10 @@ class Relevance(object):
 
             # add nodes for any auto_ivc vars that are dvs and connect to downstream component(s)
             for dv in auto_dvs:
-                graph.add_node(dv, type_='output')
+                graph.add_node(dv, type_="output")
                 inps = rev_conns.get(dv, ())
                 for inp in inps:
-                    inpcomp = inp.rpartition('.')[0]
+                    inpcomp = inp.rpartition(".")[0]
                     graph.add_edge(dv, inpcomp)
 
         # One way to determine the contents of the pre/opt/post sets is to add edges from the
@@ -1263,10 +1287,10 @@ class Relevance(object):
         # add edges between response comps and design vars/comps to form a strongly
         # connected component for all nodes involved in the optimization iteration.
         for res in responses:
-            resnode = res.rpartition('.')[0]
+            resnode = res.rpartition(".")[0]
             for dv in dvs:
-                dvnode = dv.rpartition('.')[0]
-                if dvnode == '_auto_ivc':
+                dvnode = dv.rpartition(".")[0]
+                if dvnode == "_auto_ivc":
                     # var node exists in graph so connect it to resnode
                     dvnode = dv  # use var name not comp name
 
@@ -1277,7 +1301,7 @@ class Relevance(object):
         # optimization.
         for opt_sys in always_opt:
             for response in responses:
-                rescomp = response.rpartition('.')[0]
+                rescomp = response.rpartition(".")[0]
                 graph.add_edge(opt_sys, rescomp)
                 graph.add_edge(rescomp, opt_sys)
 
@@ -1285,16 +1309,18 @@ class Relevance(object):
 
         if grad_groups:
             remaining = set(grad_groups)
-            for name in sorted(grad_groups, key=lambda x: x.count('.')):
-                prefix = name + '.'
+            for name in sorted(grad_groups, key=lambda x: x.count(".")):
+                prefix = name + "."
                 match = {n for n in remaining if n.startswith(prefix)}
                 remaining -= match
 
-            gradlist = '\n'.join(sorted(remaining))
-            issue_warning("The following groups have a nonlinear solver that computes gradients "
-                          f"and will be treated as atomic for the purposes of determining "
-                          f"which systems are included in the optimization iteration: "
-                          f"\n{gradlist}\n")
+            gradlist = "\n".join(sorted(remaining))
+            issue_warning(
+                "The following groups have a nonlinear solver that computes gradients "
+                f"and will be treated as atomic for the purposes of determining "
+                f"which systems are included in the optimization iteration: "
+                f"\n{gradlist}\n"
+            )
 
             # remaining groups are not contained within a higher level nl solver
             # using gradient group, so make new connections to/from them to
@@ -1307,7 +1333,7 @@ class Relevance(object):
             # var nodes.
             edges_to_add = []
             for grp in remaining:
-                prefix = grp + '.'
+                prefix = grp + "."
                 for node in graph:
                     if node.startswith(prefix):
                         groups_added.add(grp)
@@ -1331,15 +1357,15 @@ class Relevance(object):
             # post-opt set.
             if dv0 in strong_con:
                 for s in strong_con:
-                    if 'type_' in graph.nodes[s]:
-                        s = s.rpartition('.')[0]
+                    if "type_" in graph.nodes[s]:
+                        s = s.rpartition(".")[0]
                     if s not in iterated:
                         iterated.add(s)
                 addto = post
             else:
                 for s in strong_con:
-                    if 'type_' in graph.nodes[s]:
-                        s = s.rpartition('.')[0]
+                    if "type_" in graph.nodes[s]:
+                        s = s.rpartition(".")[0]
                     if s not in addto:
                         addto.add(s)
 
@@ -1347,23 +1373,23 @@ class Relevance(object):
         auto_dvs = set(auto_dvs)
         if rev_conns is None:
             rev_conns = get_rev_conns(model._conn_global_abs_in2out)
-        if '_auto_ivc' not in pre:
+        if "_auto_ivc" not in pre:
             in_pre = False
-            for vname in auto_ivc._resolver.abs_iter('output'):
+            for vname in auto_ivc._resolver.abs_iter("output"):
                 if vname not in auto_dvs:
                     for tgt in rev_conns[vname]:
-                        tgtcomp = tgt.rpartition('.')[0]
+                        tgtcomp = tgt.rpartition(".")[0]
                         if tgtcomp in pre:
                             in_pre = True
                             break
                     if in_pre:
                         break
             if in_pre:
-                pre.add('_auto_ivc')
+                pre.add("_auto_ivc")
 
         # if 'pre' contains nothing but _auto_ivc, then just make it empty
-        if len(pre) == 1 and '_auto_ivc' in pre:
-            pre.discard('_auto_ivc')
+        if len(pre) == 1 and "_auto_ivc" in pre:
+            pre.discard("_auto_ivc")
 
         model._pre_components = pre - groups_added
         model._post_components = post - groups_added
@@ -1378,7 +1404,7 @@ class Relevance(object):
             model._pre_components = pre
             model._post_components = post
 
-    def list_relevance(self, relevant=True, type='system'):
+    def list_relevance(self, relevant=True, type="system"):
         """
         Return a list of relevant variables and systems for the given seeds.
 
@@ -1395,7 +1421,7 @@ class Relevance(object):
         list of str
             List of (ir)relevant variables or systems.
         """
-        if type == 'system':
+        if type == "system":
             return list(self._rel_names_iter(self._current_rel_sarray, self._sys2idx, relevant))
 
         return list(self._rel_names_iter(self._current_rel_varray, self._var2idx, relevant))
@@ -1417,9 +1443,9 @@ def _vars2systems(nameiter):
     set
         Set of system pathnames.
     """
-    systems = {''}  # root group is always there
+    systems = {""}  # root group is always there
     for name in nameiter:
-        sysname = name.rpartition('.')[0]
+        sysname = name.rpartition(".")[0]
         if sysname not in systems:
             systems.update(all_ancestors(sysname))
 
@@ -1438,11 +1464,11 @@ def _get_io_filter(inputs, outputs):
 
 
 def _is_input(node):
-    return node['type_'] == 'input'
+    return node["type_"] == "input"
 
 
 def _is_output(node):
-    return node['type_'] == 'output'
+    return node["type_"] == "output"
 
 
 def _dump_seed_map(seed_map):
@@ -1456,4 +1482,4 @@ def _dump_seed_map(seed_map):
     """
     for fseed, relmap in seed_map.items():
         for rseed, relarr in relmap.items():
-            print(f'({fseed}, {rseed}) {np.asarray(relarr, dtype=np.uint8)}')
+            print(f"({fseed}, {rseed}) {np.asarray(relarr, dtype=np.uint8)}")

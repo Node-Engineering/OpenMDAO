@@ -1,4 +1,5 @@
 """Components used mainly for testing Newton and line searches."""
+
 from math import exp
 
 import numpy as np
@@ -18,30 +19,30 @@ class ImplCompOneState(om.ImplicitComponent):
     """
 
     def setup(self):
-        self.add_input('x', 1.2278849186466743)
-        self.add_output('y', val=1.0)
+        self.add_input("x", 1.2278849186466743)
+        self.add_output("y", val=1.0)
 
     def setup_partials(self):
-        self.declare_partials(of='*', wrt='*')
+        self.declare_partials(of="*", wrt="*")
 
     def apply_nonlinear(self, inputs, outputs, resids):
         """
         Don't solve; just calculate the residual.
         """
-        x = inputs['x']
-        y = outputs['y']
+        x = inputs["x"]
+        y = outputs["y"]
 
-        resids['y'] = 0.5*y*y + 2.0*y + exp(-16.0*y*y) + 2.0*exp(-5.0*y) - x
+        resids["y"] = 0.5 * y * y + 2.0 * y + exp(-16.0 * y * y) + 2.0 * exp(-5.0 * y) - x
 
     def linearize(self, inputs, outputs, J):
         """
         Analytical derivatives.
         """
-        y = outputs['y']
+        y = outputs["y"]
 
         # State equation
-        J[('y', 'x')] = -1.0
-        J[('y', 'y')] = y + 2.0 - 32.0*y*exp(-16.0*y*y) - 10.0*exp(-5.0*y)
+        J[("y", "x")] = -1.0
+        J[("y", "y")] = y + 2.0 - 32.0 * y * exp(-16.0 * y * y) - 10.0 * exp(-5.0 * y)
 
 
 class ImplCompTwoStates(om.ImplicitComponent):
@@ -64,27 +65,27 @@ class ImplCompTwoStates(om.ImplicitComponent):
     """
 
     def setup(self):
-        self.add_input('x', 0.5)
-        self.add_output('y', 0.0)
-        self.add_output('z', 2.0, lower=1.5, upper=2.5)
+        self.add_input("x", 0.5)
+        self.add_output("y", 0.0)
+        self.add_output("z", 2.0, lower=1.5, upper=2.5)
 
         self.maxiter = 10
         self.atol = 1.0e-12
 
     def setup_partials(self):
-        self.declare_partials(of='*', wrt='*')
+        self.declare_partials(of="*", wrt="*")
 
     def apply_nonlinear(self, inputs, outputs, residuals):
         """
         Don't solve; just calculate the residual.
         """
 
-        x = inputs['x']
-        y = outputs['y']
-        z = outputs['z']
+        x = inputs["x"]
+        y = outputs["y"]
+        z = outputs["z"]
 
-        residuals['y'] = y - x - 2.0*z
-        residuals['z'] = x*z + z - 4.0
+        residuals["y"] = y - x - 2.0 * z
+        residuals["z"] = x * z + z - 4.0
 
     def linearize(self, inputs, outputs, jac):
         """
@@ -92,13 +93,13 @@ class ImplCompTwoStates(om.ImplicitComponent):
         """
 
         # Output equation
-        jac[('y', 'x')] = -1.0
-        jac[('y', 'y')] = 1.0
-        jac[('y', 'z')] = -2.0
+        jac[("y", "x")] = -1.0
+        jac[("y", "y")] = 1.0
+        jac[("y", "z")] = -2.0
 
         # State equation
-        jac[('z', 'z')] = inputs['x'] + 1.0
-        jac[('z', 'x')] = outputs['z']
+        jac[("z", "z")] = inputs["x"] + 1.0
+        jac[("z", "x")] = outputs["z"]
 
 
 class ImplCompTwoStatesArrays(om.ImplicitComponent):
@@ -121,28 +122,29 @@ class ImplCompTwoStatesArrays(om.ImplicitComponent):
     """
 
     def setup(self):
-        self.add_input('x', np.zeros((3, 1)))
-        self.add_output('y', np.zeros((3, 1)))
-        self.add_output('z', 2.0*np.ones((3, 1)), lower=1.5,
-            upper=np.array([2.6, 2.5, 2.65]).reshape((3,1)))
+        self.add_input("x", np.zeros((3, 1)))
+        self.add_output("y", np.zeros((3, 1)))
+        self.add_output(
+            "z", 2.0 * np.ones((3, 1)), lower=1.5, upper=np.array([2.6, 2.5, 2.65]).reshape((3, 1))
+        )
 
         self.maxiter = 10
         self.atol = 1.0e-12
 
     def setup_partials(self):
-        self.declare_partials(of='*', wrt='*')
+        self.declare_partials(of="*", wrt="*")
 
     def apply_nonlinear(self, inputs, outputs, residuals):
         """
         Don't solve; just calculate the residual.
         """
 
-        x = inputs['x']
-        y = outputs['y']
-        z = outputs['z']
+        x = inputs["x"]
+        y = outputs["y"]
+        z = outputs["z"]
 
-        residuals['y'] = y - x - 2.0*z
-        residuals['z'] = x*z + z - 4.0
+        residuals["y"] = y - x - 2.0 * z
+        residuals["z"] = x * z + z - 4.0
 
     def linearize(self, inputs, outputs, jac):
         """
@@ -150,10 +152,10 @@ class ImplCompTwoStatesArrays(om.ImplicitComponent):
         """
 
         # Output equation
-        jac[('y', 'x')] = -np.diag(np.array([1.0, 1.0, 1.0]))
-        jac[('y', 'y')] = np.diag(np.array([1.0, 1.0, 1.0]))
-        jac[('y', 'z')] = -np.diag(np.array([2.0, 2.0, 2.0]))
+        jac[("y", "x")] = -np.diag(np.array([1.0, 1.0, 1.0]))
+        jac[("y", "y")] = np.diag(np.array([1.0, 1.0, 1.0]))
+        jac[("y", "z")] = -np.diag(np.array([2.0, 2.0, 2.0]))
 
         # State equation
-        jac[('z', 'z')] = (inputs['x'] + 1.0) * np.eye(3)
-        jac[('z', 'x')] = outputs['z'] * np.eye(3)
+        jac[("z", "z")] = (inputs["x"] + 1.0) * np.eye(3)
+        jac[("z", "x")] = outputs["z"] * np.eye(3)

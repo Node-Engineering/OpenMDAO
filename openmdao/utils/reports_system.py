@@ -14,7 +14,7 @@ from openmdao.utils.general_utils import env_truthy, is_truthy
 from openmdao.visualization.tables.table_builder import generate_table
 
 _reports_registry = {}
-_default_reports = ['scaling', 'total_coloring', 'n2', 'optimizer', 'inputs']
+_default_reports = ["scaling", "total_coloring", "n2", "optimizer", "inputs"]
 _active_reports = set()  # these reports will actually run (assuming their hook funcs are triggered)
 _plugins_loaded = False  # use this to ensure plugins only loaded once
 
@@ -41,7 +41,7 @@ class Report(object):
         corresponding to this instance is activated.
     """
 
-    def __init__(self, name, description=''):
+    def __init__(self, name, description=""):
         """
         Initialize attributes.
         """
@@ -73,13 +73,13 @@ class Report(object):
         instance : object
             The instance where hooks may be registered.
         """
-        if hasattr(instance, '_has_active_report') and not instance._has_active_report(self.name):
+        if hasattr(instance, "_has_active_report") and not instance._has_active_report(self.name):
             return
 
         for hook_args, hook_kwargs in self.hooks:
             # always register hook with a specific instance id
             kw = hook_kwargs.copy()
-            kw['inst_id'] = None if instance is None else instance._get_inst_id()
+            kw["inst_id"] = None if instance is None else instance._get_inst_id()
             _register_hook(*hook_args, **kw)
 
     def unregister_hooks(self, instance=None):
@@ -91,11 +91,11 @@ class Report(object):
         instance : object or None
             If not None, only unregister reports for this instance.
         """
-        keep = {'fname', 'class_name', 'inst_id', 'pre', 'post'}
+        keep = {"fname", "class_name", "inst_id", "pre", "post"}
         for args, kw in self.hooks:
             kwargs = {k: v for k, v in kw.items() if k in keep}
             if instance is not None:
-                kwargs['inst_id'] = instance
+                kwargs["inst_id"] = instance
             _unregister_hook(*args, **kwargs)
 
     def __getattr__(self, name):
@@ -110,9 +110,9 @@ class Report(object):
         for args, kwargs in self.hooks:
             if name in kwargs:
                 return kwargs[name]
-            elif name == 'fname' and len(args) > 0:
+            elif name == "fname" and len(args) > 0:
                 return args[0]
-            elif name == 'class_name' and len(args) > 1:
+            elif name == "class_name" and len(args) > 1:
                 return args[1]
         else:
             raise AttributeError(f"Attribute '{name}' not found.")
@@ -127,11 +127,12 @@ def reports_active():
     bool
         Return True if reports are active.
     """
-    return not env_truthy('TESTFLO_RUNNING')
+    return not env_truthy("TESTFLO_RUNNING")
 
 
-def register_report(name, func, desc, class_name, method, pre_or_post, inst_id=None, predicate=None,
-                    **kwargs):
+def register_report(
+    name, func, desc, class_name, method, pre_or_post, inst_id=None, predicate=None, **kwargs
+):
     """
     Register a report with the reporting system.
 
@@ -169,18 +170,28 @@ def register_report(name, func, desc, class_name, method, pre_or_post, inst_id=N
 
     if name in _reports_registry:
         raise ValueError(f"A report with the name {name} was already registered.")
-    if pre_or_post not in ('pre', 'post'):
-        raise ValueError("The argument 'pre_or_post' can only have values of 'pre' or 'post', "
-                         f"but {pre_or_post} was given")
-    if pre_or_post == 'pre' and method == 'setup':
-        raise ValueError('Reports cannot be registered to execute pre-setup.')
+    if pre_or_post not in ("pre", "post"):
+        raise ValueError(
+            "The argument 'pre_or_post' can only have values of 'pre' or 'post', "
+            f"but {pre_or_post} was given"
+        )
+    if pre_or_post == "pre" and method == "setup":
+        raise ValueError("Reports cannot be registered to execute pre-setup.")
 
     _reports_registry[name] = report = Report(name, desc)
 
-    pre = func if pre_or_post == 'pre' else None
-    post = func if pre_or_post == 'post' else None
-    report.register_hook_args(fname=method, class_name=class_name, inst_id=inst_id, pre=pre,
-                              post=post, ncalls=1, predicate=predicate, **kwargs)
+    pre = func if pre_or_post == "pre" else None
+    post = func if pre_or_post == "post" else None
+    report.register_hook_args(
+        fname=method,
+        class_name=class_name,
+        inst_id=inst_id,
+        pre=pre,
+        post=post,
+        ncalls=1,
+        predicate=predicate,
+        **kwargs,
+    )
     return report
 
 
@@ -197,8 +208,9 @@ def unregister_report(name):
     del _reports_registry[name]
 
 
-def register_report_hook(name, fname, class_name, inst_id=None, pre=None, post=None, description='',
-                         **kwargs):
+def register_report_hook(
+    name, fname, class_name, inst_id=None, pre=None, post=None, description="", **kwargs
+):
     """
     Register a hook with a specific report name in the reporting system.
 
@@ -234,8 +246,9 @@ def register_report_hook(name, fname, class_name, inst_id=None, pre=None, post=N
         if description is not None:
             report.description = description
 
-    report.register_hook_args(fname, class_name, inst_id=inst_id, pre=pre, post=post, ncalls=1,
-                              **kwargs)
+    report.register_hook_args(
+        fname, class_name, inst_id=inst_id, pre=pre, post=post, ncalls=1, **kwargs
+    )
 
 
 def activate_report(name, instance=None):
@@ -263,7 +276,7 @@ def activate_report(name, instance=None):
 
     report = _reports_registry[name]
     for _, hook_kwargs in report.hooks:
-        _inst_id = hook_kwargs['inst_id']
+        _inst_id = hook_kwargs["inst_id"]
         break
 
     # handle case where report was registered for a specific inst_id
@@ -274,8 +287,9 @@ def activate_report(name, instance=None):
             return
 
     if (name, inst_id) in _active_reports:
-        issue_warning(f"A report with the name '{name}' for instance '{inst_id}' is already "
-                      "active.")
+        issue_warning(
+            f"A report with the name '{name}' for instance '{inst_id}' is already active."
+        )
         return
 
     report.register_hooks(instance)
@@ -324,7 +338,7 @@ def list_reports(default=False, outfile=None, max_width=80):
     # if it *has* already been initialized, this call will do nothing.
     _load_report_plugins()
 
-    headers = ['name', 'description', 'class name', 'method', 'pre or post']
+    headers = ["name", "description", "class name", "method", "pre or post"]
 
     if default:
         reg = {r: _reports_registry[r] for r in _default_reports}
@@ -336,12 +350,12 @@ def list_reports(default=False, outfile=None, max_width=80):
     for name, report in sorted(reg.items()):
         rows.append([])
         rows[-1].append(name)
-        for attr in ('description', 'class_name', 'fname'):
+        for attr in ("description", "class_name", "fname"):
             rows[-1].append(getattr(report, attr))
         pre = report.pre
-        rows[-1].append('pre' if pre else 'post')
+        rows[-1].append("pre" if pre else "post")
 
-    generate_table(rows, tablefmt='box_grid', headers=headers, max_width=max_width).display(outfile)
+    generate_table(rows, tablefmt="box_grid", headers=headers, max_width=max_width).display(outfile)
 
 
 def _list_reports_setup_parser(parser):
@@ -353,10 +367,12 @@ def _list_reports_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('-d', '--default', action='store_true', dest='dflt',
-                        help="List only the default reports.")
-    parser.add_argument('-o', '--outfile', action='store', dest='outfile',
-                        help='Send list of reports to this file.')
+    parser.add_argument(
+        "-d", "--default", action="store_true", dest="dflt", help="List only the default reports."
+    )
+    parser.add_argument(
+        "-o", "--outfile", action="store", dest="outfile", help="Send list of reports to this file."
+    )
 
 
 def _list_reports_cmd(options, user_args):
@@ -392,7 +408,7 @@ def view_reports(probnames=None, level=2):
             probnames = (probnames,)
 
         for probname in probnames:
-            subdir = os.path.join(tdir, f'{probname}_out')
+            subdir = os.path.join(tdir, f"{probname}_out")
             if subdir in om_out_dirs:
                 match = subdir
             else:
@@ -409,7 +425,7 @@ def view_reports(probnames=None, level=2):
 
     if om_out_dirs:
         gen_reports_index_file(tdir, level, om_out_dirs)
-        webview(os.path.join(tdir, 'index.html'))
+        webview(os.path.join(tdir, "index.html"))
     else:
         print("No matching report dirs found.")
         return
@@ -424,10 +440,21 @@ def _view_reports_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('problem', metavar='problem', nargs='*',
-                        help='View reports only for the specified Problem(s).')
-    parser.add_argument('-l', '--level', action='store', dest='level', type=int, default=1,
-                        help='Expand the reports directory tree to this level. Default is 1.')
+    parser.add_argument(
+        "problem",
+        metavar="problem",
+        nargs="*",
+        help="View reports only for the specified Problem(s).",
+    )
+    parser.add_argument(
+        "-l",
+        "--level",
+        action="store",
+        dest="level",
+        type=int,
+        default=1,
+        help="Expand the reports directory tree to this level. Default is 1.",
+    )
 
 
 def _view_reports_cmd(options, user_args):
@@ -453,8 +480,10 @@ def set_reports_dir(reports_dir_path):
     reports_dir_path : str
         Path to the top level reports directory.
     """
-    raise RuntimeError('The set_reports_dir function has been removed. Reports are now stored in '
-                       'the reports subdirectory under the enclosing problem\'s output directory')
+    raise RuntimeError(
+        "The set_reports_dir function has been removed. Reports are now stored in "
+        "the reports subdirectory under the enclosing problem's output directory"
+    )
 
 
 # -----------------------------------------
@@ -482,8 +511,10 @@ def _reset_reports_dir():
     This is used during testing, where environment variables are sometimes modified during
     the test.
     """
-    raise RuntimeError('The _reset_reports_dir function in openmdao.api has been removed. '
-                       'Reports are now placed in the reports sub-directory of the problem.')
+    raise RuntimeError(
+        "The _reset_reports_dir function in openmdao.api has been removed. "
+        "Reports are now placed in the reports sub-directory of the problem."
+    )
 
 
 def get_reports_dir():
@@ -495,8 +526,10 @@ def get_reports_dir():
     str
         Path to the top level reports directory.
     """
-    raise RuntimeError('The get_reports_dir function in openmdao.api has '
-                       'been replaced by the get_reports_dir method on Problem and System.')
+    raise RuntimeError(
+        "The get_reports_dir function in openmdao.api has "
+        "been replaced by the get_reports_dir method on Problem and System."
+    )
 
 
 def _reports2list(reports, defaults):
@@ -523,12 +556,12 @@ def _reports2list(reports, defaults):
 
     if isinstance(reports, str):
         low = reports.lower()
-        if low == 'all':
+        if low == "all":
             return list(_reports_registry)  # activate all registered reports
 
         if is_truthy(low):
-            if ',' in low:
-                return [s.strip() for s in reports.split(',') if s.strip()]
+            if "," in low:
+                return [s.strip() for s in reports.split(",") if s.strip()]
             elif reports in _reports_registry:
                 return [reports]
             else:
@@ -556,7 +589,7 @@ def get_reports_to_activate(reports=_UNDEFINED):
     if not reports or not reports_active():
         return []
 
-    reps_env = os.environ.get('OPENMDAO_REPORTS', 'true')
+    reps_env = os.environ.get("OPENMDAO_REPORTS", "true")
     env_list = _reports2list(reps_env, _default_reports[:])
     return _reports2list(reports, env_list)
 
@@ -610,7 +643,7 @@ def _load_report_plugins():
 
     _plugins_loaded = True
 
-    for ep in _iter_entry_points('openmdao_report'):
+    for ep in _iter_entry_points("openmdao_report"):
         try:
             register_func = ep.load()
             register_func()  # this runs the function that calls register_report
@@ -623,14 +656,14 @@ def _get_reports_dir_files_html(reports_dir, explevel, level):
     files = os.listdir(reports_dir)
 
     if files:
-        lines.append('<ul>')
+        lines.append("<ul>")
 
         for f in files:
-            if f.endswith('.html') and f != 'index.html':
+            if f.endswith(".html") and f != "index.html":
                 path = os.path.join(reports_dir, f)
                 lines.append(f'<li> <a href="file:///{path}">{f}</a> </li>')
 
-        lines.append('</ul>')
+        lines.append("</ul>")
 
     return lines
 
@@ -653,13 +686,14 @@ def _add_dir_to_tree(startdir, explevel, level):
     list of str
         List of lines in the final html.
     """
-    repdir = os.path.join(startdir, 'reports')
+    repdir = os.path.join(startdir, "reports")
     if not os.path.isdir(repdir):
         return []
 
     flines = _get_reports_dir_files_html(repdir, explevel, level)
-    subdirs = [str(d) for d in _find_openmdao_output_dirs(startdir, recurse=False)
-               if str(d) != startdir]
+    subdirs = [
+        str(d) for d in _find_openmdao_output_dirs(startdir, recurse=False) if str(d) != startdir
+    ]
 
     sublines = []
     for sub in subdirs:
@@ -667,14 +701,13 @@ def _add_dir_to_tree(startdir, explevel, level):
 
     lines = []
     if flines or sublines:
-
-        op = 'open' if level < explevel else ''
-        lines.append(f'<li><details {op}><summary>{os.path.basename(startdir)}</summary>')
+        op = "open" if level < explevel else ""
+        lines.append(f"<li><details {op}><summary>{os.path.basename(startdir)}</summary>")
 
         lines.extend(flines)
         lines.extend(sublines)
 
-        lines.append('</details></li>')
+        lines.append("</details></li>")
 
     return lines
 
@@ -796,8 +829,8 @@ def gen_reports_index_file(start_dir, level, to_match):
     for outdir in sorted(to_match):
         lines.extend(_add_dir_to_tree(outdir, explevel=level, level=0))
 
-    parts.append('\n'.join(lines))
-    parts.append('</ul></body>\n</html>')
+    parts.append("\n".join(lines))
+    parts.append("</ul></body>\n</html>")
 
-    with open(os.path.join(start_dir, 'index.html'), 'w') as f:
-        f.write('\n'.join(parts))
+    with open(os.path.join(start_dir, "index.html"), "w") as f:
+        f.write("\n".join(parts))

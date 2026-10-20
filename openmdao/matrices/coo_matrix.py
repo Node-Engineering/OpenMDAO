@@ -1,4 +1,5 @@
 """Define the COOmatrix class."""
+
 import numpy as np
 from scipy.sparse import coo_matrix
 
@@ -107,7 +108,7 @@ class COOMatrix(Matrix):
         ndarray
             vector resulting from the product.
         """
-        if mode == 'fwd':
+        if mode == "fwd":
             return self._matrix @ self._get_masked_arr(in_vec, mask)
         else:  # rev
             return self.transpose() @ self._get_masked_arr(in_vec, mask)
@@ -125,7 +126,7 @@ class COOMatrix(Matrix):
         """
         if dtype.kind != self.dtype.kind:
             self.dtype = dtype
-            data = self._matrix.data if dtype.kind == 'c' else self._matrix.data.real
+            data = self._matrix.data if dtype.kind == "c" else self._matrix.data.real
             self._matrix.data = np.ascontiguousarray(data, dtype=dtype)
             self._matrix_T = None
 

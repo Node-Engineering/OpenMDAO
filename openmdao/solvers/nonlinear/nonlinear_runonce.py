@@ -3,6 +3,7 @@ Define the NonlinearRunOnce class.
 
 This is a simple nonlinear solver that just runs the system once.
 """
+
 from openmdao.recorders.recording_iteration_stack import Recording
 from openmdao.solvers.solver import NonlinearSolver
 from openmdao.utils.mpi import multi_proc_fail_check
@@ -20,7 +21,7 @@ class NonlinearRunOnce(NonlinearSolver):
         Options dictionary.
     """
 
-    SOLVER = 'NL: RUNONCE'
+    SOLVER = "NL: RUNONCE"
 
     def _solve_with_cache_check(self):
         self.solve()  # don't use caching
@@ -31,10 +32,10 @@ class NonlinearRunOnce(NonlinearSolver):
         """
         system = self._system()
 
-        with Recording('NLRunOnce', 0, self) as rec:
+        with Recording("NLRunOnce", 0, self) as rec:
             # If this is a parallel group, transfer all at once then run each subsystem.
             if len(system._subsystems_myproc) != len(system._subsystems_allprocs):
-                system._transfer('nonlinear', 'fwd')
+                system._transfer("nonlinear", "fwd")
 
                 with multi_proc_fail_check(system.comm):
                     for subsys in system._relevance.filter(system._subsystems_myproc):
@@ -63,6 +64,6 @@ class NonlinearRunOnce(NonlinearSolver):
         self.options.undeclare("restart_from_successful")
 
         # Remove stall behavior
-        self.options.undeclare('stall_limit')
-        self.options.undeclare('stall_tol')
-        self.options.undeclare('stall_tol_type')
+        self.options.undeclare("stall_limit")
+        self.options.undeclare("stall_tol")
+        self.options.undeclare("stall_tol_type")

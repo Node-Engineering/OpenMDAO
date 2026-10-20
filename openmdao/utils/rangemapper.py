@@ -2,7 +2,6 @@
 A collection of classes for mapping indices to variable names and vice versa.
 """
 
-
 # default size of array for which we use a FlatRangeMapper instead of a RangeTree
 MAX_FLAT_RANGE_SIZE = 10000
 
@@ -196,7 +195,7 @@ class RangeMapper(object):
         Dump the contents of the mapper to stdout.
         """
         for key, (start, stop) in self._key2range.items():
-            print(f'{key}: {start} - {stop}')
+            print(f"{key}: {start} - {stop}")
 
 
 class RangeTreeNode(RangeMapper):
@@ -226,7 +225,7 @@ class RangeTreeNode(RangeMapper):
         Right child node.
     """
 
-    __slots__ = ['key', 'start', 'stop', 'left', 'right']
+    __slots__ = ["key", "start", "stop", "left", "right"]
 
     def __init__(self, key, start, stop):
         """
@@ -381,7 +380,7 @@ class RangeTree(RangeMapper):
         node = RangeTreeNode(key, start, stop)
 
         left_slices = ranges[:mid]
-        right_slices = ranges[mid + 1:]
+        right_slices = ranges[mid + 1 :]
 
         if left_slices:
             node.left = self.build(left_slices)

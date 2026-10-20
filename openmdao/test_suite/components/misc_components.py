@@ -5,6 +5,7 @@ Contains some general test components that are used in multiple places for testi
 featured as examples, and are not meant to be showcased as the proper way to write components
 in OpenMDAO.
 """
+
 from collections import defaultdict
 import numpy as np
 
@@ -21,15 +22,16 @@ class Comp4LinearCacheTest(om.ImplicitComponent):
     came from playing around. It does not represent any academic or real world problem, so
     it does not need to be explained.
     """
+
     def setup(self):
         """
         Set up the model and define derivatives.
         """
-        self.add_input('x', val=1.0)
-        self.add_output('y', val=np.sqrt(3))
+        self.add_input("x", val=1.0)
+        self.add_output("y", val=np.sqrt(3))
 
     def setup_partials(self):
-        self.declare_partials(of='*', wrt='*')
+        self.declare_partials(of="*", wrt="*")
 
     def apply_nonlinear(self, inputs, outputs, residuals):
         """
@@ -44,9 +46,9 @@ class Comp4LinearCacheTest(om.ImplicitComponent):
         residuals : Vector
             Unscaled, dimensional residuals written to via residuals[key].
         """
-        x = inputs['x']
-        y = outputs['y']
-        residuals['y'] = x * y ** 3 - 3.0 * y * x ** 3
+        x = inputs["x"]
+        y = outputs["y"]
+        residuals["y"] = x * y**3 - 3.0 * y * x**3
 
     def linearize(self, inputs, outputs, partials):
         """
@@ -63,16 +65,17 @@ class Comp4LinearCacheTest(om.ImplicitComponent):
         partials : `Jacobian`
             Contains sub-jacobians.
         """
-        x = inputs['x']
-        y = outputs['y']
-        partials['y', 'x'] = y ** 3 - 9.0 * y * x ** 2
-        partials['y', 'y'] = 3.0 * x * y ** 2 - 3.0 * y * x ** 3
+        x = inputs["x"]
+        y = outputs["y"]
+        partials["y", "x"] = y**3 - 9.0 * y * x**2
+        partials["y", "y"] = 3.0 * x * y**2 - 3.0 * y * x**3
 
 
 class ExplicitCounterComp(om.ExplicitComponent):
     """
     This component keeps counters for a number of core framework methods.
     """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._counts = defaultdict(int)
@@ -85,37 +88,39 @@ class ExplicitCounterComp(om.ExplicitComponent):
             self._counts[name] = 0
 
     def _configure(self):
-        self._counts['_configure'] += 1
+        self._counts["_configure"] += 1
         super()._configure()
 
     def _compute_wrapper(self):
-        self._counts['_compute_wrapper'] += 1
+        self._counts["_compute_wrapper"] += 1
         super()._compute_wrapper()
 
     def _apply_nonlinear(self):
-        self._counts['_apply_nonlinear'] += 1
+        self._counts["_apply_nonlinear"] += 1
         super()._apply_nonlinear()
 
-    def _compute_jacvec_product_wrapper(self, inputs, d_inputs, d_resids, mode,
-                                        discrete_inputs=None):
-        self._counts['_compute_jacvec_product_wrapper'] += 1
-        super()._compute_jacvec_product_wrapper(inputs, d_inputs, d_resids, mode,
-                                                discrete_inputs=discrete_inputs)
+    def _compute_jacvec_product_wrapper(
+        self, inputs, d_inputs, d_resids, mode, discrete_inputs=None
+    ):
+        self._counts["_compute_jacvec_product_wrapper"] += 1
+        super()._compute_jacvec_product_wrapper(
+            inputs, d_inputs, d_resids, mode, discrete_inputs=discrete_inputs
+        )
 
     def _apply_linear(self, mode, scope_out=None, scope_in=None):
-        self._counts['_apply_linear'] += 1
+        self._counts["_apply_linear"] += 1
         super()._apply_linear(mode, scope_out=scope_out, scope_in=scope_in)
 
     def _solve_linear(self, mode, scope_out=_UNDEFINED, scope_in=_UNDEFINED):
-        self._counts['_solve_linear'] += 1
+        self._counts["_solve_linear"] += 1
         super()._solve_linear(mode, scope_out=scope_out, scope_in=scope_in)
 
     def _compute_partials_wrapper(self, jac):
-        self._counts['_compute_partials_wrapper'] += 1
+        self._counts["_compute_partials_wrapper"] += 1
         super()._compute_partials_wrapper(jac)
 
     def _linearize(self, sub_do_ln=False):
-        self._counts['_linearize'] += 1
+        self._counts["_linearize"] += 1
         super()._linearize(sub_do_ln=sub_do_ln)
 
 
@@ -125,15 +130,15 @@ class MultComp(ExplicitCounterComp):
         self._mult = mult
 
     def setup(self):
-        self.add_input('x')
-        self.add_input('y')
-        self.add_output('fxy')
+        self.add_input("x")
+        self.add_input("y")
+        self.add_output("fxy")
 
-        self.declare_partials(of='*', wrt='*')
+        self.declare_partials(of="*", wrt="*")
 
     def compute(self, inputs, outputs):
-        outputs['fxy'] = (inputs['x'] - .5 * inputs['y']) * self._mult
+        outputs["fxy"] = (inputs["x"] - 0.5 * inputs["y"]) * self._mult
 
     def compute_partials(self, inputs, partials):
-        partials['fxy', 'x'] = self._mult
-        partials['fxy', 'y'] = -self._mult * .5
+        partials["fxy", "x"] = self._mult
+        partials["fxy", "y"] = -self._mult * 0.5

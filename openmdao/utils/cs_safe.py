@@ -4,7 +4,7 @@ collection of complex-step safe functions to replace standard numpy operations.
 
 import numpy as np
 
-if np.__version__[0] == '2':
+if np.__version__[0] == "2":
     NumPy2 = True
 else:
     NumPy2 = False

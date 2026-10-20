@@ -9,13 +9,13 @@
 # Read the count and values for the currents flowing towards and flowing away from the node.
 # Write the residual value to the output file.
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
     input_filename = sys.argv[1]
     output_filename = sys.argv[2]
 
-    with open(input_filename, 'r') as input_file:
+    with open(input_filename, "r") as input_file:
         file_contents = iter(input_file.readlines())
 
     resid_V = 0.0
@@ -27,5 +27,5 @@ if __name__ == '__main__':
     for i in range(n_out):
         resid_V -= float(next(file_contents))
 
-    with open(output_filename, 'w') as output_file:
-        output_file.write('%.16f\n' % resid_V)
+    with open(output_filename, "w") as output_file:
+        output_file.write("%.16f\n" % resid_V)

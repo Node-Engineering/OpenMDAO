@@ -1,4 +1,5 @@
 """Define MPI version of the scaling report tests."""
+
 import os
 import unittest
 
@@ -23,5 +24,5 @@ class TestDiscreteScalingReportMPI(NonMPI.TestDiscreteScalingReport):
     N_PROCS = 2
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

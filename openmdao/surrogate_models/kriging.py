@@ -1,4 +1,5 @@
 """Surrogate model based on Kriging."""
+
 import numpy as np
 import scipy.linalg as linalg
 import os.path
@@ -63,8 +64,8 @@ class KrigingSurrogate(SurrogateModel):
         """
         super().__init__(**kwargs)
 
-        self.n_dims = 0                 # number of independent
-        self.n_samples = 0              # number of training points
+        self.n_dims = 0  # number of independent
+        self.n_samples = 0  # number of training points
         self.thetas = np.zeros(0)
 
         self.alpha = np.zeros(0)
@@ -80,6 +81,7 @@ class KrigingSurrogate(SurrogateModel):
         self.Y_std = np.zeros(0)
 
         from scipy.optimize import minimize
+
         self._minimize = minimize
 
     def _declare_options(self):
@@ -88,33 +90,48 @@ class KrigingSurrogate(SurrogateModel):
         """
         import sys
 
-        self.options.declare('eval_rmse', types=bool, default=False,
-                             desc="Flag indicating whether the Root Mean Squared Error (RMSE) "
-                                  "should be computed. Set to False by default.")
+        self.options.declare(
+            "eval_rmse",
+            types=bool,
+            default=False,
+            desc="Flag indicating whether the Root Mean Squared Error (RMSE) "
+            "should be computed. Set to False by default.",
+        )
 
         # nugget smoothing parameter from [Sasena, 2002]
-        self.options.declare('nugget', default=10. * MACHINE_EPSILON,
-                             desc="Nugget smoothing parameter for smoothing noisy data. Represents "
-                                  "the variance of the input values. If nugget is an ndarray, it "
-                                  "must be of the same length as the number of training points. "
-                                  "Default: 10. * Machine Epsilon")
+        self.options.declare(
+            "nugget",
+            default=10.0 * MACHINE_EPSILON,
+            desc="Nugget smoothing parameter for smoothing noisy data. Represents "
+            "the variance of the input values. If nugget is an ndarray, it "
+            "must be of the same length as the number of training points. "
+            "Default: 10. * Machine Epsilon",
+        )
 
         # Platform-dependent default for lapack_driver
         # On Windows, gesvd can hang with ill-conditioned matrices, so use gesdd
-        default_driver = 'gesdd' if sys.platform == 'win32' else 'gesvd'
+        default_driver = "gesdd" if sys.platform == "win32" else "gesvd"
 
-        self.options.declare('lapack_driver', types=str, default=default_driver,
-                             desc="Which lapack driver should be used for scipy's linalg.svd. "
-                                  "Options are 'gesdd' which is faster but not as robust, "
-                                  "or 'gesvd' which is slower but more reliable. "
-                                  f"Default is '{default_driver}' for this platform.")
+        self.options.declare(
+            "lapack_driver",
+            types=str,
+            default=default_driver,
+            desc="Which lapack driver should be used for scipy's linalg.svd. "
+            "Options are 'gesdd' which is faster but not as robust, "
+            "or 'gesvd' which is slower but more reliable. "
+            f"Default is '{default_driver}' for this platform.",
+        )
 
-        self.options.declare('training_cache', types=str, default=None,
-                             desc="Cache the trained model to avoid repeating training and write "
-                                  "it to the given file. If the specified file exists, it will be "
-                                  "used to load the weights")
+        self.options.declare(
+            "training_cache",
+            types=str,
+            default=None,
+            desc="Cache the trained model to avoid repeating training and write "
+            "it to the given file. If the specified file exists, it will be "
+            "used to load the weights",
+        )
 
-    def train(self, x, y, verbose=False, method='SLSQP', **minimize_options):
+    def train(self, x, y, verbose=False, method="SLSQP", **minimize_options):
         """
         Train the surrogate model with the given set of inputs and outputs.
 
@@ -141,7 +158,7 @@ class KrigingSurrogate(SurrogateModel):
         super().train(x, y)
         x, y = np.atleast_2d(x, y)
 
-        cache = self.options['training_cache']
+        cache = self.options["training_cache"]
 
         if cache:
             try:
@@ -151,30 +168,31 @@ class KrigingSurrogate(SurrogateModel):
             data_hash.update(x.flatten())
             data_hash.update(y.flatten())
             training_data_hash = data_hash.hexdigest()
-            cache_hash = ''
+            cache_hash = ""
 
         if cache and os.path.exists(cache):
-
             with np.load(cache, allow_pickle=False) as data:
                 try:
-                    self.n_samples = data['n_samples']
-                    self.n_dims = data['n_dims']
-                    self.X = np.array(data['X'])
-                    self.Y = np.array(data['Y'])
-                    self.X_mean = np.array(data['X_mean'])
-                    self.Y_mean = np.array(data['Y_mean'])
-                    self.X_std = np.array(data['X_std'])
-                    self.Y_std = np.array(data['Y_std'])
-                    self.thetas = np.array(data['thetas'])
-                    self.alpha = np.array(data['alpha'])
-                    self.U = np.array(data['U'])
-                    self.S_inv = np.array(data['S_inv'])
-                    self.Vh = np.array(data['Vh'])
-                    self.sigma2 = np.array(data['sigma2'])
-                    cache_hash = str(data['hash'])
+                    self.n_samples = data["n_samples"]
+                    self.n_dims = data["n_dims"]
+                    self.X = np.array(data["X"])
+                    self.Y = np.array(data["Y"])
+                    self.X_mean = np.array(data["X_mean"])
+                    self.Y_mean = np.array(data["Y_mean"])
+                    self.X_std = np.array(data["X_std"])
+                    self.Y_std = np.array(data["Y_std"])
+                    self.thetas = np.array(data["thetas"])
+                    self.alpha = np.array(data["alpha"])
+                    self.U = np.array(data["U"])
+                    self.S_inv = np.array(data["S_inv"])
+                    self.Vh = np.array(data["Vh"])
+                    self.sigma2 = np.array(data["sigma2"])
+                    cache_hash = str(data["hash"])
                 except KeyError as e:
-                    msg = ("An error occurred while loading KrigingSurrogate Cache: %s. "
-                           "Ignoring and training from scratch.")
+                    msg = (
+                        "An error occurred while loading KrigingSurrogate Cache: %s. "
+                        "Ignoring and training from scratch."
+                    )
                     issue_warning(msg % str(e), category=CacheWarning)
 
             # if the loaded data passes the hash check with the current training data, we exit
@@ -185,7 +203,7 @@ class KrigingSurrogate(SurrogateModel):
         self.n_samples, self.n_dims = x.shape
 
         if self.n_samples <= 1:
-            raise ValueError('KrigingSurrogate requires at least 2 training points.')
+            raise ValueError("KrigingSurrogate requires at least 2 training points.")
 
         # Normalize the data
         X_mean = np.mean(x, axis=0)
@@ -193,8 +211,8 @@ class KrigingSurrogate(SurrogateModel):
         Y_mean = np.mean(y, axis=0)
         Y_std = np.std(y, axis=0)
 
-        X_std[X_std == 0.] = 1.
-        Y_std[Y_std == 0.] = 1.
+        X_std[X_std == 0.0] = 1.0
+        Y_std[Y_std == 0.0] = 1.0
 
         X = (x - X_mean) / X_std
         Y = (y - Y_mean) / Y_std
@@ -211,65 +229,69 @@ class KrigingSurrogate(SurrogateModel):
 
         bounds = [(np.log(1e-5), np.log(1e5)) for _ in range(self.n_dims)]
 
-        options = {'eps': 1.0e-3, 'tol': 1e-6, 'maxiter': 1000}
+        options = {"eps": 1.0e-3, "tol": 1e-6, "maxiter": 1000}
 
         if cache:
             # Enable logging since we expect the model to take long to train
-            options['disp'] = True
-            options['iprint'] = 2
+            options["disp"] = True
+            options["iprint"] = 2
 
         options.update(minimize_options)
 
-        tol = options.pop('tol')
+        tol = options.pop("tol")
 
-        optResult = self._minimize(_calcll, 1e-1 * np.ones(self.n_dims),
-                                   method=method,
-                                   options=options,
-                                   tol=tol,
-                                   bounds=bounds)
+        optResult = self._minimize(
+            _calcll,
+            1e-1 * np.ones(self.n_dims),
+            method=method,
+            options=options,
+            tol=tol,
+            bounds=bounds,
+        )
 
         if verbose:
-            print('--- Surrogate Training Minimization Result (verbose=True) ---')
+            print("--- Surrogate Training Minimization Result (verbose=True) ---")
             print(optResult)
 
         if not optResult.success:
-            raise ValueError(f'Kriging Hyper-parameter optimization failed: {optResult.message}')
+            raise ValueError(f"Kriging Hyper-parameter optimization failed: {optResult.message}")
 
         self.thetas = np.exp(optResult.x)
         _, params = self._calculate_reduced_likelihood_params()
-        self.alpha = params['alpha']
-        self.U = params['U']
-        self.S_inv = params['S_inv']
-        self.Vh = params['Vh']
-        self.sigma2 = params['sigma2']
+        self.alpha = params["alpha"]
+        self.U = params["U"]
+        self.S_inv = params["S_inv"]
+        self.Vh = params["Vh"]
+        self.sigma2 = params["sigma2"]
 
         # Save data to cache if specified
         if cache:
             data = {
-                'n_samples': self.n_samples,
-                'n_dims': self.n_dims,
-                'X': self.X,
-                'Y': self.Y,
-                'X_mean': self.X_mean,
-                'Y_mean': self.Y_mean,
-                'X_std': self.X_std,
-                'Y_std': self.Y_std,
-                'thetas': self.thetas,
-                'alpha': self.alpha,
-                'U': self.U,
-                'S_inv': self.S_inv,
-                'Vh': self.Vh,
-                'sigma2': self.sigma2,
-                'hash': training_data_hash
+                "n_samples": self.n_samples,
+                "n_dims": self.n_dims,
+                "X": self.X,
+                "Y": self.Y,
+                "X_mean": self.X_mean,
+                "Y_mean": self.Y_mean,
+                "X_std": self.X_std,
+                "Y_std": self.Y_std,
+                "thetas": self.thetas,
+                "alpha": self.alpha,
+                "U": self.U,
+                "S_inv": self.S_inv,
+                "Vh": self.Vh,
+                "sigma2": self.sigma2,
+                "hash": training_data_hash,
             }
 
             if verbose:
                 from pprint import pprint
-                print('--- Post Training Data Cache (verbose=True) ---')
+
+                print("--- Post Training Data Cache (verbose=True) ---")
                 pprint(data)
 
             if not os.path.exists(cache) or cache_hash != training_data_hash:
-                with open(cache, 'wb') as f:
+                with open(cache, "wb") as f:
                     np.savez_compressed(f, **data)
 
     def _calculate_reduced_likelihood_params(self, thetas=None):
@@ -299,33 +321,32 @@ class KrigingSurrogate(SurrogateModel):
         # Correlation Matrix
         distances = np.zeros((self.n_samples, self.n_dims, self.n_samples))
         for i in range(self.n_samples):
-            distances[i, :, i + 1:] = np.abs(X[i, ...] - X[i + 1:, ...]).T
-            distances[i + 1:, :, i] = distances[i, :, i + 1:].T
+            distances[i, :, i + 1 :] = np.abs(X[i, ...] - X[i + 1 :, ...]).T
+            distances[i + 1 :, :, i] = distances[i, :, i + 1 :].T
 
         R = np.exp(-thetas.dot(np.square(distances)))
-        R[np.diag_indices_from(R)] = 1. + self.options['nugget']
+        R[np.diag_indices_from(R)] = 1.0 + self.options["nugget"]
 
-        [U, S, Vh] = linalg.svd(R, lapack_driver=self.options['lapack_driver'])
+        [U, S, Vh] = linalg.svd(R, lapack_driver=self.options["lapack_driver"])
 
         # Penrose-Moore Pseudo-Inverse:
         # Given A = USV^* and Ax=b, the least-squares solution is
         # x = V S^-1 U^* b.
         # Tikhonov regularization is used to make the solution significantly
         # more robust.
-        h = 1.e-8 * S[0]
-        inv_factors = S / (S ** 2. + h ** 2.)
+        h = 1.0e-8 * S[0]
+        inv_factors = S / (S**2.0 + h**2.0)
 
-        alpha = Vh.T.dot(np.einsum('j,kj,kl->jl', inv_factors, U, Y))
+        alpha = Vh.T.dot(np.einsum("j,kj,kl->jl", inv_factors, U, Y))
         logdet = -np.sum(np.log(inv_factors))
         sigma2 = np.dot(Y.T, alpha).sum(axis=0) / self.n_samples
-        reduced_likelihood = -(np.log(np.sum(sigma2)) +
-                               logdet / self.n_samples)
+        reduced_likelihood = -(np.log(np.sum(sigma2)) + logdet / self.n_samples)
 
-        params['alpha'] = alpha
-        params['sigma2'] = sigma2 * np.square(self.Y_std)
-        params['S_inv'] = inv_factors
-        params['U'] = U
-        params['Vh'] = Vh
+        params["alpha"] = alpha
+        params["sigma2"] = sigma2 * np.square(self.Y_std)
+        params["S_inv"] = inv_factors
+        params["U"] = U
+        params["Vh"] = Vh
 
         return reduced_likelihood, params
 
@@ -366,12 +387,13 @@ class KrigingSurrogate(SurrogateModel):
         # Predictor
         y = self.Y_mean + self.Y_std * y_t
 
-        if self.options['eval_rmse']:
-            mse = (1. - np.dot(np.dot(r, self.Vh.T),
-                               np.einsum('j,kj,lk->jl', self.S_inv, self.U, r))) * self.sigma2
+        if self.options["eval_rmse"]:
+            mse = (
+                1.0 - np.dot(np.dot(r, self.Vh.T), np.einsum("j,kj,lk->jl", self.S_inv, self.U, r))
+            ) * self.sigma2
 
             # Forcing negative RMSE to zero if negative due to machine precision
-            mse[mse < 0.] = 0.
+            mse[mse < 0.0] = 0.0
             return y, np.sqrt(mse)
 
         return y
@@ -400,7 +422,6 @@ class KrigingSurrogate(SurrogateModel):
         # Z = einsum('i,ij->ij', X, Y) is equivalent to, but much faster and
         # memory efficient than, diag(X).dot(Y) for vector X and 2D array Y.
         # i.e., Z[i,j] = X[i]*Y[i,j]
-        gradr = r * -2 * np.einsum('i,ij->ij', thetas, (x_n - self.X).T)
-        jac = np.einsum('i,j,ij->ij', self.Y_std, 1. /
-                        self.X_std, gradr.dot(self.alpha).T)
+        gradr = r * -2 * np.einsum("i,ij->ij", thetas, (x_n - self.X).T)
+        jac = np.einsum("i,j,ij->ij", self.Y_std, 1.0 / self.X_std, gradr.dot(self.alpha).T)
         return jac

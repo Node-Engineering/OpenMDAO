@@ -73,13 +73,13 @@ def assert_warning(category, msg, contains_msg=False, ranks=None):
         else:
             warn_clause = str(warn.message) == msg
 
-        if (issubclass(warn.category, category) and warn_clause):
+        if issubclass(warn.category, category) and warn_clause:
             break
     else:
         msg = f"Did not see expected {category.__name__}:\n{msg}"
         if w:
-            ws = '\n'.join([str(ww.message) for ww in w])
-            categories = '\n'.join([str(ww.category.__name__) for ww in w])
+            ws = "\n".join([str(ww.message) for ww in w])
+            categories = "\n".join([str(ww.category.__name__) for ww in w])
             msg += f"\nDid see warnings [{categories}]:\n{ws}"
         raise AssertionError(msg)
 
@@ -110,7 +110,7 @@ def assert_warnings(expected_warnings):
 
     for category, msg in expected_warnings:
         for warn in w:
-            if (issubclass(warn.category, category) and str(warn.message) == msg):
+            if issubclass(warn.category, category) and str(warn.message) == msg:
                 break
         else:
             raise AssertionError("Did not see expected %s: %s" % (category.__name__, msg))
@@ -158,12 +158,12 @@ def assert_no_warning(category, msg=None, contains=False):
 def _filter_np_err(msg):
     # remove extraneous lines from numpy error message
     lines = []
-    for line in msg.split('\n'):
-        if not line.startswith('Not equal to tolerance'):
+    for line in msg.split("\n"):
+        if not line.startswith("Not equal to tolerance"):
             line = line.strip()
             if line:
                 lines.append(line)
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def _parse_assert_allclose_error(msg):
@@ -180,9 +180,9 @@ def _parse_assert_allclose_error(msg):
     (float, float)
         The max absolute error and the max relative error.
     """
-    for line in msg.split('\n'):
+    for line in msg.split("\n"):
         line = line.strip()
-        if not line.startswith('Max'):
+        if not line.startswith("Max"):
             continue
         parts = line.split()
 
@@ -204,9 +204,9 @@ def _parse_assert_allclose_error(msg):
         # Max absolute difference among violations: 2.7
         # Max relative difference among violations: 1.
 
-        if parts[1] == 'absolute':
+        if parts[1] == "absolute":
             abs_err = float(parts[-1])
-        elif parts[1] == 'relative':
+        elif parts[1] == "relative":
             rel_err = float(parts[-1])
     return abs_err, rel_err
 
@@ -257,16 +257,16 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6, verbose=False, max_display
 
         # Find all derivatives whose errors exceed tolerance.
         for key, pair_data in data[comp].items():
-            if pair_data.get('rank_inconsistent'):
+            if pair_data.get("rank_inconsistent"):
                 inconsistent_derivs.add(key)
 
-            J_fds = pair_data['J_fd']
-            J_fwd = pair_data.get('J_fwd')
-            J_rev = pair_data.get('J_rev')
-            dir_fd_fwds = pair_data.get('directional_fd_fwd')
-            dir_fd_revs = pair_data.get('directional_fd_rev')
-            dir_fwd_rev = pair_data.get('directional_fwd_rev')
-            directional = pair_data.get('directional')
+            J_fds = pair_data["J_fd"]
+            J_fwd = pair_data.get("J_fwd")
+            J_rev = pair_data.get("J_rev")
+            dir_fd_fwds = pair_data.get("directional_fd_fwd")
+            dir_fd_revs = pair_data.get("directional_fd_rev")
+            dir_fwd_rev = pair_data.get("directional_fwd_rev")
+            directional = pair_data.get("directional")
 
             if not isinstance(J_fds, list):
                 J_fds = [J_fds]
@@ -278,11 +278,13 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6, verbose=False, max_display
                 if dir_fd_revs is None:
                     dir_fd_revs = [dir_fd_revs]
 
-            dirstr = ' directional' if directional else ''
-            jacs = [(f'J_fwd{dirstr}', J_fwd, f'Forward{dirstr}'),
-                    (f'J_rev{dirstr}', J_rev, f'Reverse{dirstr}')]
+            dirstr = " directional" if directional else ""
+            jacs = [
+                (f"J_fwd{dirstr}", J_fwd, f"Forward{dirstr}"),
+                (f"J_rev{dirstr}", J_rev, f"Reverse{dirstr}"),
+            ]
 
-            steps = pair_data.get('steps', [None])
+            steps = pair_data.get("steps", [None])
 
             nrows, ncols = J_fds[0].shape
             if isinstance(max_display_shape, int):
@@ -291,8 +293,10 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6, verbose=False, max_display
                 try:
                     maxrows, maxcols = max_display_shape
                 except ValueError:
-                    issue_warning("max_display_shape must be an int or a tuple of two ints, but "
-                                  f"got {max_display_shape}. Defaulting to (20, 20).")
+                    issue_warning(
+                        "max_display_shape must be an int or a tuple of two ints, but "
+                        f"got {max_display_shape}. Defaulting to (20, 20)."
+                    )
 
             for J_fd, step, dfwd, drev in zip(J_fds, steps, dir_fd_fwds, dir_fd_revs):
                 if step is not None:
@@ -302,22 +306,25 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6, verbose=False, max_display
 
                 analytic_found = False
                 for Jname, J, direction in jacs:
-                    fwd = direction.startswith('Forward')
+                    fwd = direction.startswith("Forward")
                     if J is not None:
                         analytic_found = True
                         try:
                             if fwd and dfwd is not None:
                                 J1, J2 = dfwd
-                                np.testing.assert_allclose(J1, J2, atol=atol, rtol=rtol,
-                                                           verbose=False, equal_nan=False)
+                                np.testing.assert_allclose(
+                                    J1, J2, atol=atol, rtol=rtol, verbose=False, equal_nan=False
+                                )
                             elif not fwd and drev is not None:
                                 J1, J2 = drev
-                                np.testing.assert_allclose(J1, J2, atol=atol, rtol=rtol,
-                                                           verbose=False, equal_nan=False)
+                                np.testing.assert_allclose(
+                                    J1, J2, atol=atol, rtol=rtol, verbose=False, equal_nan=False
+                                )
                             else:
                                 J1, J2 = J, J_fd
-                                np.testing.assert_allclose(J1, J2, atol=atol, rtol=rtol,
-                                                           verbose=False, equal_nan=False)
+                                np.testing.assert_allclose(
+                                    J1, J2, atol=atol, rtol=rtol, verbose=False, equal_nan=False
+                                )
                         except Exception as err:
                             abserr, relerr = _parse_assert_allclose_error(err.args[0])
                             if abserr < atol and not (np.any(J1) or np.any(J2)):
@@ -326,48 +333,69 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6, verbose=False, max_display
                                 continue
 
                             if verbose:
-                                bad_derivs.append(f"\n{direction} derivatives of '{key[0]}' wrt "
-                                                  f"'{key[1]}' do not match finite "
-                                                  f"difference{stepstr}.\n")
+                                bad_derivs.append(
+                                    f"\n{direction} derivatives of '{key[0]}' wrt "
+                                    f"'{key[1]}' do not match finite "
+                                    f"difference{stepstr}.\n"
+                                )
                                 bad_derivs[-1] += _filter_np_err(err.args[0])
                                 if nrows <= maxrows and ncols <= maxcols:
                                     with np.printoptions(linewidth=10000):
-                                        bad_derivs[-1] += f'\nJ_fd - {Jname}:\n' + \
-                                            np.array2string(J_fd - J)
+                                        bad_derivs[-1] += f"\nJ_fd - {Jname}:\n" + np.array2string(
+                                            J_fd - J
+                                        )
                             else:
-                                bad_derivs.append([f"{key[0]} wrt {key[1]}", "abs",
-                                                   f"fd-{Jname[2:]}", f"{abserr}"])
-                                bad_derivs.append([f"{key[0]} wrt {key[1]}", "rel",
-                                                   f"fd-{Jname[2:]}", f"{relerr}"])
+                                bad_derivs.append(
+                                    [
+                                        f"{key[0]} wrt {key[1]}",
+                                        "abs",
+                                        f"fd-{Jname[2:]}",
+                                        f"{abserr}",
+                                    ]
+                                )
+                                bad_derivs.append(
+                                    [
+                                        f"{key[0]} wrt {key[1]}",
+                                        "rel",
+                                        f"fd-{Jname[2:]}",
+                                        f"{relerr}",
+                                    ]
+                                )
 
                 if not analytic_found:
                     # check if J_fd is all zeros.  If not, then we have a problem.
                     abserr = np.max(np.abs(J_fd))
                     if abserr > atol:
                         if verbose:
-                            bad_derivs.append(f"\nAnalytic deriv for '{key[0]}' wrt '{key[1]}' "
-                                              f"is assumed zero, but finite difference{stepstr} "
-                                              "is nonzero.\n")
+                            bad_derivs.append(
+                                f"\nAnalytic deriv for '{key[0]}' wrt '{key[1]}' "
+                                f"is assumed zero, but finite difference{stepstr} "
+                                "is nonzero.\n"
+                            )
                             if nrows <= maxrows and ncols <= maxcols:
                                 with np.printoptions(linewidth=10000):
-                                    bad_derivs[-1] += '\nJ_fd - J_analytic:\n' + \
-                                        np.array2string(J_fd)
+                                    bad_derivs[-1] += "\nJ_fd - J_analytic:\n" + np.array2string(
+                                        J_fd
+                                    )
                         else:
                             abserr = np.max(np.abs(J_fd))
-                            bad_derivs.append([f"{key[0]} wrt {key[1]}", "abs", "fd-fwd",
-                                               f"{abserr}"])
+                            bad_derivs.append(
+                                [f"{key[0]} wrt {key[1]}", "abs", "fd-fwd", f"{abserr}"]
+                            )
 
-            if pair_data.get('matrix_free') is not None and J_fwd is not None and J_rev is not None:
+            if pair_data.get("matrix_free") is not None and J_fwd is not None and J_rev is not None:
                 try:
                     if dir_fwd_rev is not None:
                         dJfwd, dJrev = dir_fwd_rev
                         either_zero = not (np.any(dJfwd) or np.any(dJrev))
-                        np.testing.assert_allclose(dJfwd, dJrev, atol=atol, rtol=rtol,
-                                                   verbose=False, equal_nan=False)
+                        np.testing.assert_allclose(
+                            dJfwd, dJrev, atol=atol, rtol=rtol, verbose=False, equal_nan=False
+                        )
                     else:
                         either_zero = not (np.any(J_fwd) or np.any(J_rev))
-                        np.testing.assert_allclose(J_fwd, J_rev, atol=atol, rtol=rtol,
-                                                   verbose=False, equal_nan=False)
+                        np.testing.assert_allclose(
+                            J_fwd, J_rev, atol=atol, rtol=rtol, verbose=False, equal_nan=False
+                        )
                 except Exception as err:
                     abserr, relerr = _parse_assert_allclose_error(err.args[0])
                     if abserr < atol and either_zero:
@@ -375,39 +403,45 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6, verbose=False, max_display
                         # tolerance, then don't flag the relative error.
                         continue
                     if verbose:
-                        bad_derivs.append(f"\nForward and Reverse derivatives of '{key[0]}' wrt "
-                                          f"'{key[1]}' do not match.\n")
+                        bad_derivs.append(
+                            f"\nForward and Reverse derivatives of '{key[0]}' wrt "
+                            f"'{key[1]}' do not match.\n"
+                        )
                         bad_derivs[-1] += _filter_np_err(err.args[0])
                         if nrows <= maxrows and ncols <= maxcols:
                             with np.printoptions(linewidth=10000):
-                                bad_derivs[-1] += '\nJ_fwd - J_rev:\n' + \
-                                    np.array2string(J_fwd - J_rev)
+                                bad_derivs[-1] += "\nJ_fwd - J_rev:\n" + np.array2string(
+                                    J_fwd - J_rev
+                                )
                     else:
                         bad_derivs.append([f"{key[0]} wrt {key[1]}", "abs", "fwd-rev", f"{abserr}"])
                         bad_derivs.append([f"{key[0]} wrt {key[1]}", "rel", "fwd-rev", f"{relerr}"])
 
         if bad_derivs or inconsistent_derivs:
-            error_strings.extend(['', add_border(f'Component: {comp}', '-')])
+            error_strings.extend(["", add_border(f"Component: {comp}", "-")])
             if bad_derivs:
                 if verbose:
-                    error_strings[-1] += '\n'.join(bad_derivs)
+                    error_strings[-1] += "\n".join(bad_derivs)
                 else:
-                    header = ['< output > wrt < variable >', 'max abs/rel', 'diff', 'value']
+                    header = ["< output > wrt < variable >", "max abs/rel", "diff", "value"]
                     widths = get_max_widths(chain([header], bad_derivs))
-                    header_str = list(strs2row_iter([header], widths, delim=' | '))[0]
-                    error_strings.append(add_border(header_str, '-', above=False))
-                    error_strings.extend(strs2row_iter(bad_derivs, widths, delim=' | '))
+                    header_str = list(strs2row_iter([header], widths, delim=" | "))[0]
+                    error_strings.append(add_border(header_str, "-", above=False))
+                    error_strings.extend(strs2row_iter(bad_derivs, widths, delim=" | "))
 
             if inconsistent_derivs:
                 error_strings[-1] += (
                     "\nInconsistent derivs across processes for keys: "
                     f"{sorted(inconsistent_derivs)}.\nCheck that distributed outputs are properly "
-                    "reduced when computing\nderivatives of serial inputs.")
+                    "reduced when computing\nderivatives of serial inputs."
+                )
 
     if error_strings:
-        header = add_border('assert_check_partials failed for the following Components\n'
-                            f'with absolute tolerance = {atol} and relative tolerance = {rtol}')
-        err_string = '\n'.join(error_strings)
+        header = add_border(
+            "assert_check_partials failed for the following Components\n"
+            f"with absolute tolerance = {atol} and relative tolerance = {rtol}"
+        )
+        err_string = "\n".join(error_strings)
         raise ValueError(f"\n{header}\n{err_string}")
 
 
@@ -443,9 +477,9 @@ def assert_check_totals(totals_data, atol=1e-6, rtol=1e-6, max_display_shape=(20
     fails = []
     incon_keys = set()
     for key, dct in totals_data.items():
-        if 'inconsistent_keys' in dct:
-            incon_keys = dct['inconsistent_keys']
-        J_fd = dct['J_fd']
+        if "inconsistent_keys" in dct:
+            incon_keys = dct["inconsistent_keys"]
+        J_fd = dct["J_fd"]
         if isinstance(J_fd, list):
             J_fd = J_fd[0]
         try:
@@ -461,39 +495,46 @@ def assert_check_totals(totals_data, atol=1e-6, rtol=1e-6, max_display_shape=(20
         try:
             maxrows, maxcols = max_display_shape
         except ValueError:
-            issue_warning("max_display_shape must be an int or a tuple of two ints, but "
-                          f"got {max_display_shape}. Defaulting to (20, 20).")
+            issue_warning(
+                "max_display_shape must be an int or a tuple of two ints, but "
+                f"got {max_display_shape}. Defaulting to (20, 20)."
+            )
 
-        jacs = [('J_fwd', dct.get('J_fwd'), 'Forward'), ('J_rev', dct.get('J_rev'), 'Reverse')]
+        jacs = [("J_fwd", dct.get("J_fwd"), "Forward"), ("J_rev", dct.get("J_rev"), "Reverse")]
 
         for Jname, J, direction in jacs:
             if J is not None:
                 try:
-                    np.testing.assert_allclose(J, J_fd, atol=atol, rtol=rtol, verbose=False,
-                                               equal_nan=False)
+                    np.testing.assert_allclose(
+                        J, J_fd, atol=atol, rtol=rtol, verbose=False, equal_nan=False
+                    )
                 except Exception as err:
                     abserr, relerr = _parse_assert_allclose_error(err.args[0])
                     if abserr < atol and not (np.any(J) or np.any(J_fd)):
                         # if one array is all zeros and we don't violate the absolute
                         # tolerance, then don't flag the relative error.
                         continue
-                    fails.append(f"\n{direction} derivatives of '{key[0]}' w.r.t '{key[1]}' "
-                                 "do not match finite difference.\n")
+                    fails.append(
+                        f"\n{direction} derivatives of '{key[0]}' w.r.t '{key[1]}' "
+                        "do not match finite difference.\n"
+                    )
                     fails[-1] += _filter_np_err(err.args[0])
                     if nrows <= maxrows and ncols <= maxcols:
                         with np.printoptions(linewidth=10000):
-                            fails[-1] += f'\n{Jname} - J_fd:\n' + np.array2string(J - J_fd)
+                            fails[-1] += f"\n{Jname} - J_fd:\n" + np.array2string(J - J_fd)
 
     if incon_keys:
         ders = [f"{sof} wrt {swrt}" for sof, swrt in sorted(incon_keys)]
-        fails.append(f"During total derivative computation, the following partial derivatives "
-                     f"resulted in serial inputs that were inconsistent across processes: {ders}.")
+        fails.append(
+            f"During total derivative computation, the following partial derivatives "
+            f"resulted in serial inputs that were inconsistent across processes: {ders}."
+        )
 
     if fails:
-        raise ValueError('\n\n'.join(fails))
+        raise ValueError("\n\n".join(fails))
 
 
-def assert_no_approx_partials(system, include_self=True, recurse=True, method='any', excludes=None):
+def assert_no_approx_partials(system, include_self=True, recurse=True, method="any", excludes=None):
     """
     Raise assertion error if any component within system is using approximated partials.
 
@@ -518,26 +559,30 @@ def assert_no_approx_partials(system, include_self=True, recurse=True, method='a
         If a subsystem of group is found to be using approximated partials.
     """
     if isinstance(excludes, str):
-        excludes = [excludes, ]
+        excludes = [
+            excludes,
+        ]
 
     has_approx_partials = False
-    msg = 'The following components use approximated partials:\n'
+    msg = "The following components use approximated partials:\n"
     for s in system.system_iter(include_self=include_self, recurse=recurse):
         if isinstance(s, Component):
             if excludes is not None and any(fnmatch(s.pathname, exclude) for exclude in excludes):
                 continue
             if s._approx_schemes:
-                if method == 'any' or method in s._approx_schemes:
+                if method == "any" or method in s._approx_schemes:
                     has_approx_partials = True
-                    approx_partials = [(k, v['method'])
-                                       for k, v in s._declared_partials_patterns.items()
-                                       if 'method' in v and v['method']]
-                    msg += '    ' + s.pathname + '\n'
+                    approx_partials = [
+                        (k, v["method"])
+                        for k, v in s._declared_partials_patterns.items()
+                        if "method" in v and v["method"]
+                    ]
+                    msg += "    " + s.pathname + "\n"
                     for key, method in approx_partials:
                         key = (str(key[0]), str(key[1]))
-                        msg += '        of={0:12s}    wrt={1:12s}    method={2:2s}\n'.format(key[0],
-                                                                                             key[1],
-                                                                                             method)
+                        msg += "        of={0:12s}    wrt={1:12s}    method={2:2s}\n".format(
+                            key[0], key[1], method
+                        )
     if has_approx_partials:
         raise AssertionError(msg)
 
@@ -561,15 +606,16 @@ def assert_no_dict_jacobians(system, include_self=True, recurse=True):
         If a subsystem of group is found to be using approximated partials.
     """
     from openmdao.core.group import Group
-    parts = ['The following groups use dictionary jacobians:\n']
+
+    parts = ["The following groups use dictionary jacobians:\n"]
     for s in system.system_iter(include_self=include_self, recurse=recurse, typ=Group):
         if isinstance(s._jacobian, DictionaryJacobian):
-            parts.append('    ' + s.pathname)
+            parts.append("    " + s.pathname)
     if len(parts) > 1:
-        raise AssertionError('\n'.join(parts))
+        raise AssertionError("\n".join(parts))
 
 
-def assert_near_equal(actual, desired, tolerance=1e-15, tol_type='rel'):
+def assert_near_equal(actual, desired, tolerance=1e-15, tol_type="rel"):
     """
     Check relative error.
 
@@ -624,12 +670,13 @@ def assert_near_equal(actual, desired, tolerance=1e-15, tol_type='rel'):
         desired = dict(desired)
 
     if type(actual) is not type(desired):
-        raise ValueError(f'actual {type(actual)}, desired {type(desired)} have different types')
+        raise ValueError(f"actual {type(actual)}, desired {type(desired)} have different types")
 
     if isinstance(actual, type) and isinstance(desired, type):
         if actual != desired:
             raise ValueError(
-                'actual type %s, and desired type %s are different' % (actual, desired))
+                "actual type %s, and desired type %s are different" % (actual, desired)
+            )
         return 0
 
     # The code below can only handle these data types
@@ -637,12 +684,14 @@ def assert_near_equal(actual, desired, tolerance=1e-15, tol_type='rel'):
     if type(actual) not in _supported_types:
         warnings.warn(
             f"The function, assert_near_equal, does not support the actual value type: '"
-            f"{type(actual)}'.")
+            f"{type(actual)}'."
+        )
         return 0
     if type(desired) not in _supported_types:
         warnings.warn(
             f"The function, assert_near_equal, does not support the desired value type: '"
-            f"{type(actual)}'.")
+            f"{type(actual)}'."
+        )
         return 0
 
     if isinstance(actual, dict) and isinstance(desired, dict):
@@ -650,44 +699,48 @@ def assert_near_equal(actual, desired, tolerance=1e-15, tol_type='rel'):
         desired_keys = set(desired.keys())
 
         if actual_keys.symmetric_difference(desired_keys):
-            msg = 'Actual and desired keys differ. Actual extra keys: {}, Desired extra keys: {}'
+            msg = "Actual and desired keys differ. Actual extra keys: {}, Desired extra keys: {}"
             actual_extra = actual_keys.difference(desired_keys)
             desired_extra = desired_keys.difference(actual_keys)
             raise KeyError(msg.format(actual_extra, desired_extra))
 
-        error = 0.
+        error = 0.0
 
         for key in actual_keys:
             try:
                 new_error = assert_near_equal(actual[key], desired[key], tolerance, tol_type)
                 error = max(error, new_error)
             except ValueError as exception:
-                msg = '{}: '.format(key) + str(exception)
+                msg = "{}: ".format(key) + str(exception)
                 raise ValueError(msg) from None
             except KeyError as exception:
-                msg = '{}: '.format(key) + str(exception)
+                msg = "{}: ".format(key) + str(exception)
                 raise KeyError(msg) from None
 
     elif isinstance(actual, set) and isinstance(desired, set):
         if actual.symmetric_difference(desired):
             actual_extra = actual.difference(desired)
             desired = desired.difference(actual)
-            raise KeyError("Actual and desired sets differ. "
-                           f"Actual extra values: {actual_extra}, "
-                           f"Desired extra values: {desired_extra}")
+            raise KeyError(
+                "Actual and desired sets differ. "
+                f"Actual extra values: {actual_extra}, "
+                f"Desired extra values: {desired_extra}"
+            )
 
-        error = 0.
+        error = 0.0
 
     elif isinstance(actual, str) and isinstance(desired, str):
         if actual != desired:
             raise ValueError(
-                'actual %s, desired %s strings have different values' % (actual, desired))
+                "actual %s, desired %s strings have different values" % (actual, desired)
+            )
         error = 0.0
 
     elif isinstance(actual, bool) and isinstance(desired, bool):
         if actual != desired:
             raise ValueError(
-                'actual %s, desired %s booleans have different values' % (actual, desired))
+                "actual %s, desired %s booleans have different values" % (actual, desired)
+            )
         error = 0.0
 
     elif actual is None and desired is None:
@@ -700,41 +753,46 @@ def assert_near_equal(actual, desired, tolerance=1e-15, tol_type='rel'):
                 warnings.warn(
                     f"The function, assert_near_equal, does not support the actual value ndarray "
                     f"type of: '"
-                    f"{type(actual.dtype)}'.")
+                    f"{type(actual.dtype)}'."
+                )
             if desired.dtype == object:
                 warnings.warn(
                     f"The function, assert_near_equal, does not support the desired value ndarray "
                     f"type of: '"
-                    f"{type(desired.dtype)}'.")
+                    f"{type(desired.dtype)}'."
+                )
             error = 0.0
         else:
-
             actual = np.atleast_1d(actual)
             desired = np.atleast_1d(desired)
             if actual.shape != desired.shape:
                 raise ValueError(
-                    'actual and desired have differing shapes.'
-                    ' actual {}, desired {}'.format(actual.shape, desired.shape))
+                    "actual and desired have differing shapes. actual {}, desired {}".format(
+                        actual.shape, desired.shape
+                    )
+                )
             # check to see if the entire array is made of floats. If not, loop through all values
 
             if not np.all(np.isnan(actual) == np.isnan(desired)):
                 if actual.size == 1 and desired.size == 1:
-                    raise ValueError('actual %s, desired %s' % (actual, desired))
+                    raise ValueError("actual %s, desired %s" % (actual, desired))
                 else:
-                    raise ValueError('actual and desired values have non-matching nan'
-                                     ' values')
-            if np.linalg.norm(desired) == 0 or tol_type == 'abs':
+                    raise ValueError("actual and desired values have non-matching nan values")
+            if np.linalg.norm(desired) == 0 or tol_type == "abs":
                 error = np.linalg.norm(actual - desired)
             else:
                 error = np.linalg.norm(actual - desired) / np.linalg.norm(desired)
 
             if abs(error) > tolerance:
                 if actual.size < 10 and desired.size < 10:
-                    raise ValueError('actual %s, desired %s, %s error %s, tolerance %s'
-                                     % (actual, desired, tol_type, error, tolerance))
+                    raise ValueError(
+                        "actual %s, desired %s, %s error %s, tolerance %s"
+                        % (actual, desired, tol_type, error, tolerance)
+                    )
                 else:
-                    raise ValueError('arrays do not match, rel error %.3e > tol (%.3e)' %
-                                     (error, tolerance))
+                    raise ValueError(
+                        "arrays do not match, rel error %.3e > tol (%.3e)" % (error, tolerance)
+                    )
     elif isinstance(actual, tuple) and isinstance(desired, tuple):
         error = 0.0
         for act, des in zip(actual, desired):
@@ -742,12 +800,13 @@ def assert_near_equal(actual, desired, tolerance=1e-15, tol_type='rel'):
             error = max(error, new_error)
     else:
         raise ValueError(
-            'actual and desired have unexpected types: %s, %s' % (type(actual), type(desired)))
+            "actual and desired have unexpected types: %s, %s" % (type(actual), type(desired))
+        )
 
     return error
 
 
-def assert_sparsity_matches_fd(system, direction='fwd', outstream=sys.stdout):
+def assert_sparsity_matches_fd(system, direction="fwd", outstream=sys.stdout):
     """
     Assert that the sparsity of the system matches the finite difference sparsity.
 
@@ -760,8 +819,9 @@ def assert_sparsity_matches_fd(system, direction='fwd', outstream=sys.stdout):
     outstream : file
         The stream to write the output to.  If None, no output is written.
     """
-    assert system.sparsity_matches_fd(direction=direction, outstream=outstream), \
+    assert system.sparsity_matches_fd(direction=direction, outstream=outstream), (
         f"{system.msginfo}: Sparsity does not match finite difference sparsity"
+    )
 
 
 def assert_equal_arrays(a1, a2):

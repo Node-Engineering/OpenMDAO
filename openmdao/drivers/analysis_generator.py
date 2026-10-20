@@ -93,9 +93,11 @@ class AnalysisGenerator(Iterator):
         vals = next(self._iter)
 
         for i, name in enumerate(self._var_dict.keys()):
-            d[name] = {'val': vals[i],
-                       'units': self._var_dict[name].get('units', None),
-                       'indices': self._var_dict[name].get('indices', None)}
+            d[name] = {
+                "val": vals[i],
+                "units": self._var_dict[name].get("units", None),
+                "indices": self._var_dict[name].get("indices", None),
+            }
         self._run_count += 1
         return d
 
@@ -122,12 +124,13 @@ class ZipGenerator(AnalysisGenerator):
             Raised if the length of var_dict for each case are not all the same size.
         """
         super()._setup()
-        sampler = (c['val'] for c in self._var_dict.values())
-        _lens = {name: len(meta['val']) for name, meta in self._var_dict.items()}
+        sampler = (c["val"] for c in self._var_dict.values())
+        _lens = {name: len(meta["val"]) for name, meta in self._var_dict.items()}
         if len(set([_l for _l in _lens.values()])) != 1:
-            raise ValueError('ZipGenerator requires that val '
-                             f'for all var_dict have the same length:\n{_lens}')
-        sampler = (c['val'] for c in self._var_dict.values())
+            raise ValueError(
+                f"ZipGenerator requires that val for all var_dict have the same length:\n{_lens}"
+            )
+        sampler = (c["val"] for c in self._var_dict.values())
         self._iter = zip(*sampler)
 
 
@@ -153,7 +156,7 @@ class ProductGenerator(AnalysisGenerator):
             Raised if the length of var_dict for each case are not all the same size.
         """
         super()._setup()
-        sampler = (c['val'] for c in self._var_dict.values())
+        sampler = (c["val"] for c in self._var_dict.values())
         self._iter = itertools.product(*sampler)
 
 
@@ -206,24 +209,25 @@ class CSVGenerator(AnalysisGenerator):
         self._has_units = has_units
         self._has_indices = has_indices
 
-        self._csv_file = open(self._filename, 'r')
+        self._csv_file = open(self._filename, "r")
         self._csv_reader = csv.DictReader(self._csv_file)
 
         self._var_names = set(self._csv_reader.fieldnames)
 
-        self._ret_val = {var: {'units': None, 'indices': None}
-                         for var in self._csv_reader.fieldnames}
+        self._ret_val = {
+            var: {"units": None, "indices": None} for var in self._csv_reader.fieldnames
+        }
 
         if self._has_units:
             var_units_dict = next(self._csv_reader)
             for var, units in var_units_dict.items():
-                self._ret_val[var]['units'] = None if not units else units
+                self._ret_val[var]["units"] = None if not units else units
 
         if self._has_indices:
             var_idxs_dict = next(self._csv_reader)
             for var, idxs in var_idxs_dict.items():
-                idxs = eval(idxs, {'__builtins__': {}})  # nosec: scope limited
-                self._ret_val[var]['indices'] = idxs
+                idxs = eval(idxs, {"__builtins__": {}})  # nosec: scope limited
+                self._ret_val[var]["indices"] = idxs
 
     def _get_sampled_vars(self):
         return self._var_names
@@ -235,7 +239,7 @@ class CSVGenerator(AnalysisGenerator):
         try:
             var_val_dict = next(self._csv_reader)
             for var, val in var_val_dict.items():
-                self._ret_val[var]['val'] = val
+                self._ret_val[var]["val"] = val
             return self._ret_val
         except StopIteration:
             # Close the file and propagate the exception

@@ -40,7 +40,7 @@ class InterpCubic(InterpAlgorithm):
         super().__init__(grid, values, interp)
         self.second_derivs = None
         self.k = 4
-        self._name = 'cubic'
+        self._name = "cubic"
 
     def compute_coeffs(self, grid, values, x):
         """
@@ -77,11 +77,11 @@ class InterpCubic(InterpAlgorithm):
         temp = np.zeros(values.shape, dtype=dtype)
 
         # Subdiagonal stripe.
-        mu = (grid[1:n - 1] - grid[:n - 2]) / (grid[2:] - grid[:n - 2])
+        mu = (grid[1 : n - 1] - grid[: n - 2]) / (grid[2:] - grid[: n - 2])
 
         # Right hand sides.
-        vdiff = (values[..., 1:] - values[..., :n - 1]) / (grid[1:] - grid[:n - 1])
-        tmp = 6.0 * (vdiff[..., 1:] - vdiff[..., :n - 2]) / (grid[2:] - grid[:n - 2])
+        vdiff = (values[..., 1:] - values[..., : n - 1]) / (grid[1:] - grid[: n - 1])
+        tmp = 6.0 * (vdiff[..., 1:] - vdiff[..., : n - 2]) / (grid[2:] - grid[: n - 2])
 
         for i in range(1, n - 1):
             prtl = 1.0 / (mu[i - 1] * sec_deriv[..., i - 1] + 2.0)
@@ -145,9 +145,15 @@ class InterpCubic(InterpAlgorithm):
             b = (x[0] - grid[idx]) * r_step
             fact = 1.0 / 6.0
 
-            interp_values = a * values[..., idx] + b * values[..., idx + 1] + \
-                ((a * a * a - a) * sec_deriv[..., idx] +
-                 (b * b * b - b) * sec_deriv[..., idx + 1]) * (step * step * fact)
+            interp_values = (
+                a * values[..., idx]
+                + b * values[..., idx + 1]
+                + (
+                    (a * a * a - a) * sec_deriv[..., idx]
+                    + (b * b * b - b) * sec_deriv[..., idx + 1]
+                )
+                * (step * step * fact)
+            )
 
             # Derivatives
 
@@ -155,21 +161,27 @@ class InterpCubic(InterpAlgorithm):
             tshape.append(nx)
             derivs = np.empty(tuple(tshape), dtype=x.dtype)
 
-            derivs[..., 0] = r_step * (values[..., idx + 1] - values[..., idx]) + \
-                (((3.0 * b * b - 1) * sec_deriv[..., idx + 1] -
-                  (3.0 * a * a - 1) * sec_deriv[..., idx]) * (step * fact))
+            derivs[..., 0] = r_step * (values[..., idx + 1] - values[..., idx]) + (
+                (
+                    (3.0 * b * b - 1) * sec_deriv[..., idx + 1]
+                    - (3.0 * a * a - 1) * sec_deriv[..., idx]
+                )
+                * (step * fact)
+            )
 
             if nx == 2:
                 dsec = self.compute_coeffs(grid, subderivs, x)
-                derivs[..., 1] = ((a * a * a - a) * dsec[..., idx] +
-                                  (b * b * b - b) * dsec[..., idx + 1]) * (step * step * fact)
+                derivs[..., 1] = (
+                    (a * a * a - a) * dsec[..., idx] + (b * b * b - b) * dsec[..., idx + 1]
+                ) * (step * step * fact)
 
                 derivs[..., 1] += a * subderivs[..., idx] + b * subderivs[..., idx + 1]
 
             else:
                 dsec = self.compute_coeffs(grid, np.swapaxes(subderivs, -1, -2), x)
-                derivs[..., 1:] = ((a * a * a - a) * dsec[..., idx] +
-                                   (b * b * b - b) * dsec[..., idx + 1]) * (step * step * fact)
+                derivs[..., 1:] = (
+                    (a * a * a - a) * dsec[..., idx] + (b * b * b - b) * dsec[..., idx + 1]
+                ) * (step * step * fact)
 
                 derivs[..., 1:] += a * subderivs[..., idx, :] + b * subderivs[..., idx + 1, :]
 
@@ -190,12 +202,15 @@ class InterpCubic(InterpAlgorithm):
         b = (x - grid[idx]) * r_step
         fact = 1.0 / 6.0
 
-        val = a * values[..., idx] + b * values[..., idx + 1] + \
-            ((a * a * a - a) * sec_deriv[..., idx] +
-             (b * b * b - b) * sec_deriv[..., idx + 1]) * (step * step * fact)
+        val = (
+            a * values[..., idx]
+            + b * values[..., idx + 1]
+            + ((a * a * a - a) * sec_deriv[..., idx] + (b * b * b - b) * sec_deriv[..., idx + 1])
+            * (step * step * fact)
+        )
 
-        deriv = r_step * (values[..., idx + 1] - values[..., idx]) + \
-            ((3.0 * b * b - 1) * sec_deriv[..., idx + 1] -
-             (3.0 * a * a - 1) * sec_deriv[..., idx]) * (step * fact)
+        deriv = r_step * (values[..., idx + 1] - values[..., idx]) + (
+            (3.0 * b * b - 1) * sec_deriv[..., idx + 1] - (3.0 * a * a - 1) * sec_deriv[..., idx]
+        ) * (step * fact)
 
         return val, deriv, None, None

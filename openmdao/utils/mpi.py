@@ -36,24 +36,24 @@ def under_mpi():
         return _under_mpi_cache
 
     # Check for explicit override
-    openmdao_use_mpi = os.environ.get('OPENMDAO_USE_MPI', '').lower()
-    if openmdao_use_mpi in ('1', 'true', 'yes', 'always'):
+    openmdao_use_mpi = os.environ.get("OPENMDAO_USE_MPI", "").lower()
+    if openmdao_use_mpi in ("1", "true", "yes", "always"):
         _under_mpi_cache = True
         return _under_mpi_cache
-    elif openmdao_use_mpi in ('0', 'false', 'no', 'never'):
+    elif openmdao_use_mpi in ("0", "false", "no", "never"):
         _under_mpi_cache = False
         return _under_mpi_cache
 
     # Fast path: Check common MPI environment variables
     # Most MPI runs will set at least one of these
     mpi_size_vars = [
-        'OMPI_COMM_WORLD_SIZE',  # OpenMPI
-        'PMI_SIZE',               # MPICH, Intel MPI, MVAPICH, MS-MPI
-        'MPI_LOCALNRANKS',        # Various implementations
-        'SLURM_NTASKS',           # SLURM scheduler
-        'MP_PROCS',               # IBM Spectrum MPI
-        'FJMPI_PROCS',            # Fujitsu MPI
-        'NECMPI_PROCS',           # NEC MPI
+        "OMPI_COMM_WORLD_SIZE",  # OpenMPI
+        "PMI_SIZE",  # MPICH, Intel MPI, MVAPICH, MS-MPI
+        "MPI_LOCALNRANKS",  # Various implementations
+        "SLURM_NTASKS",  # SLURM scheduler
+        "MP_PROCS",  # IBM Spectrum MPI
+        "FJMPI_PROCS",  # Fujitsu MPI
+        "NECMPI_PROCS",  # NEC MPI
     ]
 
     for var in mpi_size_vars:
@@ -68,9 +68,9 @@ def under_mpi():
 
     # Check for MPI presence indicators (suggest MPI but don't give size)
     mpi_presence_vars = [
-        'MPI_SHEPHERD',  # SGI MPT
-        'MPI_ROOT',      # HP MPI
-        'MPI_FLAGS',     # Platform MPI
+        "MPI_SHEPHERD",  # SGI MPT
+        "MPI_ROOT",  # HP MPI
+        "MPI_FLAGS",  # Platform MPI
     ]
 
     has_mpi_indicator = any(var in os.environ for var in mpi_presence_vars)
@@ -92,6 +92,7 @@ def under_mpi():
     # Need to actually check via mpi4py (slow path)
     try:
         from mpi4py import MPI
+
         _under_mpi_cache = MPI.COMM_WORLD.Get_size() > 1
     except ImportError:
         _under_mpi_cache = False
@@ -132,8 +133,8 @@ def _redirect_streams(to_fd):
     os.dup2(to_fd, original_stderr_fd)
 
     # Create a new sys.stdout that points to the redirected fd
-    sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, 'wb'))
-    sys.stderr = io.TextIOWrapper(os.fdopen(original_stdout_fd, 'wb'))
+    sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, "wb"))
+    sys.stderr = io.TextIOWrapper(os.fdopen(original_stdout_fd, "wb"))
 
 
 def use_proc_files():
@@ -141,13 +142,13 @@ def use_proc_files():
     Cause stdout/err from each MPI process to be written to [rank].out.
     """
     if MPI is not None:
-        working_dir = os.environ.get('PROC_FILES_DIR')
+        working_dir = os.environ.get("PROC_FILES_DIR")
         if not working_dir:
-            ofile = open("%d.out" % MPI.COMM_WORLD.rank, 'wb')
+            ofile = open("%d.out" % MPI.COMM_WORLD.rank, "wb")
         else:
             if not os.path.isdir(working_dir):
                 raise RuntimeError("directory '%s' does not exist." % working_dir)
-            ofile = open(os.path.join(working_dir, "%d.out" % MPI.COMM_WORLD.rank), 'wb')
+            ofile = open(os.path.join(working_dir, "%d.out" % MPI.COMM_WORLD.rank), "wb")
         _redirect_streams(ofile.fileno())
 
 
@@ -160,11 +161,11 @@ def check_mpi_env():
     bool
         True if MPI is required, False if it's to be skipped, None if not set.
     """
-    mpi_selection = os.environ.get('OPENMDAO_USE_MPI', None)
+    mpi_selection = os.environ.get("OPENMDAO_USE_MPI", None)
 
     # If OPENMDAO_USE_MPI is set to a postive value, the run will fail
     # immediately if the import fails
-    if str(mpi_selection).lower() in ['always', '1', 'true', 'yes', 'y', 'on']:
+    if str(mpi_selection).lower() in ["always", "1", "true", "yes", "y", "on"]:
         return True
 
     # If set to something else, no import is attempted.
@@ -195,6 +196,7 @@ else:
 
 
 if MPI:
+
     def debug(*msg):  # pragma: no cover
         """
         Print debug message to stdout.
@@ -207,9 +209,10 @@ if MPI:
         newmsg = ["%d: " % MPI.COMM_WORLD.rank] + list(msg)
         for m in newmsg:
             sys.stdout.write("%s " % m)
-        sys.stdout.write('\n')
+        sys.stdout.write("\n")
         sys.stdout.flush()
 else:
+
     def debug(*msg):  # pragma: no cover
         """
         Print debug message to stdout.
@@ -221,7 +224,7 @@ else:
         """
         for m in msg:
             sys.stdout.write("%s " % str(m))
-        sys.stdout.write('\n')
+        sys.stdout.write("\n")
 
 
 class FakeComm(object):
@@ -270,14 +273,15 @@ def multi_proc_fail_check(comm):  # pragma no cover
         except AnalysisError:
             msg = traceback.format_exc()
         else:
-            msg = ''
+            msg = ""
 
         fails = comm.allgather(msg)
 
         for i, f in enumerate(fails):
             if f:
-                raise AnalysisError("AnalysisError raised in rank %d: traceback follows\n%s"
-                                    % (i, f))
+                raise AnalysisError(
+                    "AnalysisError raised in rank %d: traceback follows\n%s" % (i, f)
+                )
 
 
 @contextmanager
@@ -314,8 +318,7 @@ def multi_proc_exception_check(comm):  # pragma no cover
         failed = comm.allreduce(fail)
         if failed:
             if fail:
-                info = (MPI.COMM_WORLD.rank, exc_type, ''.join(traceback.format_tb(tb)),
-                        exc)
+                info = (MPI.COMM_WORLD.rank, exc_type, "".join(traceback.format_tb(tb)), exc)
             else:
                 info = None
 
@@ -330,6 +333,7 @@ def multi_proc_exception_check(comm):  # pragma no cover
 
 
 if MPI:
+
     def check_mpi_exceptions(fn):
         """
         Wrap a function in multi_proc_exception_check.
@@ -347,10 +351,12 @@ if MPI:
         function
             A wrapper for fn that reports possible memory leaks.
         """
+
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             with multi_proc_exception_check(args[0].comm):
                 return fn(*args, **kwargs)
+
         return wrapper
 else:
     # do nothing decorator
@@ -374,6 +380,7 @@ else:
 
 
 if MPI:
+
     def mpirun_tests():  # pragma no cover
         """
         Run individual tests under MPI.
@@ -383,21 +390,21 @@ if MPI:
         file has not been run under mpirun, this reverts to running
         unittest.main().
         """
-        mod = __import__('__main__')
+        mod = __import__("__main__")
 
-        tests = [arg for arg in sys.argv[1:] if not arg.startswith('-')]
+        tests = [arg for arg in sys.argv[1:] if not arg.startswith("-")]
 
         if tests:
             for test in tests:
-                parts = test.split('.', 1)
+                parts = test.split(".", 1)
                 if len(parts) == 2:
                     tcase_name, method_name = parts
                     testcase = getattr(mod, tcase_name)(methodName=method_name)
-                    setup = getattr(testcase, 'setUp', None)
+                    setup = getattr(testcase, "setUp", None)
                     if setup is not None:
                         setup()
                     getattr(testcase, method_name)()
-                    teardown = getattr(testcase, 'tearDown', None)
+                    teardown = getattr(testcase, "tearDown", None)
                     if teardown:
                         teardown()
                 else:
@@ -409,6 +416,6 @@ else:
     mpirun_tests = unittest.main
 
 
-if os.environ.get('USE_PROC_FILES') or os.environ.get('PROC_FILES_DIR'):
+if os.environ.get("USE_PROC_FILES") or os.environ.get("PROC_FILES_DIR"):
     if not notebook:
         use_proc_files()

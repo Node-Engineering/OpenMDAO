@@ -75,9 +75,7 @@ class CSCMatrix(COOMatrix):
         for key, coo_slice in self._coo_slices.items():
             idx = self._coo_to_csc_map[coo_slice]
             n = idx.size
-            self._has_within_subjac_duplicates[key] = (
-                n > 1 and np.unique(idx).size != n
-            )
+            self._has_within_subjac_duplicates[key] = n > 1 and np.unique(idx).size != n
 
         # Discard all COO arrays - they are no longer needed
         coo.row = np.array([], dtype=INT_DTYPE)
@@ -95,7 +93,7 @@ class CSCMatrix(COOMatrix):
         """
         super()._pre_update(dtype)
         # Zero CSC data so contributions from each subjac can be accumulated
-        self._matrix.data[:] = 0.
+        self._matrix.data[:] = 0.0
 
     def _update_from_submat(self, subjac, randgen):
         """

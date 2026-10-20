@@ -1,4 +1,5 @@
 """Autoscaler that normalizes design variables to the interval [0, 1] using their bounds."""
+
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -35,7 +36,7 @@ class BoundsAutoscaler(Autoscaler):
     finite range to normalize against.
     """
 
-    def setup(self, driver: 'Driver'):
+    def setup(self, driver: "Driver"):
         """
         Perform setup and override design-variable scaling so bounds map to [0, 1].
 
@@ -46,20 +47,23 @@ class BoundsAutoscaler(Autoscaler):
         """
         super().setup(driver)
 
-        dv_meta = self._var_meta['design_var']
+        dv_meta = self._var_meta["design_var"]
         shadow = {}
         scaled_any = False
 
         for name, meta in dv_meta.items():
-            if meta.get('discrete', False):
+            if meta.get("discrete", False):
                 shadow[name] = meta
                 continue
 
-            size = meta.get('global_size', meta.get('size', 0)) \
-                if meta.get('distributed', False) else meta.get('size', 0)
+            size = (
+                meta.get("global_size", meta.get("size", 0))
+                if meta.get("distributed", False)
+                else meta.get("size", 0)
+            )
 
-            lower = meta.get('lower')
-            upper = meta.get('upper')
+            lower = meta.get("lower")
+            upper = meta.get("upper")
 
             if lower is None or upper is None:
                 # Entirely unbounded in at least one direction; leave scaling as-is.
@@ -79,7 +83,8 @@ class BoundsAutoscaler(Autoscaler):
                 raise RuntimeError(
                     f"{type(self).__name__} requires upper > lower for every design "
                     f"variable element. Design variable '{name}' has an element where "
-                    "upper <= lower.")
+                    "upper <= lower."
+                )
 
             new_scaler = 1.0 / dv_range
             new_adder = -lower_arr
@@ -91,20 +96,20 @@ class BoundsAutoscaler(Autoscaler):
                 new_adder = float(new_adder.item())
 
             meta_copy = dict(meta)
-            meta_copy['total_scaler'] = new_scaler
-            meta_copy['total_adder'] = new_adder
+            meta_copy["total_scaler"] = new_scaler
+            meta_copy["total_adder"] = new_adder
             shadow[name] = meta_copy
             scaled_any = True
 
         # Install shadow metadata for design variables only. Constraints and objective
         # continue to point at the driver's original metadata via _var_meta.
-        self._var_meta['design_var'] = shadow
+        self._var_meta["design_var"] = shadow
 
         if scaled_any:
             self._has_scaling = True
 
         # Refresh cached scaled design-variable bounds with the new scaler/adder.
-        self._scaled_bounds['design_var'] = self._compute_scaled_bounds('design_var')
+        self._scaled_bounds["design_var"] = self._compute_scaled_bounds("design_var")
 
     @property
     def report_after_setup(self) -> bool:

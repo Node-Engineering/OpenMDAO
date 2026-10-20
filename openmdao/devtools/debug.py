@@ -1,6 +1,5 @@
 """Various debugging functions."""
 
-
 import sys
 from io import StringIO
 
@@ -23,7 +22,7 @@ class _NoColor(object):
     """
 
     def __getattr__(self, name):
-        return ''
+        return ""
 
 
 def _get_color_printer(stream=sys.stdout, colors=True, rank=0):
@@ -32,6 +31,7 @@ def _get_color_printer(stream=sys.stdout, colors=True, rank=0):
     """
     try:
         from colorama import init, Fore, Back, Style
+
         init(autoreset=True)
     except ImportError:
         Fore = Back = Style = _NoColor()
@@ -42,24 +42,37 @@ def _get_color_printer(stream=sys.stdout, colors=True, rank=0):
     if MPI and MPI.COMM_WORLD.rank != rank:
         if rank >= MPI.COMM_WORLD.size:
             if MPI.COMM_WORLD.rank == 0:
-                print("Specified rank (%d) is outside of the valid range (0-%d)." %
-                      (rank, MPI.COMM_WORLD.size - 1))
+                print(
+                    "Specified rank (%d) is outside of the valid range (0-%d)."
+                    % (rank, MPI.COMM_WORLD.size - 1)
+                )
             sys.exit()
+
         def color_print(s, **kwargs):
             pass
     else:
-        def color_print(s, color='', end=''):
-            """
-            """
-            print(color + s, file=stream, end='')
-            print(Style.RESET_ALL, file=stream, end='')
+
+        def color_print(s, color="", end=""):
+            """ """
+            print(color + s, file=stream, end="")
+            print(Style.RESET_ALL, file=stream, end="")
             print(end=end)
 
     return color_print, Fore, Back, Style
 
 
-def tree(top, show_solvers=True, show_jacs=True, show_colors=True, show_approx=True,
-         filter=None, show_sizes=False, max_depth=0, rank=0, stream=sys.stdout):
+def tree(
+    top,
+    show_solvers=True,
+    show_jacs=True,
+    show_colors=True,
+    show_approx=True,
+    filter=None,
+    show_sizes=False,
+    max_depth=0,
+    rank=0,
+    stream=sys.stdout,
+):
     """
     Dump the model tree structure to the given stream.
 
@@ -101,8 +114,8 @@ def tree(top, show_solvers=True, show_jacs=True, show_colors=True, show_approx=T
     tab = 0
     if isinstance(top, Problem):
         if filter is None:
-            cprint('Driver: ', color=Fore.CYAN + Style.BRIGHT)
-            cprint(type(top.driver).__name__, color=Fore.MAGENTA, end='\n')
+            cprint("Driver: ", color=Fore.CYAN + Style.BRIGHT)
+            cprint(type(top.driver).__name__, color=Fore.MAGENTA, end="\n")
             tab += 1
         top = top.model
 
@@ -114,12 +127,12 @@ def tree(top, show_solvers=True, show_jacs=True, show_colors=True, show_approx=T
             if ret is None:
                 continue
 
-        depth = len(s.pathname.split('.')) if s.pathname else 0
+        depth = len(s.pathname.split(".")) if s.pathname else 0
         if max_depth != 0 and depth > max_depth:
             continue
 
-        indent = '    ' * (depth + tab)
-        cprint(indent, end='')
+        indent = "    " * (depth + tab)
+        cprint(indent, end="")
 
         if isinstance(s, Group):
             cprint("%s " % type(s).__name__, color=Fore.GREEN + Style.BRIGHT)
@@ -136,8 +149,10 @@ def tree(top, show_solvers=True, show_jacs=True, show_colors=True, show_approx=T
 
         # FIXME: these sizes could be wrong under MPI
         if show_sizes:
-            cprint(" (%d / %d)" % (s._inputs._data.size, s._outputs._data.size),
-                color=Fore.RED + Style.BRIGHT)
+            cprint(
+                " (%d / %d)" % (s._inputs._data.size, s._outputs._data.size),
+                color=Fore.RED + Style.BRIGHT,
+            )
 
         if show_solvers:
             lnsolver = type(s.linear_solver).__name__
@@ -164,14 +179,14 @@ def tree(top, show_solvers=True, show_jacs=True, show_colors=True, show_approx=T
                         jacs.append(nljac)
 
             if len(jacs) == 2:
-                jnames = [' LN Jac: ', ' NL Jac: ']
+                jnames = [" LN Jac: ", " NL Jac: "]
             elif lnjac is not None:
                 if lnjac is nljac:
-                    jnames = [' Jac: ']
+                    jnames = [" Jac: "]
                 else:
-                    jnames = [' LN Jac: ']
+                    jnames = [" LN Jac: "]
             elif nljac is not None:
-                jnames = [' NL Jac: ']
+                jnames = [" NL Jac: "]
             else:
                 jnames = []
 
@@ -183,7 +198,7 @@ def tree(top, show_solvers=True, show_jacs=True, show_colors=True, show_approx=T
             approx_keys = set()
             keys = set()
             for k, sjac in s._subjacs_info.items():
-                if 'method' in sjac and sjac['method']:
+                if "method" in sjac and sjac["method"]:
                     approx_keys.add(k)
                 else:
                     keys.add(k)
@@ -191,18 +206,20 @@ def tree(top, show_solvers=True, show_jacs=True, show_colors=True, show_approx=T
             cprint("  APPROX: ", color=Fore.MAGENTA + Style.BRIGHT)
             cprint("%s (%d of %d)" % (list(s._approx_schemes), len(diff), len(s._subjacs_info)))
 
-        cprint('', end='\n')
+        cprint("", end="\n")
 
-        vindent = indent + '  '
+        vindent = indent + "  "
         for name, val in ret:
             cprint("%s%s: %s\n" % (vindent, name, val))
 
 
 def _get_printer(comm, stream, rank=0):
     if comm.rank == rank:
+
         def p(*args, **kwargs):
             print(*args, file=stream, **kwargs)
     else:
+
         def p(*args, **kwargs):
             pass
 
@@ -229,13 +246,19 @@ def config_summary(problem, stream=sys.stdout):
 
     grpnames = [s.pathname for s in locgroups]
     sysnames = [s.pathname for s in locsystems]
-    ln_solvers = [(s.pathname, type(s.linear_solver).__name__) for s in locsystems
-                              if s.linear_solver is not None]
-    nl_solvers = [(s.pathname, type(s.nonlinear_solver).__name__) for s in locsystems
-                         if s.nonlinear_solver is not None]
+    ln_solvers = [
+        (s.pathname, type(s.linear_solver).__name__)
+        for s in locsystems
+        if s.linear_solver is not None
+    ]
+    nl_solvers = [
+        (s.pathname, type(s.nonlinear_solver).__name__)
+        for s in locsystems
+        if s.nonlinear_solver is not None
+    ]
 
-    max_depth = max([len(name.split('.')) for name in sysnames])
-    setup_done = model._problem_meta['setup_status'] >= _SetupStatus.POST_FINAL_SETUP
+    max_depth = max([len(name.split(".")) for name in sysnames])
+    setup_done = model._problem_meta["setup_status"] >= _SetupStatus.POST_FINAL_SETUP
 
     if problem.comm.size > 1:
         local_max = np.array([max_depth])
@@ -272,102 +295,122 @@ def config_summary(problem, stream=sys.stdout):
 
     if setup_done:
         desvars = model.get_design_vars()
-        printer("Design variables:        %5d   Total size: %8d" %
-                (len(desvars), sum(d['size'] for d in desvars.values())))
+        printer(
+            "Design variables:        %5d   Total size: %8d"
+            % (len(desvars), sum(d["size"] for d in desvars.values()))
+        )
 
         con_nonlin_eq = {}
         con_nonlin_ineq = {}
         con_linear_eq = {}
         con_linear_ineq = {}
         for con, vals in model.get_constraints().items():
-            if vals['linear']:
-                if vals['equals'] is not None:
+            if vals["linear"]:
+                if vals["equals"] is not None:
                     con_linear_eq[con] = vals
                 else:
                     con_linear_ineq[con] = vals
             else:
-                if vals['equals'] is not None:
-                    con_nonlin_eq[con]= vals
+                if vals["equals"] is not None:
+                    con_nonlin_eq[con] = vals
                 else:
-                    con_nonlin_ineq[con]= vals
+                    con_nonlin_ineq[con] = vals
 
         con_nonlin = con_nonlin_eq.copy()
         con_nonlin.update(con_nonlin_ineq)
         con_linear = con_linear_eq.copy()
         con_linear.update(con_linear_ineq)
 
-        printer("\nNonlinear Constraints:   %5d   Total size: %8d" %
-                (len(con_nonlin), sum(d['size'] for d in con_nonlin.values())))
-        printer("    equality:            %5d               %8d" %
-                (len(con_nonlin_eq), sum(d['size'] for d in con_nonlin_eq.values())))
-        printer("    inequality:          %5d               %8d" %
-                (len(con_nonlin_ineq), sum(d['size'] for d in con_nonlin_ineq.values())))
-        printer("\nLinear Constraints:      %5d   Total size: %8d" %
-                (len(con_linear), sum(d['size'] for d in con_linear.values())))
-        printer("    equality:            %5d               %8d" %
-                (len(con_linear_eq), sum(d['size'] for d in con_linear_eq.values())))
-        printer("    inequality:          %5d               %8d" %
-                (len(con_linear_ineq), sum(d['size'] for d in con_linear_ineq.values())))
+        printer(
+            "\nNonlinear Constraints:   %5d   Total size: %8d"
+            % (len(con_nonlin), sum(d["size"] for d in con_nonlin.values()))
+        )
+        printer(
+            "    equality:            %5d               %8d"
+            % (len(con_nonlin_eq), sum(d["size"] for d in con_nonlin_eq.values()))
+        )
+        printer(
+            "    inequality:          %5d               %8d"
+            % (len(con_nonlin_ineq), sum(d["size"] for d in con_nonlin_ineq.values()))
+        )
+        printer(
+            "\nLinear Constraints:      %5d   Total size: %8d"
+            % (len(con_linear), sum(d["size"] for d in con_linear.values()))
+        )
+        printer(
+            "    equality:            %5d               %8d"
+            % (len(con_linear_eq), sum(d["size"] for d in con_linear_eq.values()))
+        )
+        printer(
+            "    inequality:          %5d               %8d"
+            % (len(con_linear_ineq), sum(d["size"] for d in con_linear_ineq.values()))
+        )
 
         objs = model.get_objectives()
-        printer("\nObjectives:              %5d   Total size: %8d" %
-                (len(objs), sum(d['size'] for d in objs.values())))
+        printer(
+            "\nObjectives:              %5d   Total size: %8d"
+            % (len(objs), sum(d["size"] for d in objs.values()))
+        )
 
     printer()
 
-    input_names = model._var_allprocs_abs2meta['input']
+    input_names = model._var_allprocs_abs2meta["input"]
     ninputs = len(input_names)
     if setup_done:
-        printer("Input variables:         %5d   Total size: %8d" %
-                (ninputs, sum(meta['input'][n]['size'] for n in input_names)))
+        printer(
+            "Input variables:         %5d   Total size: %8d"
+            % (ninputs, sum(meta["input"][n]["size"] for n in input_names))
+        )
     else:
         printer("Input variables:         %5d" % ninputs)
 
-    output_names = model._var_allprocs_abs2meta['output']
+    output_names = model._var_allprocs_abs2meta["output"]
     noutputs = len(output_names)
     if setup_done:
-        printer("Output variables:        %5d   Total size: %8d" %
-                (noutputs, sum(shape_to_len(meta['output'][n]['global_shape'])
-                               for n in output_names)))
+        printer(
+            "Output variables:        %5d   Total size: %8d"
+            % (noutputs, sum(shape_to_len(meta["output"][n]["global_shape"]) for n in output_names))
+        )
     else:
         printer("Output variables:        %5d" % noutputs)
 
     if setup_done and isinstance(model, Group):
         printer()
         conns = model._conn_global_abs_in2out
-        printer("Total connections: %d   Total transfer data size: %d" %
-                (len(conns), sum(meta['input'][n]['size'] for n in conns if n in meta['input'])))
+        printer(
+            "Total connections: %d   Total transfer data size: %d"
+            % (len(conns), sum(meta["input"][n]["size"] for n in conns if n in meta["input"]))
+        )
 
     printer()
     printer("Driver type: %s" % problem.driver.__class__.__name__)
     linstr = []
     for slvname, num in ln_solvers.most_common():
         if num > 1:
-            linstr.append('{} x {}'.format(slvname, num))
+            linstr.append("{} x {}".format(slvname, num))
         else:
             linstr.append(slvname)
-    printer("Linear Solvers: [{}]".format(', '.join(linstr)))
-
+    printer("Linear Solvers: [{}]".format(", ".join(linstr)))
 
     nlstr = []
     for slvname, num in nl_solvers.most_common():
         if num > 1:
-            nlstr.append('{} x {}'.format(slvname, num))
+            nlstr.append("{} x {}".format(slvname, num))
         else:
             nlstr.append(slvname)
-    printer("Nonlinear Solvers: [{}]".format(', '.join(nlstr)))
+    printer("Nonlinear Solvers: [{}]".format(", ".join(nlstr)))
 
 
 def _summary_report(prob):
-    path = prob.get_reports_dir() / 'summary.html'
+    path = prob.get_reports_dir() / "summary.html"
     s = StringIO()
     config_summary(prob, s)
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write(text2html(s.getvalue()))
 
 
 def _summary_report_register():
-    register_report('summary', _summary_report, 'Model summary', 'Problem', 'final_setup', 'post')
+    register_report("summary", _summary_report, "Model summary", "Problem", "final_setup", "post")
 
 
 class DebugDict(dict):
@@ -383,7 +426,7 @@ class DebugDict(dict):
 
 
 @contextmanager
-def profiling(outname='prof.out'):
+def profiling(outname="prof.out"):
     """
     Context manager that runs cProfile on the wrapped code and dumps stats to the given filename.
 
@@ -393,6 +436,7 @@ def profiling(outname='prof.out'):
         Name of the output file containing profiling stats.
     """
     import cProfile
+
     prof = cProfile.Profile()
     prof.enable()
 
@@ -429,14 +473,14 @@ def compare_jacs(Jref, J, rel_trigger=1.0):
         diff[:] = 0.0
         diff[rel_idxs] = 1.0
         if diff.flatten()[max_diff_idx] > 0.0:
-            results.append((key, max_diff, 'rel'))
+            results.append((key, max_diff, "rel"))
         else:
-            results.append((key, max_diff, 'abs'))
+            results.append((key, max_diff, "abs"))
 
     return results
 
 
-def trace_dump(fname='trace_dump', skip=(), flush=True):
+def trace_dump(fname="trace_dump", skip=(), flush=True):
     """
     Dump traces to the specified filename<.rank> showing openmdao and c calls.
 
@@ -454,88 +498,112 @@ def trace_dump(fname='trace_dump', skip=(), flush=True):
     if sys.getprofile() is not None:
         raise RuntimeError("another profile function is already active.")
 
-    suffix = '.0' if MPI is None else '.' + str(MPI.COMM_WORLD.rank)
+    suffix = ".0" if MPI is None else "." + str(MPI.COMM_WORLD.rank)
     my_fname = fname + suffix
 
-    outfile = open(my_fname, 'w')
+    outfile = open(my_fname, "w")
 
     stack = []
 
     _c_map = {
-        'c_call': '(c) -->',
-        'c_return': '(c) <--',
-        'c_exception': '(c_exception)',
+        "c_call": "(c) -->",
+        "c_return": "(c) <--",
+        "c_exception": "(c_exception)",
     }
-
 
     def _print_c_func(frame, arg, typestr):
         s = str(arg)
-        if 'mpi4py' in s or 'petsc4py' in s:
+        if "mpi4py" in s or "petsc4py" in s:
             c = arg.__self__.__class__
             if stack:
                 pname = f"(scope: {stack[-1][0]})"
             else:
-                pname = ''
-            print('   ' * len(stack), typestr, f"{c.__module__}.{c.__name__}.{arg.__name__}",
-                  f"{frame.f_code.co_filename}:{frame.f_code.co_firstlineno} {pname}",
-                  file=outfile, flush=True)
-
+                pname = ""
+            print(
+                "   " * len(stack),
+                typestr,
+                f"{c.__module__}.{c.__name__}.{arg.__name__}",
+                f"{frame.f_code.co_filename}:{frame.f_code.co_firstlineno} {pname}",
+                file=outfile,
+                flush=True,
+            )
 
     def _mpi_trace_callback(frame, event, arg):
         pname = None
-        commsize = ''
-        if event == 'call':
-            if 'openmdao' in frame.f_code.co_filename:
+        commsize = ""
+        if event == "call":
+            if "openmdao" in frame.f_code.co_filename:
                 if frame.f_code.co_name in skip:
                     return
-                if 'self' in frame.f_locals:
+                if "self" in frame.f_locals:
                     try:
-                        pname = frame.f_locals['self'].msginfo
+                        pname = frame.f_locals["self"].msginfo
                     except Exception:
                         pass
                     try:
-                        commsize = frame.f_locals['self'].comm.size
+                        commsize = frame.f_locals["self"].comm.size
                     except Exception:
                         pass
                 if pname is not None:
                     if not stack or pname != stack[-1][0]:
                         stack.append([pname, 1])
-                        print('   ' * len(stack), commsize, f"(scope: {pname})", file=outfile, flush=flush)
+                        print(
+                            "   " * len(stack),
+                            commsize,
+                            f"(scope: {pname})",
+                            file=outfile,
+                            flush=flush,
+                        )
                     else:
                         stack[-1][1] += 1
-                print('   ' * len(stack), '-->', frame.f_code.co_name, "%s:%d" %
-                      (frame.f_code.co_filename, frame.f_code.co_firstlineno),
-                      file=outfile, flush=flush)
-        elif event == 'return':
-            if 'openmdao' in frame.f_code.co_filename:
+                print(
+                    "   " * len(stack),
+                    "-->",
+                    frame.f_code.co_name,
+                    "%s:%d" % (frame.f_code.co_filename, frame.f_code.co_firstlineno),
+                    file=outfile,
+                    flush=flush,
+                )
+        elif event == "return":
+            if "openmdao" in frame.f_code.co_filename:
                 if frame.f_code.co_name in skip:
                     return
-                if 'self' in frame.f_locals:
+                if "self" in frame.f_locals:
                     try:
-                        pname = frame.f_locals['self'].msginfo
+                        pname = frame.f_locals["self"].msginfo
                     except Exception:
                         pass
                     try:
-                        commsize = frame.f_locals['self'].comm.size
+                        commsize = frame.f_locals["self"].comm.size
                     except Exception:
                         pass
-                print('   ' * len(stack), '<--', frame.f_code.co_name, "%s:%d" %
-                      (frame.f_code.co_filename, frame.f_code.co_firstlineno),
-                      file=outfile, flush=flush)
+                print(
+                    "   " * len(stack),
+                    "<--",
+                    frame.f_code.co_name,
+                    "%s:%d" % (frame.f_code.co_filename, frame.f_code.co_firstlineno),
+                    file=outfile,
+                    flush=flush,
+                )
                 if pname is not None and stack and pname == stack[-1][0]:
                     stack[-1][1] -= 1
                     if stack[-1][1] < 1:
                         stack.pop()
                         if stack:
-                            print('   ' * len(stack), commsize, stack[-1][0], file=outfile,
-                                  flush=flush)
+                            print(
+                                "   " * len(stack),
+                                commsize,
+                                stack[-1][0],
+                                file=outfile,
+                                flush=flush,
+                            )
         else:
             _print_c_func(frame, arg, _c_map[event])
 
     sys.setprofile(_mpi_trace_callback)
 
 
-def comm_info(system, outfile=None, verbose=False, table_format='box_grid'):
+def comm_info(system, outfile=None, verbose=False, table_format="box_grid"):
     """
     Display MPI communicator information for Systems in the model.
 
@@ -587,10 +655,10 @@ def comm_info(system, outfile=None, verbose=False, table_format='box_grid'):
                         alldata[path] = [csize, newmin, newmax]
 
             table_data = []
-            headers = ['Comm Size', 'COMM_WORLD Range(s)', 'System Pathname']
+            headers = ["Comm Size", "COMM_WORLD Range(s)", "System Pathname"]
             for path, lst in sorted(alldata.items(), key=lambda x: (-x[1][0], x[0])):
                 csize, minwrnk, maxwrnk = lst
-                if verbose or path == '' or sizes[path.rpartition('.')[0]] != csize:
+                if verbose or path == "" or sizes[path.rpartition(".")[0]] != csize:
                     if minwrnk == maxwrnk:
                         rng = str(minwrnk)
                     else:
@@ -598,20 +666,21 @@ def comm_info(system, outfile=None, verbose=False, table_format='box_grid'):
                     table_data.append([csize, rng, path])
 
             col_meta = [
-                {'align': 'center', 'header_align': 'center'},
-                {'align': 'center', 'header_align': 'center'},
-                {}
+                {"align": "center", "header_align": "center"},
+                {"align": "center", "header_align": "center"},
+                {},
             ]
-            if table_format != 'tabulator':
-                col_meta[0]['max_width'] = 5
-                col_meta[1]['max_width'] = 15
+            if table_format != "tabulator":
+                col_meta[0]["max_width"] = 5
+                col_meta[1]["max_width"] = 15
 
-            probpath = system._problem_meta['pathname']
+            probpath = system._problem_meta["pathname"]
             if outfile is None:
                 print(f"Printing comm info table for Problem '{probpath}'")
 
-            outf = generate_table(table_data, headers=headers, column_meta=col_meta,
-                                  tablefmt=table_format).display(outfile=outfile)
+            outf = generate_table(
+                table_data, headers=headers, column_meta=col_meta, tablefmt=table_format
+            ).display(outfile=outfile)
 
             if outf is not None and MPI.COMM_WORLD.rank == 0:
                 print(f"comm info table for Problem '{probpath}' written to {outf}")
@@ -619,7 +688,7 @@ def comm_info(system, outfile=None, verbose=False, table_format='box_grid'):
         if outfile is None:
             print("No MPI process info available.")
         else:
-            with open(outfile, 'w') as f:
+            with open(outfile, "w") as f:
                 print("No MPI process info available.", file=f)
 
 
@@ -661,28 +730,29 @@ def show_dist_var_conns(group, rev=False, out_stream=_DEFAULT_OUT_STREAM):
         out_stream = sys.stdout
 
     if out_stream is None:
+
         def printer(*args, **kwargs):
             return None
     else:
         printer = print
 
-    direction = 'rev' if rev else 'fwd'
-    arrowdir = {'fwd': '->', 'rev': '<-'}
+    direction = "rev" if rev else "fwd"
+    arrowdir = {"fwd": "->", "rev": "<-"}
     arrow = arrowdir[direction]
 
     gdict = {}
 
     for g in group.system_iter(typ=Group, include_self=True):
         if g._transfers[direction]:
-            in_ranges = list(g.dist_size_iter('input', group.comm))
-            out_ranges = list(g.dist_size_iter('output', group.comm))
+            in_ranges = list(g.dist_size_iter("input", group.comm))
+            out_ranges = list(g.dist_size_iter("output", group.comm))
 
             inmapper = RangeMapper.create(in_ranges)
             outmapper = RangeMapper.create(out_ranges)
 
             gprint = False
 
-            gprefix = g.pathname + '.' if g.pathname else ''
+            gprefix = g.pathname + "." if g.pathname else ""
             skip = len(gprefix)
 
             for sub, transfer in g._transfers[direction].items():
@@ -763,10 +833,10 @@ def show_dist_var_conns(group, rev=False, out_stream=_DEFAULT_OUT_STREAM):
         gdict = final
 
     if group.comm.rank == 0:
-        fwd = direction == 'fwd'
+        fwd = direction == "fwd"
         for gpath, subdct in sorted(gdict.items(), key=lambda x: x[0]):
-            indent = 0 if gpath == '' else gpath.count('.') + 1
-            pad = '   ' * indent
+            indent = 0 if gpath == "" else gpath.count(".") + 1
+            pad = "   " * indent
             printer(f"{pad}In Group '{gpath}'", file=out_stream)
             for sub, strs in sorted(subdct.items(), key=lambda x: x[0]):
                 if fwd:
@@ -809,10 +879,12 @@ def show_dist_var_conns(group, rev=False, out_stream=_DEFAULT_OUT_STREAM):
                                 else:
                                     irstr = f"[{sorted_ranks[0]} to {sorted_ranks[-1]}]"
 
-                        if orstr == irstr and '[' not in orstr:
+                        if orstr == irstr and "[" not in orstr:
                             printer(f"{pad}      {s}    rank {orstr}", file=out_stream)
                         else:
-                            printer(f"{pad}      {s}    ranks {orstr} {arrow} {irstr}", file=out_stream)
+                            printer(
+                                f"{pad}      {s}    ranks {orstr} {arrow} {irstr}", file=out_stream
+                            )
                     else:
                         printer(f"{pad}      {s}", file=out_stream)
 
@@ -828,12 +900,22 @@ def _dist_conns_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('-o', default=None, action='store', dest='outfile',
-                        help='Name of output file.  By default, output goes to stdout.')
-    parser.add_argument('-r', '--rev', action='store_true', dest='rev',
-                        help='If set, use "rev" transfer direction instead of "fwd".')
-    parser.add_argument('-p', '--problem', action='store', dest='problem', help='Problem name')
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument(
+        "-o",
+        default=None,
+        action="store",
+        dest="outfile",
+        help="Name of output file.  By default, output goes to stdout.",
+    )
+    parser.add_argument(
+        "-r",
+        "--rev",
+        action="store_true",
+        dest="rev",
+        help='If set, use "rev" transfer direction instead of "fwd".',
+    )
+    parser.add_argument("-p", "--problem", action="store", dest="problem", help="Problem name")
 
 
 def _dist_conns_cmd(options, user_args):
@@ -855,17 +937,19 @@ def _dist_conns_cmd(options, user_args):
     def _dist_conns(prob):
         model = prob.model
         if options.problem:
-            if model._problem_meta['name'] != options.problem and \
-                    model._problem_meta['pathname'] != options.problem:
+            if (
+                model._problem_meta["name"] != options.problem
+                and model._problem_meta["pathname"] != options.problem
+            ):
                 return
-        elif '/' in model._problem_meta['pathname']:
+        elif "/" in model._problem_meta["pathname"]:
             # by default, only display comm info for a top level problem
             return
 
         if options.outfile is None:
             out_stream = sys.stdout
         else:
-            out_stream = open(options.outfile, 'w')
+            out_stream = open(options.outfile, "w")
 
         try:
             show_dist_var_conns(model, rev=options.rev, out_stream=out_stream)
@@ -876,6 +960,6 @@ def _dist_conns_cmd(options, user_args):
         exit()
 
     # register the hook to be called right after final_setup on the problem
-    hooks._register_hook('final_setup', 'Problem', post=_dist_conns)
+    hooks._register_hook("final_setup", "Problem", post=_dist_conns)
 
     _load_and_exec(options.file[0], user_args)

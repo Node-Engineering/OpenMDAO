@@ -1,5 +1,5 @@
-
 """Define a function to view connections."""
+
 import os
 import json
 from itertools import chain
@@ -18,15 +18,16 @@ from openmdao.utils.reports_system import register_report
 def _val2str(val):
     if isinstance(val, np.ndarray):
         if val.size > 5:
-            return 'array %s' % str(val.shape)
+            return "array %s" % str(val.shape)
         else:
             return np.array2string(val)
 
     return str(val)
 
 
-def view_connections(root, outfile='connections.html', show_browser=True,
-                     show_values=True, precision=6, title=None):
+def view_connections(
+    root, outfile="connections.html", show_browser=True, show_values=True, precision=6, title=None
+):
     """
     Generate an html or csv file containing a detailed connection viewer.
 
@@ -64,34 +65,35 @@ def view_connections(root, outfile='connections.html', show_browser=True,
     else:
         system = root
 
-    if system._problem_meta is not None and system._problem_meta['saved_errors']:
+    if system._problem_meta is not None and system._problem_meta["saved_errors"]:
         pass  # special case of being called when errors occurred during setup
-    elif (system._problem_meta is None or
-          system._problem_meta['setup_status'] < _SetupStatus.POST_FINAL_SETUP):
+    elif (
+        system._problem_meta is None
+        or system._problem_meta["setup_status"] < _SetupStatus.POST_FINAL_SETUP
+    ):
         raise RuntimeError("view_connections may only be called after final_setup.")
 
-    connections = system._problem_meta['model_ref']()._conn_global_abs_in2out
+    connections = system._problem_meta["model_ref"]()._conn_global_abs_in2out
 
     src2tgts = defaultdict(list)
-    units = defaultdict(lambda: '')
-    for io in ('input', 'output'):
+    units = defaultdict(lambda: "")
+    for io in ("input", "output"):
         for n, data in system._var_allprocs_abs2meta[io].items():
-            u = data.get('units', '')
+            u = data.get("units", "")
             if u is not None:
                 units[n] = u
 
     vals = {}
 
     all_vars = {}
-    for io in ('input', 'output'):
+    for io in ("input", "output"):
         all_vars[io] = chain(system._resolver.abs_iter(io, local=True))
 
     with printoptions(precision=precision, suppress=True, threshold=10000):
-
-        for t in all_vars['input']:
+        for t in all_vars["input"]:
             s = connections[t]
             if show_values and system._outputs is not None:
-                if s.startswith('_auto_ivc.'):
+                if s.startswith("_auto_ivc."):
                     val = system.get_val(t, flat=True, get_remote=True, from_src=False)
                 else:
                     val = system.get_val(t, flat=True, get_remote=True)
@@ -103,7 +105,7 @@ def view_connections(root, outfile='connections.html', show_browser=True,
                     else:
                         val = system.get_val(t, flat=True, get_remote=True)
             else:
-                val = ''
+                val = ""
 
             src2tgts[s].append(t)
 
@@ -120,12 +122,12 @@ def view_connections(root, outfile='connections.html', show_browser=True,
         if usrc != utgt:
             # prepend these with '!' so they'll be colored red
             if usrc:
-                usrc = '!' + units[src]
+                usrc = "!" + units[src]
             if utgt:
-                utgt = '!' + units[tgt]
+                utgt = "!" + units[tgt]
 
-        tgtprom = resolver.abs2prom(tgt, 'input')
-        srcprom = resolver.abs2prom(src, 'output')
+        tgtprom = resolver.abs2prom(tgt, "input")
+        srcprom = resolver.abs2prom(src, "output")
 
         if (tgtprom, srcprom) in prom_trees:
             sys_prom_map = prom_trees[(tgtprom, srcprom)]
@@ -133,54 +135,64 @@ def view_connections(root, outfile='connections.html', show_browser=True,
             sys_prom_map = system.get_promotions(tgtprom, srcprom)
             prom_trees[(tgtprom, srcprom)] = sys_prom_map
 
-        row = {'id': idx, 'src': src, 'sprom': srcprom,
-               'outpromto': '',
-               'sunits': usrc,
-               'val': _val2str(vals[tgt]), 'tunits': utgt,
-               'system': '', 'inpromto': '',
-               'tprom': tgtprom, 'tgt': tgt}
+        row = {
+            "id": idx,
+            "src": src,
+            "sprom": srcprom,
+            "outpromto": "",
+            "sunits": usrc,
+            "val": _val2str(vals[tgt]),
+            "tunits": utgt,
+            "system": "",
+            "inpromto": "",
+            "tprom": tgtprom,
+            "tgt": tgt,
+        }
 
         children = []
-        keep = {'sprom', 'tprom', 'src', 'tgt'}
+        keep = {"sprom", "tprom", "src", "tgt"}
         for spath, (inpromto, subins, outpromto, subout) in sys_prom_map.items():
-            r = {n: v if n in keep else '' for n, v in row.items()}
+            r = {n: v if n in keep else "" for n, v in row.items()}
 
-            implicitconn = (inpromto and outpromto and
-                            inpromto.rpartition(' ')[2] == outpromto.rpartition(' ')[2])
+            implicitconn = (
+                inpromto
+                and outpromto
+                and inpromto.rpartition(" ")[2] == outpromto.rpartition(" ")[2]
+            )
 
             if inpromto:
                 subins = list(subins)
                 if len(subins) > 1:
-                    subins = '(' + ', '.join(subins) + ')'
+                    subins = "(" + ", ".join(subins) + ")"
                 elif len(subins) == 1:
                     subins = subins[0]
                 else:
-                    subins = ''
+                    subins = ""
                 inpromto = f"{subins} ↑ {inpromto}"
             else:
-                inpromto = ''
+                inpromto = ""
 
             if outpromto:
                 if len(subout) == 1:
                     subout = list(subout)[0]
                 else:
-                    subout = ''
+                    subout = ""
                 outpromto = f"{subout} ↑ {outpromto}"
             else:
-                outpromto = ''
+                outpromto = ""
 
             if implicitconn:
-                spath = '!' + spath
-                inpromto = '!' + inpromto
-                outpromto = '!' + outpromto
+                spath = "!" + spath
+                inpromto = "!" + inpromto
+                outpromto = "!" + outpromto
 
-            r['system'] = spath
-            r['inpromto'] = inpromto
-            r['outpromto'] = outpromto
+            r["system"] = spath
+            r["inpromto"] = inpromto
+            r["outpromto"] = outpromto
             children.append(r)
 
-        if children and outfile.endswith('.html'):
-            row['_children'] = children
+        if children and outfile.endswith(".html"):
+            row["_children"] = children
 
         table.append(row)
         idx += 1
@@ -189,33 +201,33 @@ def view_connections(root, outfile='connections.html', show_browser=True,
     system._promotion_tree = None
 
     if title is None:
-        title = ''
+        title = ""
 
     data = {
-        'title': title,
-        'table': table,
-        'show_values': show_values,
+        "title": title,
+        "table": table,
+        "show_values": show_values,
     }
 
-    if outfile.endswith('.html'):
-        viewer = 'connect_table.html'
+    if outfile.endswith(".html"):
+        viewer = "connect_table.html"
 
         code_dir = os.path.dirname(os.path.abspath(__file__))
-        libs_dir = os.path.join(os.path.dirname(code_dir), 'common', 'libs')
-        style_dir = os.path.join(os.path.dirname(code_dir), 'common', 'style')
+        libs_dir = os.path.join(os.path.dirname(code_dir), "common", "libs")
+        style_dir = os.path.join(os.path.dirname(code_dir), "common", "style")
 
-        with open(os.path.join(code_dir, viewer), "r", encoding='utf-8') as f:
+        with open(os.path.join(code_dir, viewer), "r", encoding="utf-8") as f:
             template = f.read()
 
-        with open(os.path.join(libs_dir, 'tabulator.5.4.4.min.js'), "r", encoding='utf-8') as f:
+        with open(os.path.join(libs_dir, "tabulator.5.4.4.min.js"), "r", encoding="utf-8") as f:
             tabulator_src = f.read()
 
-        with open(os.path.join(style_dir, 'tabulator.5.4.4.min.css'), "r", encoding='utf-8') as f:
+        with open(os.path.join(style_dir, "tabulator.5.4.4.min.css"), "r", encoding="utf-8") as f:
             tabulator_style = f.read()
 
         jsontxt = json.dumps(data)
 
-        with open(outfile, 'w', encoding='utf-8') as f:
+        with open(outfile, "w", encoding="utf-8") as f:
             s = template.replace("<connection_data>", jsontxt)
             s = s.replace("<tabulator_src>", tabulator_src)
             s = s.replace("<tabulator_style>", tabulator_style)
@@ -233,14 +245,16 @@ def view_connections(root, outfile='connections.html', show_browser=True,
         elif show_browser:
             # open it up in the browser
             from openmdao.utils.webview import webview
+
             webview(outfile)
 
-    elif outfile.endswith('.csv'):
+    elif outfile.endswith(".csv"):
         import csv
+
         column_headings = list(table[0].keys())
 
         # open the file in the write mode
-        with open(outfile, 'w', encoding='utf-8') as f:
+        with open(outfile, "w", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(column_headings)
             for var_dict in table:
@@ -252,13 +266,20 @@ def view_connections(root, outfile='connections.html', show_browser=True,
 
 
 # connections report definition
-def _run_connections_report(prob, report_filename='connections.html'):
+def _run_connections_report(prob, report_filename="connections.html"):
 
     path = prob.get_reports_dir() / report_filename
-    view_connections(prob, show_browser=False, outfile=path,
-                     title=f'Connection Viewer for {prob._name}')
+    view_connections(
+        prob, show_browser=False, outfile=path, title=f"Connection Viewer for {prob._name}"
+    )
 
 
 def _connections_report_register():
-    register_report('connections', _run_connections_report, 'Connections viewer',
-                    'Problem', 'final_setup', 'post')
+    register_report(
+        "connections",
+        _run_connections_report,
+        "Connections viewer",
+        "Problem",
+        "final_setup",
+        "post",
+    )

@@ -48,7 +48,7 @@ class OptimizerVector(object):
 
     def __init__(self, voi_type, data, metadata, driver_scaling=False):
         """Initialize OpimizerVector with data array and metadata."""
-        self.voi_type: Literal['design_var', 'constraint', 'objective'] = voi_type
+        self.voi_type: Literal["design_var", "constraint", "objective"] = voi_type
         self._data: np.ndarray = data
         self._meta: dict[str, Any] = metadata
         self._filters = {}
@@ -77,7 +77,7 @@ class OptimizerVector(object):
         if name not in self._meta:
             raise KeyError(f"Variable '{name}' not found in OpimizerVector")
         info = self._meta[name]
-        return self._data[info['slice']].reshape(-1)
+        return self._data[info["slice"]].reshape(-1)
 
     def __setitem__(self, name, value):
         """
@@ -98,7 +98,7 @@ class OptimizerVector(object):
         if name not in self._meta:
             raise KeyError(f"Variable '{name}' not found in OptimizerVector")
         info = self._meta[name]
-        self._data[info['slice']] = np.asarray(value).flat
+        self._data[info["slice"]] = np.asarray(value).flat
 
     def __contains__(self, name):
         """
@@ -210,15 +210,14 @@ class OptimizerVector(object):
         for meta in self._meta.values():
             # Check if all filter criteria match this variable's metadata
             if all(meta.get(key) == value for key, value in filters.items()):
-                s = meta['slice']
+                s = meta["slice"]
                 ranges.append((s.start, s.stop))
 
         if not ranges:
             return np.array([], dtype=np.intp)
 
         # Use np.concatenate with list of np.arange (follows OpenMDAO vector.py pattern)
-        return np.concatenate([np.arange(start, end, dtype=np.intp)
-                              for start, end in ranges])
+        return np.concatenate([np.arange(start, end, dtype=np.intp) for start, end in ranges])
 
     def set_data(self, val, driver_scaling=True):
         """
@@ -242,10 +241,14 @@ class OptimizerVector(object):
         else:
             self._data[:] = np.asarray(val).ravel()
         self._driver_scaling = driver_scaling
-    
+
     @classmethod
-    def create_from_model(cls, voi_type: Literal['design_var', 'constraint', 'objective'],
-                          driver: 'Driver', driver_scaling: bool=True):
+    def create_from_model(
+        cls,
+        voi_type: Literal["design_var", "constraint", "objective"],
+        driver: "Driver",
+        driver_scaling: bool = True,
+    ):
         """
         Populate the data in the vector based on values from the model.
 
@@ -265,14 +268,16 @@ class OptimizerVector(object):
         OptimizerVector
             A new OptimizerVector.
         """
-        varmeta_map = {'design_var': driver._designvars,
-                       'constraint': driver._cons,
-                       'objective': driver._objs}
+        varmeta_map = {
+            "design_var": driver._designvars,
+            "constraint": driver._cons,
+            "objective": driver._objs,
+        }
 
         # Determine remote VOIs dict based on type
-        if voi_type == 'design_var':
+        if voi_type == "design_var":
             remote_vois = driver._remote_dvs
-        elif voi_type == 'constraint':
+        elif voi_type == "constraint":
             remote_vois = driver._remote_cons
         else:  # objective
             remote_vois = driver._remote_objs
@@ -283,27 +288,26 @@ class OptimizerVector(object):
         idx = 0
 
         for name, meta in varmeta_map[voi_type].items():
-            if meta['discrete']:
+            if meta["discrete"]:
                 continue
-            size = meta['global_size'] if meta['distributed'] else meta['size']
+            size = meta["global_size"] if meta["distributed"] else meta["size"]
 
             vecmeta[name] = {
-                'slice': slice(idx, idx + size),
-                'size': size,
+                "slice": slice(idx, idx + size),
+                "size": size,
             }
 
             # Meta that only applies to constraints and/or design vars
-            if 'linear' in meta:
-                vecmeta[name]['linear'] = meta.get('linear')
-            if 'equals' in meta:
-                vecmeta[name]['equals'] = meta.get('equals')
-            if 'lower' in meta:
-                vecmeta[name]['lower'] = meta.get('lower')
-            if 'upper' in meta:
-                vecmeta[name]['upper'] = meta.get('upper')
+            if "linear" in meta:
+                vecmeta[name]["linear"] = meta.get("linear")
+            if "equals" in meta:
+                vecmeta[name]["equals"] = meta.get("equals")
+            if "lower" in meta:
+                vecmeta[name]["lower"] = meta.get("lower")
+            if "upper" in meta:
+                vecmeta[name]["upper"] = meta.get("upper")
 
-            val = driver._get_voi_val(name, meta, remote_vois,
-                                      get_remote=True, driver_units=True)
+            val = driver._get_voi_val(name, meta, remote_vois, get_remote=True, driver_units=True)
             voi_array.append(np.atleast_1d(val).flat)
 
             idx += size
@@ -316,9 +320,9 @@ class OptimizerVector(object):
 
         # Apply autoscaler to the vector
         if driver_scaling:
-            if voi_type == 'design_var':
+            if voi_type == "design_var":
                 driver._autoscaler.apply_design_var_scaling(out)
-            elif voi_type == 'constraint':
+            elif voi_type == "constraint":
                 driver._autoscaler.apply_constraint_scaling(out)
             else:
                 driver._autoscaler.apply_objective_scaling(out)
@@ -340,16 +344,18 @@ class OptimizerVector(object):
         driver_scaling : bool
             If True, return vector values in the optimizer-scaled space. Default is True.
         """
-        varmeta_map = {'design_var': driver._designvars,
-                       'constraint': driver._cons,
-                       'objective': driver._objs}
+        varmeta_map = {
+            "design_var": driver._designvars,
+            "constraint": driver._cons,
+            "objective": driver._objs,
+        }
 
         voi_type = self.voi_type
 
         # Determine remote VOIs dict based on type
-        if voi_type == 'design_var':
+        if voi_type == "design_var":
             remote_vois = driver._remote_dvs
-        elif voi_type == 'constraint':
+        elif voi_type == "constraint":
             remote_vois = driver._remote_cons
         else:  # objective
             remote_vois = driver._remote_objs
@@ -361,22 +367,22 @@ class OptimizerVector(object):
         idx = 0
 
         for name, meta in varmeta_map[voi_type].items():
-            if meta['discrete']:
+            if meta["discrete"]:
                 continue
-            size = meta['global_size'] if meta['distributed'] else meta['size']
+            size = meta["global_size"] if meta["distributed"] else meta["size"]
 
             # The vector already exists, just populate it
-            self.asarray()[idx:idx + size] = driver._get_voi_val(name, meta, remote_vois,
-                                                                 get_remote=True,
-                                                                 driver_units=True)
+            self.asarray()[idx : idx + size] = driver._get_voi_val(
+                name, meta, remote_vois, get_remote=True, driver_units=True
+            )
 
             idx += size
 
         # Apply autoscaler to the vector
         if driver_scaling:
-            if voi_type == 'design_var':
+            if voi_type == "design_var":
                 driver._autoscaler.apply_design_var_scaling(self)
-            elif voi_type == 'constraint':
+            elif voi_type == "constraint":
                 driver._autoscaler.apply_constraint_scaling(self)
             else:
                 driver._autoscaler.apply_objective_scaling(self)
@@ -449,7 +455,7 @@ class OptimizerVector(object):
                 raise KeyError(f"Variable '{name}' in metadata not found in var_dict")
 
             value = np.asarray(var_dict[name]).ravel()
-            expected_size = meta['size']
+            expected_size = meta["size"]
 
             if value.size != expected_size:
                 raise ValueError(
@@ -457,7 +463,7 @@ class OptimizerVector(object):
                     f"got {value.size}"
                 )
 
-            self._data[meta['slice']] = value
+            self._data[meta["slice"]] = value
 
     def _to_dict(self, get_remote=True, **filters):
         """
@@ -524,7 +530,7 @@ class OptimizerVector(object):
             True if the vector is currently in driver/optimizer-scaled space.
         """
         return self._driver_scaling
-    
+
     @driver_scaling.setter
     def driver_scaling(self, b):
         """

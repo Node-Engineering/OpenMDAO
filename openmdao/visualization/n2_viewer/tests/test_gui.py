@@ -1,10 +1,12 @@
 """Test N2 GUI with multiple models using Playwright."""
+
 import unittest
 import os
 
 try:
     import playwright  # noqa: F401
 except ImportError:
+
     class TestOpenMDAOn2GUI(unittest.TestCase):
         def test_n2_gui(self):
             raise unittest.SkipTest("tests require the 'playwright' package.")

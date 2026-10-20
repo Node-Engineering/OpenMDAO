@@ -1,7 +1,8 @@
 """Define the PETSc Vector class."""
+
 from openmdao.utils.mpi import MPI
 
-CITATION = '''@InProceedings{petsc-efficient,
+CITATION = """@InProceedings{petsc-efficient,
     Author = "Satish Balay and William D. Gropp and Lois Curfman McInnes and Barry F. Smith",
     Title = "Efficient Management of Parallelism in Object Oriented Numerical Software Libraries",
     Booktitle = "Modern Software Tools in Scientific Computing",
@@ -9,7 +10,7 @@ CITATION = '''@InProceedings{petsc-efficient,
     Pages = "163--202",
     Publisher = "Birkh{\"{a}}user Press",
     Year = "1997"
-}'''
+}"""
 
 if MPI is None:
     PETScVector = None
@@ -91,8 +92,9 @@ else:
             data = self._data.real
 
             if self._alloc_complex:
-                self._petsc = PETSc.Vec().createWithArray(data.copy(),
-                                                          comm=_unwrap_comm(system.comm))
+                self._petsc = PETSc.Vec().createWithArray(
+                    data.copy(), comm=_unwrap_comm(system.comm)
+                )
             else:
                 self._petsc = PETSc.Vec().createWithArray(data, comm=_unwrap_comm(system.comm))
 
@@ -119,7 +121,7 @@ else:
                 abs2meta = system._var_allprocs_abs2meta[self._iotype]
                 for name, start, stop in self.ranges():
                     owning_rank = system._owning_rank[name]
-                    if not abs2meta[name]['distributed'] and owning_rank != system.comm.rank:
+                    if not abs2meta[name]["distributed"] and owning_rank != system.comm.rank:
                         dup_inds.extend(range(start, stop))
 
                 self._dup_inds = np.array(dup_inds, dtype=INT_DTYPE)

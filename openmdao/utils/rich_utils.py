@@ -24,7 +24,7 @@ def use_rich():
     bool
         True if rich should be used for output, otherwise False.
     """
-    return not (env_truthy('OPENMDAO_DISABLE_RICH') or rich is None)
+    return not (env_truthy("OPENMDAO_DISABLE_RICH") or rich is None)
 
 
 def rich_wrap(s, tags=None):
@@ -51,7 +51,7 @@ def rich_wrap(s, tags=None):
         return s
 
     # Escape any open square brackets in the string.
-    s = re.sub(r'(\[)(?=[^]]*\])', '\\[', str(s))
+    s = re.sub(r"(\[)(?=[^]]*\])", "\\[", str(s))
 
     if not tags:
         return s
@@ -60,14 +60,17 @@ def rich_wrap(s, tags=None):
         tags = {tags}
 
     def flatten(lst):
-        seq = list(itertools.chain.from_iterable(x if isinstance(x, (list, set, tuple))
-                                                 else [x] for x in lst))
+        seq = list(
+            itertools.chain.from_iterable(
+                x if isinstance(x, (list, set, tuple)) else [x] for x in lst
+            )
+        )
         return seq
 
     cmds = sorted(flatten([t if isinstance(t, str) else t.value for t in tags]))
-    on = ' '.join(cmds)
-    off = '/' + ' '.join(reversed(cmds))
-    return f'[{on}]{s}[{off}]'
+    on = " ".join(cmds)
+    off = "/" + " ".join(reversed(cmds))
+    return f"[{on}]{s}[{off}]"
 
 
 def strip_formatting(s):
@@ -86,8 +89,8 @@ def strip_formatting(s):
     str
         String s with any ascii formatting sequences removed.
     """
-    escape_pattern = r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])'
-    return re.sub(escape_pattern, '', s)
+    escape_pattern = r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])"
+    return re.sub(escape_pattern, "", s)
 
 
 def strip_tags(s):
@@ -106,5 +109,5 @@ def strip_tags(s):
     str
         String s with any rich tags removed.
     """
-    escape_pattern = r'(?<!\\)\[/?\w+[^\]]*\]'
-    return re.sub(escape_pattern, '', s)
+    escape_pattern = r"(?<!\\)\[/?\w+[^\]]*\]"
+    return re.sub(escape_pattern, "", s)

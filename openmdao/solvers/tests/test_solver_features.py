@@ -13,7 +13,6 @@ from openmdao.utils.testing_utils import use_tempdirs
 
 
 class TestSolverFeatures(unittest.TestCase):
-
     def test_specify_solver(self):
 
         prob = om.Problem()
@@ -30,8 +29,8 @@ class TestSolverFeatures(unittest.TestCase):
         prob.setup()
         prob.run_model()
 
-        assert_near_equal(prob.get_val('y1'), 25.58830273, .00001)
-        assert_near_equal(prob.get_val('y2'), 12.05848819, .00001)
+        assert_near_equal(prob.get_val("y1"), 25.58830273, 0.00001)
+        assert_near_equal(prob.get_val("y2"), 12.05848819, 0.00001)
 
     def test_reuse_solver(self):
 
@@ -50,10 +49,12 @@ class TestSolverFeatures(unittest.TestCase):
         with self.assertRaises(RuntimeError) as context:
             prob.run_model()
 
-        self.assertEqual(str(context.exception),
-                         "NewtonSolver has already been assigned to "
-                         "<model> <class SellarDerivativesGrouped> "
-                         "and cannot also be assigned to 'mda' <class Group>.")
+        self.assertEqual(
+            str(context.exception),
+            "NewtonSolver has already been assigned to "
+            "<model> <class SellarDerivativesGrouped> "
+            "and cannot also be assigned to 'mda' <class Group>.",
+        )
 
     def test_specify_subgroup_solvers(self):
 
@@ -77,28 +78,28 @@ class TestSolverFeatures(unittest.TestCase):
         prob.setup()
         prob.run_model()
 
-        assert_near_equal(prob.get_val('g1.y1'), 0.64, .00001)
-        assert_near_equal(prob.get_val('g1.y2'), 0.80, .00001)
-        assert_near_equal(prob.get_val('g2.y1'), 0.64, .00001)
-        assert_near_equal(prob.get_val('g2.y2'), 0.80, .00001)
+        assert_near_equal(prob.get_val("g1.y1"), 0.64, 0.00001)
+        assert_near_equal(prob.get_val("g1.y2"), 0.80, 0.00001)
+        assert_near_equal(prob.get_val("g2.y1"), 0.64, 0.00001)
+        assert_near_equal(prob.get_val("g2.y2"), 0.80, 0.00001)
 
     def test_nonlinear_solver_stall_detection(self):
 
-        for stall_tol_type in ('rel', 'abs'):
-            with self.subTest(f'Stall detection for stall_tol_type={stall_tol_type}'):
+        for stall_tol_type in ("rel", "abs"):
+            with self.subTest(f"Stall detection for stall_tol_type={stall_tol_type}"):
                 prob = om.Problem()
-                prob.model.add_subsystem('comp', om.ExecComp('y=3*x+1'), promotes=['*'])
+                prob.model.add_subsystem("comp", om.ExecComp("y=3*x+1"), promotes=["*"])
 
-                balance = prob.model.add_subsystem('balance', om.BalanceComp(), promotes=['*'])
-                balance.add_balance('x', lower=-.1, upper=10, rhs_val=0, lhs_name='y')
+                balance = prob.model.add_subsystem("balance", om.BalanceComp(), promotes=["*"])
+                balance.add_balance("x", lower=-0.1, upper=10, rhs_val=0, lhs_name="y")
 
                 newton = prob.model.nonlinear_solver = om.NewtonSolver()
-                newton.options['solve_subsystems'] = True
-                newton.options['stall_limit'] = 3
-                newton.options['stall_tol'] = 1e-8
-                newton.options['stall_tol_type'] = stall_tol_type
-                newton.options['maxiter'] = 100
-                newton.options['err_on_non_converge'] = True
+                newton.options["solve_subsystems"] = True
+                newton.options["stall_limit"] = 3
+                newton.options["stall_tol"] = 1e-8
+                newton.options["stall_tol_type"] = stall_tol_type
+                newton.options["maxiter"] = 100
+                newton.options["err_on_non_converge"] = True
 
                 prob.model.linear_solver = om.DirectSolver()
 
@@ -113,31 +114,33 @@ class TestSolverFeatures(unittest.TestCase):
     def test_nonlinear_solver_bounds_stall_warning(self):
         prob = om.Problem()
 
-        prob.model.add_subsystem('comp', om.ExecComp('y=3*x+1'), promotes=['*'])
+        prob.model.add_subsystem("comp", om.ExecComp("y=3*x+1"), promotes=["*"])
 
-        balance = prob.model.add_subsystem('balance', om.BalanceComp(), promotes=['*'])
-        balance.add_balance('x', lower=-.1, upper=10, rhs_val=0, lhs_name='y')
+        balance = prob.model.add_subsystem("balance", om.BalanceComp(), promotes=["*"])
+        balance.add_balance("x", lower=-0.1, upper=10, rhs_val=0, lhs_name="y")
 
         newton = prob.model.nonlinear_solver = om.NewtonSolver()
-        newton.options['solve_subsystems'] = True
-        newton.options['stall_limit'] = 5
-        newton.options['stall_tol'] = 1e-8
-        newton.options['maxiter'] = 100
-        newton.options['err_on_non_converge'] = False
+        newton.options["solve_subsystems"] = True
+        newton.options["stall_limit"] = 5
+        newton.options["stall_tol"] = 1e-8
+        newton.options["maxiter"] = 100
+        newton.options["err_on_non_converge"] = False
 
         prob.model.linear_solver = om.DirectSolver()
 
         prob.setup()
 
-        msg = ("Your model has stalled three times and may be violating the bounds. "
-               "In the future, turn on print_bound_enforce in your solver options "
-               "here: \nnonlinear_solver.linesearch.options"
-               "['print_bound_enforce']=True. "
-               "\nThe bound(s) being violated now are:\n")
+        msg = (
+            "Your model has stalled three times and may be violating the bounds. "
+            "In the future, turn on print_bound_enforce in your solver options "
+            "here: \nnonlinear_solver.linesearch.options"
+            "['print_bound_enforce']=True. "
+            "\nThe bound(s) being violated now are:\n"
+        )
         with assert_warning(UserWarning, msg):
             prob.run_model()
 
-        newton.linesearch.options['print_bound_enforce'] = True
+        newton.linesearch.options["print_bound_enforce"] = True
 
         prob.setup()
 
@@ -148,29 +151,31 @@ class TestSolverFeatures(unittest.TestCase):
 
         prob = om.Problem()
 
-        group1 = prob.model.add_subsystem('balance_group', subsys=om.Group())
+        group1 = prob.model.add_subsystem("balance_group", subsys=om.Group())
 
-        group1.add_subsystem('comp', om.ExecComp('y=3*x+1'), promotes=['*'])
+        group1.add_subsystem("comp", om.ExecComp("y=3*x+1"), promotes=["*"])
 
-        balance = group1.add_subsystem('balance', om.BalanceComp(), promotes=['*'])
-        balance.add_balance('x', lower=-.1, upper=10, rhs_val=0, lhs_name='y')
+        balance = group1.add_subsystem("balance", om.BalanceComp(), promotes=["*"])
+        balance.add_balance("x", lower=-0.1, upper=10, rhs_val=0, lhs_name="y")
 
         newton = group1.nonlinear_solver = om.NewtonSolver()
-        newton.options['solve_subsystems'] = True
-        newton.options['stall_limit'] = 5
-        newton.options['stall_tol'] = 1e-8
-        newton.options['maxiter'] = 100
-        newton.options['err_on_non_converge'] = False
+        newton.options["solve_subsystems"] = True
+        newton.options["stall_limit"] = 5
+        newton.options["stall_tol"] = 1e-8
+        newton.options["maxiter"] = 100
+        newton.options["err_on_non_converge"] = False
 
         group1.linear_solver = om.DirectSolver()
 
         prob.setup()
 
-        msg = ("Your model has stalled three times and may be violating the bounds. "
-               "In the future, turn on print_bound_enforce in your solver options "
-               "here: \nbalance_group.nonlinear_solver.linesearch.options"
-               "['print_bound_enforce']=True. "
-               "\nThe bound(s) being violated now are:\n")
+        msg = (
+            "Your model has stalled three times and may be violating the bounds. "
+            "In the future, turn on print_bound_enforce in your solver options "
+            "here: \nbalance_group.nonlinear_solver.linesearch.options"
+            "['print_bound_enforce']=True. "
+            "\nThe bound(s) being violated now are:\n"
+        )
 
         with assert_warning(UserWarning, msg):
             prob.run_model()
@@ -179,17 +184,16 @@ class TestSolverFeatures(unittest.TestCase):
 
         prob = om.Problem()
 
-        prob.model.add_subsystem('comp', om.ExecComp('y=3*x+1'), promotes=['*'])
+        prob.model.add_subsystem("comp", om.ExecComp("y=3*x+1"), promotes=["*"])
 
-        balance = prob.model.add_subsystem('balance', om.BalanceComp(),
-                                           promotes=['*'])
-        balance.add_balance('x', lower=-.1, upper=10, rhs_val=0, lhs_name='y')
+        balance = prob.model.add_subsystem("balance", om.BalanceComp(), promotes=["*"])
+        balance.add_balance("x", lower=-0.1, upper=10, rhs_val=0, lhs_name="y")
 
         newton = prob.model.nonlinear_solver = om.NewtonSolver()
-        newton.options['solve_subsystems'] = True
-        newton.options['stall_limit'] = 3
-        newton.options['stall_tol'] = 1e-8
-        newton.options['maxiter'] = 100
+        newton.options["solve_subsystems"] = True
+        newton.options["stall_limit"] = 3
+        newton.options["stall_tol"] = 1e-8
+        newton.options["maxiter"] = 100
 
         prob.model.linear_solver = om.DirectSolver()
 
@@ -202,16 +206,15 @@ class TestSolverFeatures(unittest.TestCase):
 
         prob = om.Problem()
 
-        prob.model.add_subsystem('comp', om.ExecComp('y=3*x+1'), promotes=['*'])
+        prob.model.add_subsystem("comp", om.ExecComp("y=3*x+1"), promotes=["*"])
 
-        balance = prob.model.add_subsystem('balance', om.BalanceComp(),
-                                           promotes=['*'])
-        balance.add_balance('x', lower=-.1, upper=10, rhs_val=0, lhs_name='y')
+        balance = prob.model.add_subsystem("balance", om.BalanceComp(), promotes=["*"])
+        balance.add_balance("x", lower=-0.1, upper=10, rhs_val=0, lhs_name="y")
 
         nl_solver = prob.model.nonlinear_solver = om.BroydenSolver()
-        nl_solver.options['stall_limit'] = 3
-        nl_solver.options['stall_tol'] = 1e-8
-        nl_solver.options['maxiter'] = 100
+        nl_solver.options["stall_limit"] = 3
+        nl_solver.options["stall_tol"] = 1e-8
+        nl_solver.options["maxiter"] = 100
 
         prob.model.linear_solver = om.DirectSolver()
 
@@ -240,8 +243,7 @@ class TestSolverFeatures(unittest.TestCase):
                 if solver in (nlbgs, nlbj):
                     with self.assertRaises(AttributeError) as e:
                         solver.linesearch = new_ls
-                    expected = (f'{solver.msginfo}: This solver does not '
-                                'support a linesearch.')
+                    expected = f"{solver.msginfo}: This solver does not support a linesearch."
                     self.assertEqual(expected, str(e.exception))
                 else:
                     solver.linesearch = new_ls
@@ -250,9 +252,9 @@ class TestSolverFeatures(unittest.TestCase):
     def test_solver_broken_weakref(self):
 
         prob = om.Problem()
-        sys = prob.model.add_subsystem('sellar', SellarDerivatives())
+        sys = prob.model.add_subsystem("sellar", SellarDerivatives())
 
-        sys.nonlinear_solver =om.NewtonSolver(solve_subsystems=False)
+        sys.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
 
         # Simulate Broken Weakref
         solver = sys.nonlinear_solver
@@ -271,20 +273,20 @@ class TestSolverFeatures(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('pz', om.IndepVarComp('z', np.array([5.0, 2.0])))
+        model.add_subsystem("pz", om.IndepVarComp("z", np.array([5.0, 2.0])))
 
-        sub1 = model.add_subsystem('sub1', om.Group())
-        sub2 = sub1.add_subsystem('sub2', om.Group())
-        g1 = sub2.add_subsystem('g1', SubSellar())
-        g2 = model.add_subsystem('g2', SubSellar())
+        sub1 = model.add_subsystem("sub1", om.Group())
+        sub2 = sub1.add_subsystem("sub2", om.Group())
+        g1 = sub2.add_subsystem("g1", SubSellar())
+        g2 = model.add_subsystem("g2", SubSellar())
 
-        model.connect('sub1.sub2.g1.y2', 'g2.x')
-        model.connect('g2.y2', 'sub1.sub2.g1.x')
+        model.connect("sub1.sub2.g1.y2", "g2.x")
+        model.connect("g2.y2", "sub1.sub2.g1.x")
 
         model.nonlinear_solver = om.NewtonSolver()
         model.linear_solver = om.ScipyKrylov()
-        model.nonlinear_solver.options['solve_subsystems'] = True
-        model.nonlinear_solver.options['max_sub_solves'] = 0
+        model.nonlinear_solver.options["solve_subsystems"] = True
+        model.nonlinear_solver.options["max_sub_solves"] = 0
 
         g1.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
         g1.linear_solver = om.LinearBlockGS()
@@ -292,18 +294,20 @@ class TestSolverFeatures(unittest.TestCase):
         g2.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
         g2.linear_solver = om.ScipyKrylov()
         g2.linear_solver.precon = om.LinearBlockGS()
-        g2.linear_solver.precon.options['maxiter'] = 2
+        g2.linear_solver.precon.options["maxiter"] = 2
 
-        prob.set_solver_print(level=-1, type_='all')
-        g2.set_solver_print(level=2, type_='NL')
+        prob.set_solver_print(level=-1, type_="all")
+        g2.set_solver_print(level=2, type_="NL")
 
         prob.setup()
 
         with self.assertRaises(RuntimeError) as e:
             g1.nonlinear_solver.get_outputs_dir()
 
-        self.assertEqual('The output directory for Solvers cannot be accessed before final_setup.',
-                         str(e.exception))
+        self.assertEqual(
+            "The output directory for Solvers cannot be accessed before final_setup.",
+            str(e.exception),
+        )
 
         prob.final_setup()
 

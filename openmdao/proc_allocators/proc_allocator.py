@@ -1,4 +1,5 @@
 """Define the base ProcAllocator class."""
+
 import numpy as np
 from openmdao.core.constants import INT_DTYPE
 
@@ -83,11 +84,14 @@ class ProcAllocator(object):
             min_procs, max_procs, _, _ = self._split_proc_info(proc_info, comm)
 
             if np.any(max_procs < nproc):
-                raise ProcAllocationError("too many MPI procs allocated (%d)" % nproc,
-                                          np.array(list(range(nsubs)))[max_procs < nproc])
+                raise ProcAllocationError(
+                    "too many MPI procs allocated (%d)" % nproc,
+                    np.array(list(range(nsubs)))[max_procs < nproc],
+                )
             if np.any(min_procs > nproc):
-                raise ProcAllocationError("can't meet min_procs required",
-                                          np.array(list(range(nsubs)))[min_procs > nproc])
+                raise ProcAllocationError(
+                    "can't meet min_procs required", np.array(list(range(nsubs)))[min_procs > nproc]
+                )
 
             # This is a serial group - all procs get all subsystems
             return list(range(nsubs)), comm
@@ -118,21 +122,27 @@ class ProcAllocator(object):
 
         min_procs = np.array([minp for minp, _, _, _ in proc_info], dtype=INT_DTYPE)
         # if max_procs entry is None or > nproc, it just becomes nproc
-        max_procs = np.array([nproc if maxp is None or maxp > nproc else
-                              maxp for _, maxp, _, _ in proc_info], dtype=INT_DTYPE)
+        max_procs = np.array(
+            [nproc if maxp is None or maxp > nproc else maxp for _, maxp, _, _ in proc_info],
+            dtype=INT_DTYPE,
+        )
         weights = np.array([weight for _, _, weight, _ in proc_info])
 
         min_sum = np.sum(min_procs)
 
         if self.parallel and nproc > 1:
             if np.sum(max_procs) < nproc:
-                raise ProcAllocationError("too many MPI procs allocated. Comm is size %d but "
-                                          "can only use %d." % (nproc, np.sum(max_procs)))
+                raise ProcAllocationError(
+                    "too many MPI procs allocated. Comm is size %d but "
+                    "can only use %d." % (nproc, np.sum(max_procs))
+                )
             if min_sum > nproc and np.any(min_procs > 1):
-                raise ProcAllocationError("can't meet min_procs required because the sum of the "
-                                          "min procs required exceeds the procs allocated and the "
-                                          "min procs required is > 1",
-                                          np.array(list(range(len(proc_info))))[min_procs > 1])
+                raise ProcAllocationError(
+                    "can't meet min_procs required because the sum of the "
+                    "min procs required exceeds the procs allocated and the "
+                    "min procs required is > 1",
+                    np.array(list(range(len(proc_info))))[min_procs > 1],
+                )
 
         gdict = {}
         for i, (_, _, _, g) in enumerate(proc_info):
@@ -148,8 +158,10 @@ class ProcAllocator(object):
             for i in range(1, len(idxs)):
                 mn, mx, w, _ = proc_info[idxs[i]]
                 if mn != min_match or mx != max_match or w != wmatch:
-                    raise ProcAllocationError(f"proc_group '{grp}' members do not all have matching"
-                                              " min_procs, max_procs, and/or proc_weights.")
+                    raise ProcAllocationError(
+                        f"proc_group '{grp}' members do not all have matching"
+                        " min_procs, max_procs, and/or proc_weights."
+                    )
 
         if gdict:
             # get reduced min_procs, max_procs, and weights based on groups, and compute index map

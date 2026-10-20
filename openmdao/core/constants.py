@@ -12,10 +12,13 @@ def __getattr__(name: str):
     Provide a deprecation warning when someone attempts to access INF_BOUND.
     """
     from openmdao.utils.om_warnings import warn_deprecation
-    if name == 'INF_BOUND':
-        warn_deprecation('The INF_BOUND sentinel in OpenMDAO is deprecated. Infinite bounds should '
-        'now be specified using None or +/-np.inf.')
-        return 1.0E30
+
+    if name == "INF_BOUND":
+        warn_deprecation(
+            "The INF_BOUND sentinel in OpenMDAO is deprecated. Infinite bounds should "
+            "now be specified using None or +/-np.inf."
+        )
+        return 1.0e30
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
@@ -23,11 +26,11 @@ def __getattr__(name: str):
 # backend cannot accept IEEE infinity. Unlike the deprecated INF_BOUND, this is not a sentinel
 # that OpenMDAO tests against to recognize an unbounded variable: it is a real bound value
 # handed to one specific backend, and each driver or generator chooses its own via _inf_bound.
-_FINITE_INF_BOUND = 1.0E30
+_FINITE_INF_BOUND = 1.0e30
 
 
 # This is the dtype we use for index arrays.  Petsc by default uses 32 bit ints
-if os.environ.get('OPENMDAO_USE_BIG_INTS'):
+if os.environ.get("OPENMDAO_USE_BIG_INTS"):
     INT_DTYPE = np.dtype(np.int64)
 else:
     INT_DTYPE = np.dtype(np.int32)

@@ -50,7 +50,7 @@ class Transfer(object):
         except Exception as err:
             return "<error during call to Transfer.__str__: %s" % err
 
-    def __call__(self, in_vec, out_vec, mode='fwd'):
+    def __call__(self, in_vec, out_vec, mode="fwd"):
         """
         Perform transfer.
 

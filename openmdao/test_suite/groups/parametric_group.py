@@ -1,4 +1,5 @@
 """Define the test group classes."""
+
 from openmdao.core.group import Group
 
 
@@ -20,6 +21,7 @@ class ParametericTestGroup(Group):
     default_params : dict
         Dictionary containing the available options and default values for parametric sweeps.
     """
+
     def __init__(self, **kwargs):
 
         self.expected_totals = None
@@ -27,21 +29,30 @@ class ParametericTestGroup(Group):
         self.total_wrt = None
         self.expected_values = None
         self.default_params = {
-            'local_vector_class': ['default', 'petsc'],
-            'assembled_jac': [True, False],
-            'jacobian_type': ['matvec', 'dense', 'sparse-csc'],
+            "local_vector_class": ["default", "petsc"],
+            "assembled_jac": [True, False],
+            "jacobian_type": ["matvec", "dense", "sparse-csc"],
         }
 
         super().__init__()
 
-        self.options.declare('local_vector_class', default='default',
-                             values=['default', 'petsc'],
-                             desc='Which local vector implementation to use.')
-        self.options.declare('assembled_jac', default=True,
-                             types=bool,
-                             desc='If an assemebled Jacobian should be used.')
-        self.options.declare('jacobian_type', default='matvec',
-                             values=['dense', 'matvec', 'sparse-csc'],
-                             desc='Controls the type of the assembled jacobian.')
+        self.options.declare(
+            "local_vector_class",
+            default="default",
+            values=["default", "petsc"],
+            desc="Which local vector implementation to use.",
+        )
+        self.options.declare(
+            "assembled_jac",
+            default=True,
+            types=bool,
+            desc="If an assemebled Jacobian should be used.",
+        )
+        self.options.declare(
+            "jacobian_type",
+            default="matvec",
+            values=["dense", "matvec", "sparse-csc"],
+            desc="Controls the type of the assembled jacobian.",
+        )
 
         self.options.update(kwargs)

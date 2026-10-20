@@ -1,6 +1,7 @@
 """
 pydoe sample generators for Analysis Driver.
 """
+
 import numpy as np
 
 from openmdao.drivers.analysis_generator import AnalysisGenerator
@@ -91,13 +92,16 @@ class _pyDOE_AnalysisGenerator(AnalysisGenerator):
 
         self._sizes = dict([(name, _get_size(name, meta)) for name, meta in factors.items()])
         size = sum(self._sizes.values())
-        doe = self._generate_design(size).astype('int')
+        doe = self._generate_design(size).astype("int")
 
         # Maximum number of levels, or the default if the maximum is smaller than the default.
         # This is to ensure that the array will be big enough even if some keys are missing
         # from levels (defaulted).
-        levels_max = self._levels if isinstance(self._levels, int) else \
-            max(max(self._levels.values()), _LEVELS)
+        levels_max = (
+            self._levels
+            if isinstance(self._levels, int)
+            else max(max(self._levels.values()), _LEVELS)
+        )
 
         # Generate values for each level for each factor
         # over the range of that variable's lower to upper bound
@@ -119,8 +123,10 @@ class _pyDOE_AnalysisGenerator(AnalysisGenerator):
 
                     row += 1
             except KeyError:
-                raise RuntimeError(f"Unable to determine levels for factor '{name}'. "
-                                   "Factors dictionary must contain both 'lower' and 'upper' keys.")
+                raise RuntimeError(
+                    f"Unable to determine levels for factor '{name}'. "
+                    "Factors dictionary must contain both 'lower' and 'upper' keys."
+                )
 
         # construct iterator for doe values
         retvals = []
@@ -186,12 +192,15 @@ class FullFactorialGenerator(_pyDOE_AnalysisGenerator):
         """
         try:
             from pydoe import fullfact
+
             self._fullfact = fullfact
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         super().__init__(var_dict=var_dict, levels=levels)
 
@@ -258,12 +267,15 @@ class GeneralizedSubsetGenerator(_pyDOE_AnalysisGenerator):
 
         try:
             from pydoe import gsd
+
             self._gsd = gsd
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         super().__init__(var_dict, levels=levels)
 
@@ -308,12 +320,15 @@ class PlackettBurmanGenerator(_pyDOE_AnalysisGenerator):
         """
         try:
             from pydoe import pbdesign
+
             self._pbdesign = pbdesign
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         super().__init__(var_dict, levels=2)
 
@@ -365,12 +380,15 @@ class BoxBehnkenGenerator(_pyDOE_AnalysisGenerator):
         self._center = center
         try:
             from pydoe import bbdesign
+
             self._bbdesign = bbdesign
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         super().__init__(var_dict, levels=3)
 
@@ -389,9 +407,10 @@ class BoxBehnkenGenerator(_pyDOE_AnalysisGenerator):
             The design matrix as a size x levels array of indices.
         """
         if size < 3:
-            raise RuntimeError("Total size of factors is %d,"
-                               "but must be at least 3 when using %s. " %
-                               (size, self.__class__.__name__))
+            raise RuntimeError(
+                "Total size of factors is %d,"
+                "but must be at least 3 when using %s. " % (size, self.__class__.__name__)
+            )
 
         doe = self._bbdesign(size, center=self._center)
 
@@ -436,11 +455,15 @@ class LatinHypercubeGenerator(AnalysisGenerator):
 
     # supported pyDOE criterion names.
     _supported_criterion = [
-        "center", "c",
-        "maximin", "m",
-        "centermaximin", "cm",
-        "correlation", "corr",
-        None
+        "center",
+        "c",
+        "maximin",
+        "m",
+        "centermaximin",
+        "cm",
+        "correlation",
+        "corr",
+        None,
     ]
 
     def __init__(self, var_dict, samples=None, criterion=None, iterations=5, seed=None):
@@ -450,10 +473,11 @@ class LatinHypercubeGenerator(AnalysisGenerator):
         See : https://pydoe.github.io/pydoe/
         """
         if criterion not in self._supported_criterion:
-            raise ValueError("Invalid criterion '%s' specified for %s. "
-                             "Must be one of %s." %
-                             (criterion, self.__class__.__name__,
-                              self._supported_criterion))
+            raise ValueError(
+                "Invalid criterion '%s' specified for %s. "
+                "Must be one of %s."
+                % (criterion, self.__class__.__name__, self._supported_criterion)
+            )
 
         self._samples = samples
         self._criterion = criterion
@@ -462,12 +486,15 @@ class LatinHypercubeGenerator(AnalysisGenerator):
 
         try:
             from pydoe import lhs
+
             self._lhs = lhs
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         super().__init__(var_dict)
 
@@ -486,10 +513,13 @@ class LatinHypercubeGenerator(AnalysisGenerator):
             self._samples = size
 
         # generate design
-        doe = self._lhs(size, samples=self._samples,
-                        criterion=self._criterion,
-                        iterations=self._iterations,
-                        random_state=self._seed)
+        doe = self._lhs(
+            size,
+            samples=self._samples,
+            criterion=self._criterion,
+            iterations=self._iterations,
+            random_state=self._seed,
+        )
 
         # construct iterator for doe values
         # rows = vars (# rows/var = var size), cols = levels
@@ -499,7 +529,7 @@ class LatinHypercubeGenerator(AnalysisGenerator):
                 col = 0
                 for name, meta in factors.items():
                     size = _get_size(name, meta)
-                    sample = row[col:col + size]
+                    sample = row[col : col + size]
 
                     lower, upper = _get_bounds(name, meta, size, self._inf_bound)
 

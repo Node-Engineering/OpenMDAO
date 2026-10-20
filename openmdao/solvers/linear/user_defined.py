@@ -24,7 +24,7 @@ class LinearUserDefined(LinearSolver):
         the name defaults to "solve_linear".
     """
 
-    SOLVER = 'LN: USER'
+    SOLVER = "LN: USER"
 
     def __init__(self, solve_function=None, **kwargs):
         """

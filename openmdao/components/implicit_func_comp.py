@@ -7,14 +7,21 @@ import numpy as np
 from openmdao.core.implicitcomponent import ImplicitComponent
 from openmdao.core.constants import INT_DTYPE
 import openmdao.func_api as omf
-from openmdao.components.func_comp_common import _check_var_name, _copy_with_ignore, \
-    jac_forward, jac_reverse, _get_tangents, _ensure_iter
+from openmdao.components.func_comp_common import (
+    _check_var_name,
+    _copy_with_ignore,
+    jac_forward,
+    jac_reverse,
+    _get_tangents,
+    _ensure_iter,
+)
 from openmdao.utils.array_utils import shape_to_len
 from openmdao.jacobians.jacobian import JacobianUpdateContext
 
 try:
     import jax
     from jax import jit
+
     jax.config.update("jax_enable_x64", True)  # jax by default uses 32 bit floats
 except Exception:
     _, err, tb = sys.exc_info()
@@ -68,8 +75,9 @@ class ImplicitFuncComp(ImplicitComponent):
         Translation array from jacobian indices to function array indices.
     """
 
-    def __init__(self, apply_nonlinear, solve_nonlinear=None, linearize=None, solve_linear=None,
-                 **kwargs):
+    def __init__(
+        self, apply_nonlinear, solve_nonlinear=None, linearize=None, solve_linear=None, **kwargs
+    ):
         """
         Initialize attributes.
         """
@@ -94,40 +102,48 @@ class ImplicitFuncComp(ImplicitComponent):
             self.solve_linear = self._user_solve_linear
 
         if self._apply_nonlinear_func._use_jax:
-            self.options['derivs_method'] = 'jax'
+            self.options["derivs_method"] = "jax"
 
         # setup requires an undecorated, unjitted function, so do it now
         if self._apply_nonlinear_func._call_setup:
             self._apply_nonlinear_func._setup()
 
-        if self.options['derivs_method'] == 'jax':
+        if self.options["derivs_method"] == "jax":
             if jax is None:
-                raise RuntimeError(f"{self.msginfo}: jax is not installed. "
-                                   "Try 'pip install openmdao[jax]' with Python>=3.8.")
+                raise RuntimeError(
+                    f"{self.msginfo}: jax is not installed. "
+                    "Try 'pip install openmdao[jax]' with Python>=3.8."
+                )
             self._apply_nonlinear_func_jax = omf.jax_decorate(self._apply_nonlinear_func._f)
 
-        if self.options['derivs_method'] == 'jax' and self.options['use_jit']:
-            static_argnums = [i for i, m in enumerate(self._apply_nonlinear_func._inputs.values())
-                              if 'is_option' in m]
+        if self.options["derivs_method"] == "jax" and self.options["use_jit"]:
+            static_argnums = [
+                i
+                for i, m in enumerate(self._apply_nonlinear_func._inputs.values())
+                if "is_option" in m
+            ]
             try:
                 with omf.jax_context(self._apply_nonlinear_func._f.__globals__):
-                    self._apply_nonlinear_func_jax = jit(self._apply_nonlinear_func_jax,
-                                                         static_argnums=static_argnums)
+                    self._apply_nonlinear_func_jax = jit(
+                        self._apply_nonlinear_func_jax, static_argnums=static_argnums
+                    )
             except Exception as err:
-                raise RuntimeError(f"{self.msginfo}: failed jit compile of solve_nonlinear "
-                                   f"function: {err}")
+                raise RuntimeError(
+                    f"{self.msginfo}: failed jit compile of solve_nonlinear function: {err}"
+                )
 
     def setup(self):
         """
         Define our inputs and outputs.
         """
-        optignore = {'is_option'}
+        optignore = {"is_option"}
 
         for name, meta in self._apply_nonlinear_func.get_input_meta():
             _check_var_name(self, name)
-            if 'is_option' in meta and meta['is_option']:
-                kwargs = _copy_with_ignore(meta, omf._allowed_declare_options_args,
-                                           ignore=optignore)
+            if "is_option" in meta and meta["is_option"]:
+                kwargs = _copy_with_ignore(
+                    meta, omf._allowed_declare_options_args, ignore=optignore
+                )
                 self.options.declare(name, **kwargs)
             else:
                 kwargs = omf._filter_dict(meta, omf._allowed_add_input_args)
@@ -135,7 +151,7 @@ class ImplicitFuncComp(ImplicitComponent):
 
         for i, (name, meta) in enumerate(self._apply_nonlinear_func.get_output_meta()):
             _check_var_name(self, name)
-            kwargs = _copy_with_ignore(meta, omf._allowed_add_output_args, ignore=('resid',))
+            kwargs = _copy_with_ignore(meta, omf._allowed_add_output_args, ignore=("resid",))
             self.add_output(name, **kwargs)
 
     def _setup_jax(self):
@@ -159,10 +175,11 @@ class ImplicitFuncComp(ImplicitComponent):
         dict
             Metadata dict for the specified partial(s).
         """
-        if self._linearize_func is None and ('method' not in kwargs or
-                                             kwargs['method'] == 'exact'):
-            raise RuntimeError(f"{self.msginfo}: declare_partials must be called with method equal "
-                               "to 'cs', 'fd', or 'jax'.")
+        if self._linearize_func is None and ("method" not in kwargs or kwargs["method"] == "exact"):
+            raise RuntimeError(
+                f"{self.msginfo}: declare_partials must be called with method equal "
+                "to 'cs', 'fd', or 'jax'."
+            )
 
         return super().declare_partials(*args, **kwargs)
 
@@ -179,8 +196,9 @@ class ImplicitFuncComp(ImplicitComponent):
 
         super()._setup_partials()
 
-    def apply_nonlinear(self, inputs, outputs, residuals,
-                        discrete_inputs=None, discrete_outputs=None):
+    def apply_nonlinear(
+        self, inputs, outputs, residuals, discrete_inputs=None, discrete_outputs=None
+    ):
         """
         R = Ax - b.
 
@@ -197,15 +215,17 @@ class ImplicitFuncComp(ImplicitComponent):
         discrete_outputs : _DictValues or None
             Dict-like object containing discrete outputs.
         """
-        residuals.set_vals(_ensure_iter(
-            self._apply_nonlinear_func(*self._ordered_func_invals(inputs, outputs))))
+        residuals.set_vals(
+            _ensure_iter(self._apply_nonlinear_func(*self._ordered_func_invals(inputs, outputs)))
+        )
 
     def _user_solve_nonlinear(self, inputs, outputs):
         """
         Compute outputs. The model is assumed to be in a scaled state.
         """
-        self._outputs.set_vals(_ensure_iter(
-            self._solve_nonlinear_func(*self._ordered_func_invals(inputs, outputs))))
+        self._outputs.set_vals(
+            _ensure_iter(self._solve_nonlinear_func(*self._ordered_func_invals(inputs, outputs)))
+        )
 
     def _linearize(self, sub_do_ln=False):
         """
@@ -216,7 +236,7 @@ class ImplicitFuncComp(ImplicitComponent):
         sub_do_ln : bool
             Flag indicating if the children should call linearize on their linear solvers.
         """
-        if self.options['derivs_method'] == 'jax':
+        if self.options["derivs_method"] == "jax":
             if self._mode != self._tangent_direction:
                 # force recomputation of coloring and tangents
                 self._first_call_to_linearize = True
@@ -236,22 +256,23 @@ class ImplicitFuncComp(ImplicitComponent):
         func = self._apply_nonlinear_func
         # argnums specifies which position args are to be differentiated
         inames = list(func.get_input_names())
-        argnums = [i for i, m in enumerate(func._inputs.values()) if 'is_option' not in m]
+        argnums = [i for i, m in enumerate(func._inputs.values()) if "is_option" not in m]
         if len(argnums) == len(inames):
             argnums = None  # speedup if there are no static args
         osize = len(self._outputs)
         isize = len(self._inputs) + osize
         invals = list(self._ordered_func_invals(self._inputs, self._outputs))
-        coloring = self._coloring_info['coloring']
+        coloring = self._coloring_info["coloring"]
 
-        if self._mode == 'rev':  # use reverse mode to compute derivs
+        if self._mode == "rev":  # use reverse mode to compute derivs
             outvals = tuple(self._outputs.values())
-            tangents = self._get_tangents(outvals, 'rev', coloring)
+            tangents = self._get_tangents(outvals, "rev", coloring)
             if coloring is not None:
-                j = [np.asarray(a).reshape((a.shape[0], shape_to_len(a.shape[1:])))
-                     for a in jac_reverse(self._apply_nonlinear_func_jax, argnums,
-                                          tangents)(*invals)]
-                j = coloring._expand_jac(np.hstack(self._reorder_col_chunks(j)), 'rev').toarray()
+                j = [
+                    np.asarray(a).reshape((a.shape[0], shape_to_len(a.shape[1:])))
+                    for a in jac_reverse(self._apply_nonlinear_func_jax, argnums, tangents)(*invals)
+                ]
+                j = coloring._expand_jac(np.hstack(self._reorder_col_chunks(j)), "rev").toarray()
             else:
                 j = []
                 for a in jac_reverse(self._apply_nonlinear_func_jax, argnums, tangents)(*invals):
@@ -264,15 +285,20 @@ class ImplicitFuncComp(ImplicitComponent):
                 j = np.hstack(self._reorder_col_chunks(j)).reshape((osize, isize))
         else:
             if coloring is not None:
-                tangents = self._get_tangents(invals, 'fwd', coloring, argnums,
-                                              trans=self._get_jac2func_inds(self._inputs,
-                                                                            self._outputs))
-                j = [np.asarray(a).reshape((shape_to_len(a.shape[:-1]), a.shape[-1]))
-                     for a in jac_forward(self._apply_nonlinear_func_jax, argnums,
-                                          tangents)(*invals)]
-                j = coloring._expand_jac(np.vstack(j), 'fwd').toarray()
+                tangents = self._get_tangents(
+                    invals,
+                    "fwd",
+                    coloring,
+                    argnums,
+                    trans=self._get_jac2func_inds(self._inputs, self._outputs),
+                )
+                j = [
+                    np.asarray(a).reshape((shape_to_len(a.shape[:-1]), a.shape[-1]))
+                    for a in jac_forward(self._apply_nonlinear_func_jax, argnums, tangents)(*invals)
+                ]
+                j = coloring._expand_jac(np.vstack(j), "fwd").toarray()
             else:
-                tangents = self._get_tangents(invals, 'fwd', coloring, argnums)
+                tangents = self._get_tangents(invals, "fwd", coloring, argnums)
                 j = []
                 for a in jac_forward(self._apply_nonlinear_func_jax, argnums, tangents)(*invals):
                     a = np.asarray(a)
@@ -298,9 +324,9 @@ class ImplicitFuncComp(ImplicitComponent):
         jacobian : Jacobian
             Sub-jac components written to jacobian[output_name, input_name].
         """
-        self._linearize_info = self._linearize_func(*chain(self._ordered_func_invals(inputs,
-                                                                                     outputs),
-                                                           (jacobian,)))
+        self._linearize_info = self._linearize_func(
+            *chain(self._ordered_func_invals(inputs, outputs), (jacobian,))
+        )
 
     def _user_solve_linear(self, d_outputs, d_residuals, mode):
         r"""
@@ -315,13 +341,22 @@ class ImplicitFuncComp(ImplicitComponent):
         mode : str
             Derivative solution direction, either 'fwd' or 'rev'.
         """
-        if mode == 'fwd':
-            d_outputs.set_vals(_ensure_iter(
-                self._solve_linear_func(*chain(d_residuals.values(),
-                                               (mode, self._linearize_info)))))
+        if mode == "fwd":
+            d_outputs.set_vals(
+                _ensure_iter(
+                    self._solve_linear_func(
+                        *chain(d_residuals.values(), (mode, self._linearize_info))
+                    )
+                )
+            )
         else:  # rev
-            d_residuals.set_vals(_ensure_iter(
-                self._solve_linear_func(*chain(d_outputs.values(), (mode, self._linearize_info)))))
+            d_residuals.set_vals(
+                _ensure_iter(
+                    self._solve_linear_func(
+                        *chain(d_outputs.values(), (mode, self._linearize_info))
+                    )
+                )
+            )
 
     def _ordered_func_invals(self, inputs, outputs):
         """
@@ -347,9 +382,9 @@ class ImplicitFuncComp(ImplicitComponent):
         outs = outputs.values()
 
         for name, meta in self._apply_nonlinear_func._inputs.items():
-            if 'is_option' in meta:  # it's an option
+            if "is_option" in meta:  # it's an option
                 yield self.options[name]
-            elif 'resid' in meta:  # it's a state
+            elif "resid" in meta:  # it's a state
                 yield next(outs)
             else:
                 yield next(inps)
@@ -375,8 +410,8 @@ class ImplicitFuncComp(ImplicitComponent):
             indict = {}
             start = end = 0
             for n, meta in self._apply_nonlinear_func._inputs.items():
-                if 'is_option' not in meta:
-                    end += shape_to_len(meta['shape'])
+                if "is_option" not in meta:
+                    end += shape_to_len(meta["shape"])
                     indict[n] = inds[start:end]
                     start = end
 
@@ -407,9 +442,9 @@ class ImplicitFuncComp(ImplicitComponent):
         ordered_chunks = []
         chunk_iter = iter(col_chunks)
         for meta in self._apply_nonlinear_func._inputs.values():
-            if 'is_option' in meta:  # it's an option
+            if "is_option" in meta:  # it's an option
                 pass  # skip it (don't include in jacobian)
-            elif 'resid' in meta:  # it's a state
+            elif "resid" in meta:  # it's a state
                 ordered_chunks.append(next(chunk_iter))
             else:
                 inps.append(next(chunk_iter))
@@ -437,7 +472,7 @@ class ImplicitFuncComp(ImplicitComponent):
         else:
             trans = self._get_jac2func_inds(self._inputs, self._outputs)
             J = np.zeros(coloring._shape)
-            for col, nzpart, icol in coloring.colored_jac_iter(arr, 'fwd', trans):
+            for col, nzpart, icol in coloring.colored_jac_iter(arr, "fwd", trans):
                 J[nzpart, icol] = col
             return J
 

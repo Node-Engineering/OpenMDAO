@@ -1,6 +1,7 @@
 """
 Classes and functions for timing method calls.
 """
+
 import pickle
 
 from time import perf_counter
@@ -15,15 +16,14 @@ from openmdao.core.parallel_group import ParallelGroup
 
 # can use this to globally turn timing on/off so we can time specific sections of code
 _timing_active = False
-_total_time = 0.
+_total_time = 0.0
 _timing_managers = {}
 
 
 class _RestrictedUnpickler(pickle.Unpickler):
-
     def find_class(self, module, name):
         # Only allow classes from this module.
-        if module == 'openmdao.visualization.timing_viewer.timer':
+        if module == "openmdao.visualization.timing_viewer.timer":
             return globals().get(name)
         # Forbid everything else.
         raise pickle.UnpicklingError(f"global '{module}.{name}' is forbidden in timing file.")
@@ -39,28 +39,56 @@ def _timing_iter(all_timing_managers):
     for rank, (timing_managers, tot_time) in enumerate(all_timing_managers):
         for probname, tmanager in timing_managers.items():
             for sysname, timers in tmanager._timers.items():
-                level = len(sysname.split('.')) if sysname else 0
+                level = len(sysname.split(".")) if sysname else 0
                 for t, parallel, nprocs, classname in timers:
                     if t.ncalls > 0:
-                        yield rank, probname, classname, sysname, level, parallel, nprocs, \
-                            t.name, t.ncalls, t.avg(), t.min, t.max, t.tot, tot_time
+                        yield (
+                            rank,
+                            probname,
+                            classname,
+                            sysname,
+                            level,
+                            parallel,
+                            nprocs,
+                            t.name,
+                            t.ncalls,
+                            t.avg(),
+                            t.min,
+                            t.max,
+                            t.tot,
+                            tot_time,
+                        )
 
 
 def _timing_file_iter(timing_file):
     # iterates over the given timing file
-    with open(timing_file, 'rb') as f:
+    with open(timing_file, "rb") as f:
         yield from _timing_iter(_restricted_load(f))
 
 
 def _get_par_child_info(timing_iter, method):
     # puts timing info for direct children of parallel groups into a dict.
     parents = {}
-    for rank, probname, classname, sysname, level, parallel, nprocs, func, ncalls, avg, \
-            tmin, tmax, ttot, tot_time in timing_iter:
+    for (
+        rank,
+        probname,
+        classname,
+        sysname,
+        level,
+        parallel,
+        nprocs,
+        func,
+        ncalls,
+        avg,
+        tmin,
+        tmax,
+        ttot,
+        tot_time,
+    ) in timing_iter:
         if not parallel or method != func:
             continue
 
-        parent = sysname.rpartition('.')[0]
+        parent = sysname.rpartition(".")[0]
         key = (probname, parent)
         if key not in parents:
             parents[key] = {}
@@ -98,7 +126,7 @@ class FuncTimer(object):
         The total time of all timed method calls.
     """
 
-    __slots__ = ['name', 'ncalls', 'start', 'min', 'max', 'tot']
+    __slots__ = ["name", "ncalls", "start", "min", "max", "tot"]
 
     def __init__(self, name):
         """
@@ -144,7 +172,7 @@ class FuncTimer(object):
         """
         if self.ncalls > 0:
             return self.tot / self.ncalls
-        return 0.
+        return 0.0
 
 
 def _timer_wrap(f, timer):
@@ -163,6 +191,7 @@ def _timer_wrap(f, timer):
     method
         The wrapper for the give method f.
     """
+
     def do_timing(*args, **kwargs):
         timer.pre()
         ret = f(*args, **kwargs)
@@ -197,7 +226,7 @@ class TimingManager(object):
         """
         self._timers = {}
         self._par_groups = set()
-        self._par_only = options is None or options.view.lower() == 'text'
+        self._par_only = options is None or options.view.lower() == "text"
 
     def add_timings(self, name_obj_proc_iter, method_names):
         """
@@ -234,7 +263,7 @@ class TimingManager(object):
             timer = FuncTimer(method_name)
             if isinstance(obj, ParallelGroup):
                 self._par_groups.add(obj.pathname)
-            parent = obj.pathname.rpartition('.')[0]
+            parent = obj.pathname.rpartition(".")[0]
             is_par_child = parent in self._par_groups
             if is_par_child or not self._par_only:
                 if name not in self._timers:
@@ -266,8 +295,9 @@ def timing_context(active=True):
     active = bool(active)
     ignore = _timing_active and active
     if ignore:
-        issue_warning("Timing is already active outside of this timing_context, so it will be "
-                      "ignored.")
+        issue_warning(
+            "Timing is already active outside of this timing_context, so it will be ignored."
+        )
 
     start_time = perf_counter()
 
@@ -285,12 +315,13 @@ def _setup_sys_timers(options, system, method_names):
     # decorate all specified System methods
     global _timing_managers
 
-    probname = system._problem_meta['name']
+    probname = system._problem_meta["name"]
     if probname not in _timing_managers:
         _timing_managers[probname] = TimingManager(options)
     tmanager = _timing_managers[probname]
-    name_sys_procs = ((s.pathname, s, s.comm.size) for s in system.system_iter(include_self=True,
-                                                                               recurse=True))
+    name_sys_procs = (
+        (s.pathname, s, s.comm.size) for s in system.system_iter(include_self=True, recurse=True)
+    )
     tmanager.add_timings(name_sys_procs, method_names)
 
 
@@ -300,7 +331,7 @@ def _setup_timers(options, system):
 
     timer_methods = options.funcs
 
-    tmanager = _timing_managers.get(system._problem_meta['name'])
+    tmanager = _timing_managers.get(system._problem_meta["name"])
     if tmanager is not None and not tmanager._timers:
         _setup_sys_timers(options, system, method_names=timer_methods)
 
@@ -313,6 +344,7 @@ def _set_timer_setup_hook(options, problem):
     inst_id = problem._get_inst_id()
     if inst_id not in _timing_managers:
         _timing_managers[inst_id] = TimingManager(options)
-        hooks._register_hook('_setup_procs', 'System', inst_id='',
-                             post=partial(_setup_timers, options))
+        hooks._register_hook(
+            "_setup_procs", "System", inst_id="", post=partial(_setup_timers, options)
+        )
         hooks._setup_hooks(problem.model)

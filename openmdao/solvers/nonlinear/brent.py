@@ -3,6 +3,7 @@ Define the Brent class.
 
 Based on implementation of the Brent algorithm in OpenMDAO 2.0 using brentq from scipy.
 """
+
 import os
 
 import networkx as nx
@@ -51,7 +52,7 @@ class BrentSolver(NonlinearSolver):
         The current norm.
     """
 
-    SOLVER = 'NL: BRENT'
+    SOLVER = "NL: BRENT"
 
     def __init__(self, **kwargs):
         """
@@ -73,25 +74,36 @@ class BrentSolver(NonlinearSolver):
         """
         super()._declare_options()
 
-        self.options.declare('state_target', types=str, allow_none=True, default=None,
-                             desc='Name of the implicit state to be solved')
+        self.options.declare(
+            "state_target",
+            types=str,
+            allow_none=True,
+            default=None,
+            desc="Name of the implicit state to be solved",
+        )
 
-        self.options.declare('lower_bound', default=0.0,
-                             desc='Lower bound for the root search')
-        self.options.declare('upper_bound', default=100.0,
-                             desc='Upper bound for the root search')
+        self.options.declare("lower_bound", default=0.0, desc="Lower bound for the root search")
+        self.options.declare("upper_bound", default=100.0, desc="Upper bound for the root search")
 
-        self.options.declare('lower_bound_target', allow_none=True, default=None,
-                             desc='Openmdao path to the lower bound. When specified, this takes '
-                             'precedence over the value specified in lower_bound.')
-        self.options.declare('upper_bound_target', allow_none=True, default=None,
-                             desc='Openmdao path to the upper bound. When specified, this takes '
-                             'precedence over the value specified in upper_bound.')
+        self.options.declare(
+            "lower_bound_target",
+            allow_none=True,
+            default=None,
+            desc="Openmdao path to the lower bound. When specified, this takes "
+            "precedence over the value specified in lower_bound.",
+        )
+        self.options.declare(
+            "upper_bound_target",
+            allow_none=True,
+            default=None,
+            desc="Openmdao path to the upper bound. When specified, this takes "
+            "precedence over the value specified in upper_bound.",
+        )
 
         # Remove unsupported options.
-        self.options.undeclare('stall_limit')
-        self.options.undeclare('stall_tol')
-        self.options.undeclare('stall_tol_type')
+        self.options.undeclare("stall_limit")
+        self.options.undeclare("stall_tol")
+        self.options.undeclare("stall_tol_type")
 
     def _setup_solvers(self, system, depth):
         """
@@ -106,22 +118,22 @@ class BrentSolver(NonlinearSolver):
         """
         super()._setup_solvers(system, depth)
 
-        if self.options['state_target'] is None:
+        if self.options["state_target"] is None:
             msg = f"{self.msginfo}: 'state_target' option in Brent solver must be specified."
             raise ValueError(msg)
 
-        self.state_target = self.options['state_target']
+        self.state_target = self.options["state_target"]
 
         if self.state_target not in system._outputs:
             msg = f"{self.msginfo}: 'state_target' variable '{self.state_target}' not found."
             raise ValueError(msg)
 
-        self.upper_target = upper = self.options['upper_bound_target']
+        self.upper_target = upper = self.options["upper_bound_target"]
         if upper is not None and upper not in system._outputs:
             msg = f"{self.msginfo}: 'upper_bound_target' variable '{upper}' not found."
             raise ValueError(msg)
 
-        self.lower_target = lower = self.options['lower_bound_target']
+        self.lower_target = lower = self.options["lower_bound_target"]
         if lower is not None and lower not in system._outputs:
             msg = f"{self.msginfo}: 'lower_bound_target' variable '{lower}' not found."
             raise ValueError(msg)
@@ -130,6 +142,7 @@ class BrentSolver(NonlinearSolver):
         valid = True
         n_imp = 0
         from openmdao.core.implicitcomponent import ImplicitComponent
+
         for sub in system.system_iter(recurse=False, typ=ImplicitComponent):
             if n_imp > 0:
                 # Found more than 1 implicitcomponent
@@ -161,9 +174,9 @@ class BrentSolver(NonlinearSolver):
         """
         system = self._system()
 
-        atol = self.options['atol']
-        rtol = self.options['rtol']
-        iprint = self.options['iprint']
+        atol = self.options["atol"]
+        rtol = self.options["rtol"]
+        iprint = self.options["iprint"]
 
         self._mpi_print_header()
 
@@ -178,7 +191,7 @@ class BrentSolver(NonlinearSolver):
         self._run_all_iterations()
 
         # flag for the print statements. we only print on root if USE_PROC_FILES is not set to True
-        print_flag = system.comm.rank == 0 or os.environ.get('USE_PROC_FILES')
+        print_flag = system.comm.rank == 0 or os.environ.get("USE_PROC_FILES")
 
         prefix = self._solver_info.prefix + self.SOLVER
         norm = self.norm
@@ -195,9 +208,9 @@ class BrentSolver(NonlinearSolver):
         # Solver converged
         elif print_flag:
             if iprint == 1:
-                print(prefix + ' Converged in {} iterations'.format(self._iter_count))
+                print(prefix + " Converged in {} iterations".format(self._iter_count))
             elif iprint == 2:
-                print(prefix + ' Converged')
+                print(prefix + " Converged")
 
     def _iter_initialize(self):
         """
@@ -211,9 +224,9 @@ class BrentSolver(NonlinearSolver):
             error at the first iteration.
         """
         system = self._system()
-        if self.options['debug_print']:
-            self._err_cache['inputs'] = system._inputs._copy_vars()
-            self._err_cache['outputs'] = system._outputs._copy_vars()
+        if self.options["debug_print"]:
+            self._err_cache["inputs"] = system._inputs._copy_vars()
+            self._err_cache["outputs"] = system._outputs._copy_vars()
 
         with Recording(type(self).__name__, 0, self) as rec:
             self._solver_info.append_solver()
@@ -238,22 +251,22 @@ class BrentSolver(NonlinearSolver):
         """
         system = self._system()
 
-        lower = self.options['lower_bound']
+        lower = self.options["lower_bound"]
         if self.lower_target is not None:
             lower = system._outputs[self.lower_target][0]
 
-        upper = self.options['upper_bound']
+        upper = self.options["upper_bound"]
         if self.upper_target is not None:
             upper = system._outputs[self.upper_target][0]
 
         kwargs = {
-            'maxiter': self.options['maxiter'],
-            'a': lower,
-            'b': upper,
-            'full_output': False, # False, because we don't use the info, so just wastes operations
-            'args': (system),
-            'xtol': self.options['atol'],
-            'rtol': self.options['rtol'],
+            "maxiter": self.options["maxiter"],
+            "a": lower,
+            "b": upper,
+            "full_output": False,  # False, because we don't use the info, so just wastes operations
+            "args": (system),
+            "xtol": self.options["atol"],
+            "rtol": self.options["rtol"],
         }
 
         try:

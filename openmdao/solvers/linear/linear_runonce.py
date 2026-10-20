@@ -16,7 +16,7 @@ class LinearRunOnce(LinearBlockGS):
         Options dictionary.
     """
 
-    SOLVER = 'LN: RUNONCE'
+    SOLVER = "LN: RUNONCE"
 
     def solve(self, mode, rel_systems=None):
         """

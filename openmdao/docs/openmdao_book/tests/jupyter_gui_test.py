@@ -1,4 +1,5 @@
 """Test Jupyter doc GUI mods specific to OpenMDAO using Playwright."""
+
 import asyncio
 from aiounittest import async_test
 import http.server
@@ -11,7 +12,7 @@ import unittest
 
 from playwright.async_api import async_playwright
 
-if 'win32' in sys.platform:
+if "win32" in sys.platform:
     # Windows specific event-loop policy & cmd
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
@@ -19,22 +20,25 @@ from openmdao.utils.gui_testing_utils import _GuiTestCase, get_free_port
 
 HEADLESS = True  # Set to False if you want to see the browser
 
-# Only can test if the docs have been built
-@unittest.skipUnless(pathlib.Path(__file__).parent.parent.joinpath("_build").exists(),
-                     "Cannot test without docs being built")
-class TestOpenMDAOJupyterBookDocs(_GuiTestCase):
 
+# Only can test if the docs have been built
+@unittest.skipUnless(
+    pathlib.Path(__file__).parent.parent.joinpath("_build").exists(),
+    "Cannot test without docs being built",
+)
+class TestOpenMDAOJupyterBookDocs(_GuiTestCase):
     async def setup_browser(self, playwright):
-        """ Create a browser instance and go to the home page."""
-        self.browser = await playwright.chromium.launch(args=['--start-fullscreen'],
-                                                        headless=HEADLESS)
+        """Create a browser instance and go to the home page."""
+        self.browser = await playwright.chromium.launch(
+            args=["--start-fullscreen"], headless=HEADLESS
+        )
         self.page = await self.browser.new_page()
 
-        url = f'http://localhost:{self.port}/index.html'
+        url = f"http://localhost:{self.port}/index.html"
 
         # Without wait_until: 'networkidle', processing will begin before
         # the page is fully rendered
-        await self.page.goto(url, wait_until='networkidle')
+        await self.page.goto(url, wait_until="networkidle")
 
         await self.page.bring_to_front()
         self.setup_error_handlers()
@@ -80,13 +84,12 @@ class TestOpenMDAOJupyterBookDocs(_GuiTestCase):
         # Check to make sure that the search does the right thing when Include Source
         #  Docs is not checked
         async with async_playwright() as playwright:
-
             await self.setup_http_server()
 
             await self.setup_browser(playwright)
 
             # Just use some example search string
-            searchbar = await self.page.wait_for_selector('#search-input', state='visible')
+            searchbar = await self.page.wait_for_selector("#search-input", state="visible")
             search_string = "Component"
             await searchbar.type(search_string + "\n", delay=50)
 
@@ -94,11 +97,12 @@ class TestOpenMDAOJupyterBookDocs(_GuiTestCase):
             await self.page.wait_for_selector('#search-results h2:has-text("Search Results")')
 
             # make sure there weren't any source docs in the search results
-            search_results_all = await self.page.query_selector_all('ul.search li a')
+            search_results_all = await self.page.query_selector_all("ul.search li a")
             for a in search_results_all:
                 href = await a.get_attribute("href")
-                self.assertNotIn("_srcdocs", href,
-                                 "Search did not include source docs but a source doc found")
+                self.assertNotIn(
+                    "_srcdocs", href, "Search did not include source docs but a source doc found"
+                )
 
             await self.cleanup()
 
@@ -108,17 +112,17 @@ class TestOpenMDAOJupyterBookDocs(_GuiTestCase):
         #  Docs is checked
 
         async with async_playwright() as playwright:
-
             await self.setup_http_server()
 
             await self.setup_browser(playwright)
 
             # Include source docs in the search
-            search_source_checkbox = await self.page.wait_for_selector('#search-source',
-                                                                       state='visible')
+            search_source_checkbox = await self.page.wait_for_selector(
+                "#search-source", state="visible"
+            )
             await search_source_checkbox.click(delay=50)
 
-            searchbar = await self.page.wait_for_selector('#search-input', state='visible')
+            searchbar = await self.page.wait_for_selector("#search-input", state="visible")
             search_string = "Component"
             await searchbar.type(search_string + "\n", delay=50)
 
@@ -126,7 +130,7 @@ class TestOpenMDAOJupyterBookDocs(_GuiTestCase):
             await self.page.wait_for_selector('#search-results h2:has-text("Search Results")')
 
             # Look through all the search results
-            search_results_all = await self.page.query_selector_all('ul.search li a')
+            search_results_all = await self.page.query_selector_all("ul.search li a")
             # Need to find at least one href which includes "_srcdocs"
             srcdocs_found = False
             for a in search_results_all:
@@ -135,8 +139,9 @@ class TestOpenMDAOJupyterBookDocs(_GuiTestCase):
                     srcdocs_found = True
                     break
 
-            self.assertTrue(srcdocs_found,
-                            "Include source docs checkbox checked but no srcdocs "
-                            "found in search results")
+            self.assertTrue(
+                srcdocs_found,
+                "Include source docs checkbox checked but no srcdocs found in search results",
+            )
 
             await self.cleanup()

@@ -1,6 +1,7 @@
 """
 Case generators for Design-of-Experiments Driver.
 """
+
 import csv
 import os.path
 import re
@@ -109,7 +110,7 @@ class ListGenerator(DOEGenerator):
                 if name in design_vars:
                     name_map[name] = name
                 elif model:
-                    abs_name = model._resolver.any2abs(name, 'output')
+                    abs_name = model._resolver.any2abs(name, "output")
                     if abs_name in design_vars:
                         name_map[name] = abs_name
 
@@ -179,14 +180,14 @@ class CSVGenerator(DOEGenerator):
         """
         name_map = {}
 
-        with open(self._filename, 'r') as f:
+        with open(self._filename, "r") as f:
             # map header names to absolute names if necessary
-            names = re.sub(' ', '', f.readline()).strip().split(',')
+            names = re.sub(" ", "", f.readline()).strip().split(",")
             for name in names:
                 if name in design_vars:
                     name_map[name] = name
                 elif model:
-                    abs_name = model._resolver.any2abs(name, 'output')
+                    abs_name = model._resolver.any2abs(name, "output")
                     if abs_name in design_vars:
                         name_map[name] = abs_name
 
@@ -201,12 +202,16 @@ class CSVGenerator(DOEGenerator):
                     raise RuntimeError(msg.format(invalid_desvars[0]))
 
         # read cases from file, parse values into numpy arrays
-        with open(self._filename, 'r') as f:
+        with open(self._filename, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                case = [(name_map[name.strip()],
-                         np.fromstring(re.sub(r'[\[\]]', '', row[name]), sep=' '))
-                        for name in reader.fieldnames]
+                case = [
+                    (
+                        name_map[name.strip()],
+                        np.fromstring(re.sub(r"[\[\]]", "", row[name]), sep=" "),
+                    )
+                    for name in reader.fieldnames
+                ]
                 yield case
 
 
@@ -262,7 +267,7 @@ class UniformGenerator(DOEGenerator):
             sample = []
 
             for name, meta in design_vars.items():
-                lower, upper = _get_bounds(name, meta, meta['size'], self._inf_bound)
+                lower, upper = _get_bounds(name, meta, meta["size"], self._inf_bound)
 
                 sample.append((name, np.random.uniform(lower, upper)))
 
@@ -346,16 +351,18 @@ class _pyDOE_Generator(DOEGenerator):
         list
             list of name, value tuples for the design variables.
         """
-        self._sizes = OrderedDict([(name, _get_size(meta))
-                                   for name, meta in design_vars.items()])
+        self._sizes = OrderedDict([(name, _get_size(meta)) for name, meta in design_vars.items()])
         size = sum(self._sizes.values())
-        doe = self._generate_design(size).astype('int')
+        doe = self._generate_design(size).astype("int")
 
         # Maximum number of levels, or the default if the maximum is smaller than the default.
         # This is to ensure that the array will be big enough even if some keys are missing
         # from levels (defaulted).
-        levels_max = self._levels if isinstance(self._levels, int) else \
-            max(max(self._levels.values()), _LEVELS)
+        levels_max = (
+            self._levels
+            if isinstance(self._levels, int)
+            else max(max(self._levels.values()), _LEVELS)
+        )
 
         # Generate values for each level for each design variable
         # over the range of that variable's lower to upper bound
@@ -429,12 +436,15 @@ class FullFactorialGenerator(_pyDOE_Generator):
         super().__init__(levels=levels)
         try:
             from pydoe import fullfact
+
             self._fullfact = fullfact
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
     def _generate_design(self, size):
         """
@@ -495,12 +505,15 @@ class GeneralizedSubsetGenerator(_pyDOE_Generator):
 
         try:
             from pydoe import gsd
+
             self._gsd = gsd
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
     def _generate_design(self, size):
         """
@@ -537,12 +550,15 @@ class PlackettBurmanGenerator(_pyDOE_Generator):
 
         try:
             from pydoe import pbdesign
+
             self._pbdesign = pbdesign
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
     def _generate_design(self, size):
         """
@@ -591,12 +607,15 @@ class BoxBehnkenGenerator(_pyDOE_Generator):
 
         try:
             from pydoe import bbdesign
+
             self._bbdesign = bbdesign
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
     def _generate_design(self, size):
         """
@@ -613,9 +632,10 @@ class BoxBehnkenGenerator(_pyDOE_Generator):
             The design matrix as a size x levels array of indices.
         """
         if size < 3:
-            raise RuntimeError("Total size of design variables is %d,"
-                               "but must be at least 3 when using %s. " %
-                               (size, self.__class__.__name__))
+            raise RuntimeError(
+                "Total size of design variables is %d,"
+                "but must be at least 3 when using %s. " % (size, self.__class__.__name__)
+            )
 
         doe = self._bbdesign(size, center=self._center)
 
@@ -657,11 +677,15 @@ class LatinHypercubeGenerator(DOEGenerator):
 
     # supported pyDOE criterion names.
     _supported_criterion = [
-        "center", "c",
-        "maximin", "m",
-        "centermaximin", "cm",
-        "correlation", "corr",
-        None
+        "center",
+        "c",
+        "maximin",
+        "m",
+        "centermaximin",
+        "cm",
+        "correlation",
+        "corr",
+        None,
     ]
 
     def __init__(self, samples=None, criterion=None, iterations=5, seed=None):
@@ -674,18 +698,22 @@ class LatinHypercubeGenerator(DOEGenerator):
 
         try:
             from pydoe import lhs
+
             self._lhs = lhs
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         if criterion not in self._supported_criterion:
-            raise ValueError("Invalid criterion '%s' specified for %s. "
-                             "Must be one of %s." %
-                             (criterion, self.__class__.__name__,
-                              self._supported_criterion))
+            raise ValueError(
+                "Invalid criterion '%s' specified for %s. "
+                "Must be one of %s."
+                % (criterion, self.__class__.__name__, self._supported_criterion)
+            )
 
         self._samples = samples
         self._criterion = criterion
@@ -712,24 +740,27 @@ class LatinHypercubeGenerator(DOEGenerator):
         if self._seed is not None:
             np.random.seed(self._seed)
 
-        size = sum([meta['size'] for meta in design_vars.values()])
+        size = sum([meta["size"] for meta in design_vars.values()])
 
         if self._samples is None:
             self._samples = size
 
         # generate design
-        doe = self._lhs(size, samples=self._samples,
-                        criterion=self._criterion,
-                        iterations=self._iterations,
-                        random_state=self._seed)
+        doe = self._lhs(
+            size,
+            samples=self._samples,
+            criterion=self._criterion,
+            iterations=self._iterations,
+            random_state=self._seed,
+        )
 
         # yield desvar values for doe samples
         for row in doe:
             retval = []
             col = 0
             for name, meta in design_vars.items():
-                size = meta['size']
-                sample = row[col:col + size]
+                size = meta["size"]
+                sample = row[col : col + size]
 
                 lower, upper = _get_bounds(name, meta, size, self._inf_bound)
 
@@ -743,4 +774,4 @@ class LatinHypercubeGenerator(DOEGenerator):
 
 def _get_size(dct):
     # Returns global size of the variable if it is distributed, size otherwise.
-    return dct['global_size'] if dct['distributed'] else dct['size']
+    return dct["global_size"] if dct["distributed"] else dct["size"]

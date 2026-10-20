@@ -1,6 +1,7 @@
 """
 RecordingManager class definition.
 """
+
 import time
 
 from openmdao.utils.om_warnings import issue_warning
@@ -99,7 +100,7 @@ class RecordingManager(object):
             return
 
         if metadata is not None:
-            metadata['timestamp'] = time.perf_counter()
+            metadata["timestamp"] = time.perf_counter()
 
         for recorder in self._recorders:
             recorder.record_iteration(recording_requester, data, metadata)
@@ -121,7 +122,7 @@ class RecordingManager(object):
             return
 
         if metadata is not None:
-            metadata['timestamp'] = time.perf_counter()
+            metadata["timestamp"] = time.perf_counter()
 
         for recorder in self._recorders:
             recorder.record_derivatives(recording_requester, data, metadata)
@@ -143,8 +144,10 @@ class RecordingManager(object):
         # check to make sure we don't have mixed parallel/non-parallel, because that
         # currently won't work properly.
         if len(pset) > 1:
-            raise RuntimeError("OpenMDAO currently does not support a mixture of parallel "
-                               "and non-parallel recorders.")
+            raise RuntimeError(
+                "OpenMDAO currently does not support a mixture of parallel "
+                "and non-parallel recorders."
+            )
         return pset.pop()
 
     def _check_gather(self):
@@ -197,14 +200,15 @@ def record_viewer_data(problem):
     # if any recorders were found, get the viewer data and record it
     if recorders:
         from openmdao.visualization.n2_viewer.n2_viewer import _get_viewer_data
+
         try:
             viewer_data = _get_viewer_data(problem, values=True)
         except TypeError as err:
             viewer_data = {}
             issue_warning(str(err))
 
-        viewer_data['md5_hash'] = problem.model._generate_md5_hash()
-        viewer_data.pop('abs2prom', None)  # abs2prom already recorded in metadata table
+        viewer_data["md5_hash"] = problem.model._generate_md5_hash()
+        viewer_data.pop("abs2prom", None)  # abs2prom already recorded in metadata table
         for recorder in recorders:
             recorder.record_viewer_data(viewer_data)
 

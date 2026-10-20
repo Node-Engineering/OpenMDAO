@@ -86,8 +86,8 @@ class AutoscalerBase:
     """
 
     def __init__(self):
-        self._var_meta : dict[str, dict[str, dict]] = {}
-        self._has_scaling : bool = False
+        self._var_meta: dict[str, dict[str, dict]] = {}
+        self._has_scaling: bool = False
         self._scaled_bounds = {}
         self._driver_ref = None
 
@@ -109,9 +109,9 @@ class AutoscalerBase:
         driver = self._driver_ref()
         if driver is None:
             return None
-        return f'{driver._get_inst_id()}.autoscaler'
+        return f"{driver._get_inst_id()}.autoscaler"
 
-    def setup(self, driver: 'Driver'):
+    def setup(self, driver: "Driver"):
         """
         Perform setup of autoscaler during final setup of the problem.
 
@@ -120,8 +120,7 @@ class AutoscalerBase:
         driver : Driver
             The driver associated with this autoscaler.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement setup.')
+        raise NotImplementedError(f"Class {type(self).__name__} does not implement setup.")
 
     @property
     def has_scaling(self) -> bool:
@@ -133,9 +132,8 @@ class AutoscalerBase:
         bool
             True if any scaling is applied, otherwise False.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement has_scaling.')
-    
+        raise NotImplementedError(f"Class {type(self).__name__} does not implement has_scaling.")
+
     @property
     def setup_requires_run_model(self) -> bool:
         """
@@ -152,8 +150,9 @@ class AutoscalerBase:
         bool
             True if the driver must execute run_model before the autoscaler's configure method.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement setup_requires_run_model.')
+        raise NotImplementedError(
+            f"Class {type(self).__name__} does not implement setup_requires_run_model."
+        )
 
     @property
     def report_after_setup(self) -> bool:
@@ -197,10 +196,11 @@ class AutoscalerBase:
             bounds[name].upper, and bounds[name].equals. Entirely-unbounded
             directions return None.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement get_bounds_scaling.')
+        raise NotImplementedError(
+            f"Class {type(self).__name__} does not implement get_bounds_scaling."
+        )
 
-    def apply_design_var_unscaling(self, vec: 'OptimizerVector'):
+    def apply_design_var_unscaling(self, vec: "OptimizerVector"):
         """
         Unscale the design variables from the optimizer space to the model space.
 
@@ -209,10 +209,11 @@ class AutoscalerBase:
         vec : OptimizerVector
             An OptimizerVector with voi_type='design_var'.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement apply_design_var_unscaling.')
+        raise NotImplementedError(
+            f"Class {type(self).__name__} does not implement apply_design_var_unscaling."
+        )
 
-    def apply_design_var_scaling(self, vec: 'OptimizerVector'):
+    def apply_design_var_scaling(self, vec: "OptimizerVector"):
         """
         Scale the design variables from the model space to the optimizer space.
 
@@ -221,10 +222,11 @@ class AutoscalerBase:
         vec : OptimizerVector
             An OptimizerVector with voi_type='design_var'.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement apply_design_var_scaling.')
+        raise NotImplementedError(
+            f"Class {type(self).__name__} does not implement apply_design_var_scaling."
+        )
 
-    def apply_constraint_scaling(self, vec: 'OptimizerVector'):
+    def apply_constraint_scaling(self, vec: "OptimizerVector"):
         """
         Unscale the design variables from the optimizer space to the model space.
 
@@ -233,10 +235,11 @@ class AutoscalerBase:
         vec : OptimizerVector
             An OptimizerVector with voi_type='design_var'.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement apply_constraint_scaling.')
+        raise NotImplementedError(
+            f"Class {type(self).__name__} does not implement apply_constraint_scaling."
+        )
 
-    def apply_objective_scaling(self, vec: 'OptimizerVector'):
+    def apply_objective_scaling(self, vec: "OptimizerVector"):
         """
         Unscale the design variables from the optimizer space to the model space.
 
@@ -253,85 +256,86 @@ class AutoscalerBase:
         vec : OptimizerVector
             An OptimizerVector with voi_type='objective'.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement apply_objective_scaling.')
-    
+        raise NotImplementedError(
+            f"Class {type(self).__name__} does not implement apply_objective_scaling."
+        )
+
     def apply_mult_unscaling(self, desvar_multipliers, con_multipliers):
         """
         Unscale the Lagrange multipliers from optimizer space to model space.
-        
+
         This method transforms Lagrange multipliers of active constraints (including
-        active design variable bounds) from the scaled optimization space back to 
+        active design variable bounds) from the scaled optimization space back to
         physical (model) space.
-        
+
         At optimality, we assume the KKT stationarity condition holds:
-        
+
             ∇ₓf(x) + ∇ₓg(x)^T λ = 0
-        
+
         where:
             - ∇ₓf is the gradient of the objective
             - ∇ₓg(x)^T is the Jacobian of all active constraints (each row is ∇ₓg_i^T)
             - λ is the vector of Lagrange multipliers (in optimizer-scaled)
-        
+
         The constraint vector g(x) includes:
             - Active design variables (on their bounds, to within some tolerance)
             - Equality constraints (always active)
             - Active inequality constraints (on their bounds, to within some tolerance)
-        
+
         Scaling Transformations
         -----------------------
         Define scaling transformations that map from unscaled (physical) space to
         scaled (optimizer) space:
-        
+
             x_scaled = T_x(x)         (design variables)
             g_scaled = T_g(g(x))      (constraints)
             f_scaled = T_f(f(x))      (objective)
-        
+
         Applying the chain rule to the scaled stationarity condition:
-        
+
             ∇ₓ_scaled f_scaled + ∇ₓ_scaled g_scaled^T λ_scaled = 0
-        
+
         The gradients in scaled space are:
-        
+
             ∇ₓ_scaled f_scaled = (dTf/df) * ∇ₓf * (dTₓ/dx)^(-1)
             ∇ₓ_scaled g_scaled = (dTg/dg) * ∇ₓg * (dTₓ/dx)^(-1)
-        
+
         Substituting into the scaled stationarity condition and multiplying by (dTₓ/dx)^T:
-        
+
             (dTf/df) * ∇ₓf + (dTg/dg) * ∇ₓg^T * λ_scaled = 0
-        
+
         Dividing by (dTf/df) and comparing with the unscaled condition ∇ₓf + ∇ₓg^T λ = 0:
-        
+
             λ = (dTg/dg) / (dTf/df) * λ_scaled
-        
+
         For the Default autoscaler, we have
-        
+
             T_x(x) = (x + adder_x) * scaler_x
             T_g(g) = (g + adder_g) * scaler_g
             T_f(f) = (f + adder_f) * scaler_f
-        
+
         The derivatives are:
-        
+
             dT_x/dx = scaler_x
             dT_g/dg = scaler_g
             dT_f/df = scaler_f
-        
+
         Therefore:
-        
+
             λ_constraint = (scaler_g / scaler_f) * λ_constraint_scaled
-    
+
             λ_bound = (scaler_x / scaler_f) * λ_bound_scaled
-        
+
         The adder terms do not appear in the multiplier transformation
         because they are constant offsets that vanish under differentiation.
-        
+
         Parameters
         ----------
         desvar_multipliers : dict[str, np.ndarray]
             A dict of optimizer-scaled Lagrange multipliers keyed by each active design variable.
         con_multipliers : dict[str, np.ndarray]
             A dict of optimizer-scaled Lagrange multipliers keyed by each active constraint.
-        
+
         Returns
         -------
         desvar_multipliers : dict[str, np.ndarray]
@@ -341,8 +345,9 @@ class AutoscalerBase:
             A reference to the con_multipliers given on input. The values of the multipliers
             were unscaled in-place.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement apply_mult_scaling.')
+        raise NotImplementedError(
+            f"Class {type(self).__name__} does not implement apply_mult_scaling."
+        )
 
     def apply_jac_scaling(self, jac_dict):
         """
@@ -372,5 +377,6 @@ class AutoscalerBase:
         When a scaler is None (identity transformation), it's treated as 1.0 for
         multiplication and division.
         """
-        raise NotImplementedError(f'Class {type(self).__name__} does not '
-                                  'implement apply_jac_scaling.')
+        raise NotImplementedError(
+            f"Class {type(self).__name__} does not implement apply_jac_scaling."
+        )

@@ -37,15 +37,19 @@ def _get_size(name, dct):
         levels for a DOE.
     """
     try:
-        lower_size = np.size(dct['lower'])
-        upper_size = np.size(dct['upper'])
+        lower_size = np.size(dct["lower"])
+        upper_size = np.size(dct["upper"])
         if lower_size != upper_size:
-            raise ValueError(f"Size mismatch for factor '{name}': 'lower' bound size "
-                             f"({lower_size}) does not match 'upper' bound size ({upper_size}).")
+            raise ValueError(
+                f"Size mismatch for factor '{name}': 'lower' bound size "
+                f"({lower_size}) does not match 'upper' bound size ({upper_size})."
+            )
         return lower_size
     except KeyError:
-        raise RuntimeError(f"Unable to determine levels for factor '{name}'. "
-                           "Factors dictionary must contain both 'lower' and 'upper' keys.")
+        raise RuntimeError(
+            f"Unable to determine levels for factor '{name}'. "
+            "Factors dictionary must contain both 'lower' and 'upper' keys."
+        )
 
 
 def _get_bounds(name, dct, size, inf_bound):
@@ -77,7 +81,7 @@ def _get_bounds(name, dct, size, inf_bound):
     """
     bounds = []
 
-    for bound_name, unbounded in (('lower', -inf_bound), ('upper', inf_bound)):
+    for bound_name, unbounded in (("lower", -inf_bound), ("upper", inf_bound)):
         bound = dct[bound_name]
         if bound is None:
             bounds.append(np.full(size, unbounded, dtype=float))

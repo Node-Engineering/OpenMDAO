@@ -1,16 +1,23 @@
 """Define the base Vector and Transfer classes."""
+
 import hashlib
 
 import numpy as np
 
-from openmdao.utils.indexer import Indexer, indexer, _full_slice, _flat_full_indexer, \
-    _full_indexer, combine_ranges
+from openmdao.utils.indexer import (
+    Indexer,
+    indexer,
+    _full_slice,
+    _flat_full_indexer,
+    _full_indexer,
+    combine_ranges,
+)
 
 
 _type_map = {  # map vector type to iotype
-    'input': 'input',
-    'output': 'output',
-    'residual': 'output'
+    "input": "input",
+    "output": "output",
+    "residual": "output",
 }
 
 
@@ -19,7 +26,7 @@ class _VecData(object):
     Internal data structure for each variable in a Vector.
     """
 
-    __slots__ = ('shape', 'size', 'is_scalar', 'range', 'view', 'flat')
+    __slots__ = ("shape", "size", "is_scalar", "range", "view", "flat")
 
     def __init__(self, shape, rng):
         self.shape = shape
@@ -155,8 +162,7 @@ class Vector(object):
         int
             Total flattened length of this vector.
         """
-        raise NotImplementedError('__len__ not defined for vector type '
-                                  f'{type(self).__name__}')
+        raise NotImplementedError(f"__len__ not defined for vector type {type(self).__name__}")
 
     def nvars(self):
         """
@@ -178,8 +184,10 @@ class Vector(object):
         dict
             Dictionary containing the variable values.
         """
-        return {n: vinfo.view.item() if vinfo.is_scalar else vinfo.view.copy()
-                for n, vinfo in self._views.items()}
+        return {
+            n: vinfo.view.item() if vinfo.is_scalar else vinfo.view.copy()
+            for n, vinfo in self._views.items()
+        }
 
     def keys(self):
         """
@@ -512,8 +520,9 @@ class Vector(object):
         system : <System>
             The owning system.
         """
-        raise NotImplementedError('_initialize_data not defined for vector type '
-                                  f'{type(self).__name__}')
+        raise NotImplementedError(
+            f"_initialize_data not defined for vector type {type(self).__name__}"
+        )
 
     def __iadd__(self, vec):
         """
@@ -526,7 +535,7 @@ class Vector(object):
         vec : <Vector>
             vector to add to self.
         """
-        raise NotImplementedError(f'__iadd__ not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"__iadd__ not defined for vector type {type(self).__name__}")
 
     def __isub__(self, vec):
         """
@@ -539,7 +548,7 @@ class Vector(object):
         vec : <Vector>
             vector to subtract from self.
         """
-        raise NotImplementedError(f'__isub__ not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"__isub__ not defined for vector type {type(self).__name__}")
 
     def __imul__(self, val):
         """
@@ -552,7 +561,7 @@ class Vector(object):
         val : int or float
             scalar to multiply self.
         """
-        raise NotImplementedError(f'__imul__ not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"__imul__ not defined for vector type {type(self).__name__}")
 
     def add_scal_vec(self, val, vec):
         """
@@ -567,8 +576,9 @@ class Vector(object):
         vec : <Vector>
             This vector times val is added to self.
         """
-        raise NotImplementedError('add_scale_vec not defined for vector type '
-                                  f'{type(self).__name__}')
+        raise NotImplementedError(
+            f"add_scale_vec not defined for vector type {type(self).__name__}"
+        )
 
     def asarray(self, copy=False):
         """
@@ -586,7 +596,7 @@ class Vector(object):
         ndarray
             Array representation of this vector.
         """
-        raise NotImplementedError(f'asarray not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"asarray not defined for vector type {type(self).__name__}")
         return None  # silence lint warning
 
     @property
@@ -613,8 +623,9 @@ class Vector(object):
         if not self._in_matvec_context():
             return None
 
-        ranges = combine_ranges([vinfo.range for name, vinfo in self._views.items()
-                                 if name not in self._names])
+        ranges = combine_ranges(
+            [vinfo.range for name, vinfo in self._views.items() if name not in self._names]
+        )
         if len(ranges) == 1:
             mask = slice(ranges[0][0], ranges[0][1])
         elif len(ranges) == 0:
@@ -635,7 +646,7 @@ class Vector(object):
         bool
             True if this vector contains complex values.
         """
-        raise NotImplementedError(f'iscomplex not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"iscomplex not defined for vector type {type(self).__name__}")
         return False  # silence lint warning
 
     def set_vec(self, vec):
@@ -649,7 +660,7 @@ class Vector(object):
         vec : <Vector>
             The vector whose values self is set to.
         """
-        raise NotImplementedError(f'set_vec not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"set_vec not defined for vector type {type(self).__name__}")
 
     def set_val(self, val, idxs=_full_slice):
         """
@@ -664,7 +675,7 @@ class Vector(object):
         idxs : int or slice or tuple of ints and/or slices
             The locations where the data array should be updated.
         """
-        raise NotImplementedError(f'set_arr not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"set_arr not defined for vector type {type(self).__name__}")
 
     def set_vals(self, vals):
         """
@@ -700,13 +711,17 @@ class Vector(object):
         """
         abs_name = self._lookup(name, self._iotype)
         if abs_name is None:
-            raise KeyError(f"{self._resolver.msginfo}: Variable name "
-                           f"'{var_name if var_name else name}' not found.")
+            raise KeyError(
+                f"{self._resolver.msginfo}: Variable name "
+                f"'{var_name if var_name else name}' not found."
+            )
 
         if self.read_only:
-            raise ValueError(f"{self._resolver.msginfo}: Attempt to set value of "
-                             f"'{var_name if var_name else name}' in "
-                             f"{self._kind} vector when it is read only.")
+            raise ValueError(
+                f"{self._resolver.msginfo}: Attempt to set value of "
+                f"'{var_name if var_name else name}' in "
+                f"{self._kind} vector when it is read only."
+            )
 
         if idxs is _full_slice:
             if flat:
@@ -729,8 +744,10 @@ class Vector(object):
                 try:
                     value = value.reshape(vinfo.view[idxs()].shape)
                 except Exception:
-                    raise ValueError(f"{self._resolver.msginfo}: Failed to set value of "
-                                     f"'{var_name if var_name else name}': {str(err)}.")
+                    raise ValueError(
+                        f"{self._resolver.msginfo}: Failed to set value of "
+                        f"'{var_name if var_name else name}': {str(err)}."
+                    )
                 vinfo.view[idxs()] = value
 
     def dot(self, vec):
@@ -744,7 +761,7 @@ class Vector(object):
         vec : <Vector>
             The incoming vector being dotted with self.
         """
-        raise NotImplementedError(f'dot not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"dot not defined for vector type {type(self).__name__}")
 
     def get_norm(self):
         """
@@ -757,15 +774,16 @@ class Vector(object):
         float
             Norm of this vector.
         """
-        raise NotImplementedError(f'get_norm not defined for vector type {type(self).__name__}')
+        raise NotImplementedError(f"get_norm not defined for vector type {type(self).__name__}")
         return None  # silence lint warning about missing return value.
 
     def _in_matvec_context(self):
         """
         Return True if this vector is inside of a matvec_context.
         """
-        raise NotImplementedError('_in_matvec_context not defined for vector type '
-                                  f'{type(self).__name__}')
+        raise NotImplementedError(
+            f"_in_matvec_context not defined for vector type {type(self).__name__}"
+        )
 
     def set_complex_step_mode(self, active):
         """
@@ -792,8 +810,8 @@ class Vector(object):
         str
             The hash string.
         """
-        raise NotImplementedError(f'get_hash not defined for vector type {type(self).__name__}')
-        return ''  # silence lint warning about missing return value.
+        raise NotImplementedError(f"get_hash not defined for vector type {type(self).__name__}")
+        return ""  # silence lint warning about missing return value.
 
     def _get_local_views(self, arr=None):
         """
@@ -816,8 +834,10 @@ class Vector(object):
         if arr is None:
             arr = self.asarray(copy=False)
         elif len(self) != arr.size:
-            raise RuntimeError(f"{self._resolver.msginfo}: can't create local view dict because "
-                               f"given array is size {arr.size} but expected size is {len(self)}.")
+            raise RuntimeError(
+                f"{self._resolver.msginfo}: can't create local view dict because "
+                f"given array is size {arr.size} but expected size is {len(self)}."
+            )
 
         dct = {}
         pathlen = len(self._resolver._pathname) + 1 if self._resolver._pathname else 0

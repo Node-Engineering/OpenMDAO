@@ -1,13 +1,14 @@
 """
 Utilities for submitting function evaluations under MPI.
 """
+
 import os
 import traceback
 from itertools import chain, islice
 
 from openmdao.utils.mpi import debug
 
-trace = os.environ.get('OPENMDAO_TRACE')
+trace = os.environ.get("OPENMDAO_TRACE")
 
 
 def concurrent_eval_lb(func, cases, comm, broadcast=False):
@@ -41,16 +42,16 @@ def concurrent_eval_lb(func, cases, comm, broadcast=False):
     if comm is not None:
         if comm.rank == 0:  # master rank
             if trace:
-                debug('Running Master Rank')
+                debug("Running Master Rank")
             results = _concurrent_eval_lb_master(cases, comm)
             if trace:
-                debug('Master Rank Complete')
+                debug("Master Rank Complete")
         else:
             if trace:
-                debug('Running Worker Rank %d' % comm.rank)
+                debug("Running Worker Rank %d" % comm.rank)
             results = _concurrent_eval_lb_worker(func, comm)
             if trace:
-                debug('Running Worker Rank %d Complete' % comm.rank)
+                debug("Running Worker Rank %d Complete" % comm.rank)
 
         if broadcast:
             results = comm.bcast(results, root=0)
@@ -109,10 +110,10 @@ def _concurrent_eval_lb_master(cases, comm):
             break
 
         if trace:
-            debug('Master sending case', i)
+            debug("Master sending case", i)
         comm.send(case, i, tag=1)
         if trace:
-            debug('Master sent case', i)
+            debug("Master sent case", i)
         sent += 1
 
     # send the rest of the cases
@@ -151,10 +152,10 @@ def _concurrent_eval_lb_worker(func, comm):
     while True:
         # wait on a case from the master
         if trace:
-            debug('Worker Waiting on Case')
+            debug("Worker Waiting on Case")
         args, kwargs = comm.recv(source=0, tag=1)
         if trace:
-            debug('Worker Case Received')
+            debug("Worker Case Received")
 
         if args is None:  # we're done
             break
@@ -242,7 +243,6 @@ def concurrent_eval(func, cases, comm, allgather=False, model_mpi=None):
         else:
             allresults = comm.gather(results, root=0)
             if comm.rank == 0:
-
                 # Limit results to 1 set from each color.
                 if model_mpi is not None:
                     allresults = allresults[:size]

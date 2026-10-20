@@ -1,6 +1,7 @@
 """
 Base class for interpolation methods.  New methods should inherit from this class.
 """
+
 import numpy as np
 
 from openmdao.components.interp_util.outofbounds_error import OutOfBoundsError
@@ -92,10 +93,12 @@ class InterpAlgorithm(object):
         k = self.k
         n_p = len(self.grid)
         if n_p < k:
-            raise ValueError("There are %d points in a data dimension,"
-                             " but method %s requires at least %d "
-                             "points per dimension."
-                             "" % (n_p, self._name, k + 1))
+            raise ValueError(
+                "There are %d points in a data dimension,"
+                " but method %s requires at least %d "
+                "points per dimension."
+                "" % (n_p, self._name, k + 1)
+            )
 
     def vectorized(self, x):
         """
@@ -164,7 +167,6 @@ class InterpAlgorithm(object):
             last_index = high
             high += inc
             if high >= highbound:
-
                 # Check if we're off of the top end
                 if x > grid[highbound]:
                     last_index = highbound
@@ -333,17 +335,21 @@ class InterpAlgorithmFixed(object):
         """
         grid = self.grid
         if isinstance(grid, np.ndarray):
-            grid = (grid, )
+            grid = (grid,)
         k = self.k
         n_p = len(grid[0])
         if n_p < k:
-            raise ValueError(f"There are {n_p} points in a data dimension, but method "
-                             f"'{self._name}' requires at least {k} points per dimension.")
+            raise ValueError(
+                f"There are {n_p} points in a data dimension, but method "
+                f"'{self._name}' requires at least {k} points per dimension."
+            )
         dim = self.dim
         n_d = len(grid)
         if n_d != dim:
-            raise ValueError(f"There are {n_d} dimensions, but method '{self._name}' only works"
-                             f" with a fixed table dimension of {dim}.")
+            raise ValueError(
+                f"There are {n_d} dimensions, but method '{self._name}' only works"
+                f" with a fixed table dimension of {dim}."
+            )
 
     def vectorized(self, x):
         """
@@ -388,10 +394,9 @@ class InterpAlgorithmFixed(object):
         """
         for j in range(self.dim):
             if self.vectorized(x):
-                self.last_index[j] = np.searchsorted(self.grid[j], x[..., j], side='left') - 1
+                self.last_index[j] = np.searchsorted(self.grid[j], x[..., j], side="left") - 1
             else:
-                self.last_index[j], _ = self._bracket_dim(self.grid[j], x[j],
-                                                          self.last_index[j])
+                self.last_index[j], _ = self._bracket_dim(self.grid[j], x[j], self.last_index[j])
 
         return self.last_index, None
 
@@ -434,7 +439,6 @@ class InterpAlgorithmFixed(object):
             last_index = high
             high += inc
             if high >= highbound:
-
                 # Check if we're off of the top end
                 if x > grid[highbound]:
                     return highbound, 1
@@ -617,8 +621,17 @@ class InterpAlgorithmSemi(object):
         If True, this algorithm can compute the derivatives with respect to table values.
     """
 
-    def __init__(self, grid, values, interp, extrapolate=True, compute_d_dvalues=False, idx=None,
-                 idim=0, **kwargs):
+    def __init__(
+        self,
+        grid,
+        values,
+        interp,
+        extrapolate=True,
+        compute_d_dvalues=False,
+        idx=None,
+        idim=0,
+        **kwargs,
+    ):
         """
         Initialize table and subtables.
         """
@@ -633,8 +646,7 @@ class InterpAlgorithmSemi(object):
         self._compute_d_dvalues = compute_d_dvalues
 
         if len(grid.shape) > 1 and grid.shape[1] > 1:
-
-            if np.any(np.diff(grid[:, 0]) < 0.):
+            if np.any(np.diff(grid[:, 0]) < 0.0):
                 msg = f"The points in dimension {idim} must be strictly ascending."
                 raise ValueError(msg)
 
@@ -648,9 +660,16 @@ class InterpAlgorithmSemi(object):
             sub_idx = [idx[0]]
             for point, jj in zip(grid[1:], idx[1:]):
                 if point[0] != i_pt:
-                    newtable = interp(grid[i0:i1, 1:], values[i0:i1], interp, idx=sub_idx,
-                                      idim=idim + 1, extrapolate=extrapolate,
-                                      compute_d_dvalues=compute_d_dvalues, **kwargs)
+                    newtable = interp(
+                        grid[i0:i1, 1:],
+                        values[i0:i1],
+                        interp,
+                        idx=sub_idx,
+                        idim=idim + 1,
+                        extrapolate=extrapolate,
+                        compute_d_dvalues=compute_d_dvalues,
+                        **kwargs,
+                    )
                     subtables.append(newtable)
                     i0 = i1
                     i_pt = point[0]
@@ -659,9 +678,16 @@ class InterpAlgorithmSemi(object):
                 i1 += 1
                 sub_idx.append(jj)
 
-            newtable = interp(grid[i0:i1, 1:], values[i0:i1], interp, idx=sub_idx,
-                              idim=idim + 1, extrapolate=extrapolate,
-                              compute_d_dvalues=compute_d_dvalues, **kwargs)
+            newtable = interp(
+                grid[i0:i1, 1:],
+                values[i0:i1],
+                interp,
+                idx=sub_idx,
+                idim=idim + 1,
+                extrapolate=extrapolate,
+                compute_d_dvalues=compute_d_dvalues,
+                **kwargs,
+            )
             subtables.append(newtable)
 
             self.subtables = subtables
@@ -672,7 +698,7 @@ class InterpAlgorithmSemi(object):
             self.subtables = None
             self._idx = idx if idx is not None else np.arange(len(values))
 
-            if not np.all(np.diff(grid) > 0.):
+            if not np.all(np.diff(grid) > 0.0):
                 msg = f"The points in dimension {idim} must be strictly ascending."
                 raise ValueError(msg)
 
@@ -698,10 +724,12 @@ class InterpAlgorithmSemi(object):
         k = self.k
         n_p = len(self.grid)
         if n_p < k:
-            raise ValueError("There are %d points in a data dimension,"
-                             " but method %s requires at least %d "
-                             "points per dimension."
-                             "" % (n_p, self._name, k + 1))
+            raise ValueError(
+                "There are %d points in a data dimension,"
+                " but method %s requires at least %d "
+                "points per dimension."
+                "" % (n_p, self._name, k + 1)
+            )
 
     def vectorized(self, x):
         """
@@ -774,7 +802,6 @@ class InterpAlgorithmSemi(object):
             last_index = high
             high += inc
             if high >= highbound:
-
                 # Check if we're off of the top end
                 if x > grid[highbound]:
                     if not self.extrapolate:

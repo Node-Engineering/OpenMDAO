@@ -1,4 +1,5 @@
 """Tests for COOMatrix, CSCMatrix, and CSRMatrix."""
+
 import contextlib
 import io
 import unittest
@@ -85,7 +86,7 @@ class MockSubjac:
         return self._data.copy()
 
 
-def _run_update_cycle(matrix, subjacs, dtype=np.dtype('float64')):
+def _run_update_cycle(matrix, subjacs, dtype=np.dtype("float64")):
     """
     Run one complete pre_update / update_from_submat / post_update cycle.
 
@@ -112,80 +113,81 @@ class _MatrixUpdateTests:
 
     def test_basic_update(self):
         """Subjac values are placed correctly into the compressed matrix."""
-        s = MockSubjac(('a', 'b'), [0, 1], [0, 1], [3., 7.])
+        s = MockSubjac(("a", "b"), [0, 1], [0, 1], [3.0, 7.0])
         mat = self._build({s.key: s}, (2, 2))
         _run_update_cycle(mat, [s])
 
-        np.testing.assert_array_equal(mat._matrix.toarray(), np.array([[3., 0.], [0., 7.]]))
+        np.testing.assert_array_equal(mat._matrix.toarray(), np.array([[3.0, 0.0], [0.0, 7.0]]))
 
     def test_factor_scaling(self):
         """subjac.factor scales the data before inserting into the matrix."""
-        s = MockSubjac(('a', 'b'), [0, 1], [0, 1], [2., 4.], factor=3.)
+        s = MockSubjac(("a", "b"), [0, 1], [0, 1], [2.0, 4.0], factor=3.0)
         mat = self._build({s.key: s}, (2, 2))
         _run_update_cycle(mat, [s])
 
-        np.testing.assert_array_almost_equal(mat._matrix.toarray(), np.array([[6., 0.], [0., 12.]]))
+        np.testing.assert_array_almost_equal(
+            mat._matrix.toarray(), np.array([[6.0, 0.0], [0.0, 12.0]])
+        )
 
     def test_multiple_update_cycles(self):
         """Repeated update cycles produce the same correct values each time."""
-        s = MockSubjac(('a', 'b'), [0], [0], [5.])
+        s = MockSubjac(("a", "b"), [0], [0], [5.0])
         mat = self._build({s.key: s}, (2, 2))
 
         for _ in range(3):
             _run_update_cycle(mat, [s])
-            self.assertAlmostEqual(mat._matrix.toarray()[0, 0], 5.)
+            self.assertAlmostEqual(mat._matrix.toarray()[0, 0], 5.0)
 
     def test_todense(self):
         """todense returns a dense array with the correct values."""
-        s = MockSubjac(('a', 'b'), [0, 1], [1, 0], [3., 7.])
+        s = MockSubjac(("a", "b"), [0, 1], [1, 0], [3.0, 7.0])
         mat = self._build({s.key: s}, (2, 2))
         _run_update_cycle(mat, [s])
 
         self.assertIsInstance(mat.todense(), np.ndarray)
-        np.testing.assert_array_equal(mat.todense(), np.array([[0., 3.], [7., 0.]]))
+        np.testing.assert_array_equal(mat.todense(), np.array([[0.0, 3.0], [7.0, 0.0]]))
 
     def test_dtype_complex(self):
         """Dtype transitions to complex correctly for complex step."""
-        s = MockSubjac(('a', 'b'), [0], [0], [1.])
+        s = MockSubjac(("a", "b"), [0], [0], [1.0])
         mat = self._build({s.key: s}, (2, 2))
 
-        mat._pre_update(np.dtype('complex128'))
-        self.assertEqual(mat._matrix.data.dtype.kind, 'c')
+        mat._pre_update(np.dtype("complex128"))
+        self.assertEqual(mat._matrix.data.dtype.kind, "c")
 
     def test_dtype_reverts_to_real(self):
         """Dtype transitions back to real after complex step."""
-        s = MockSubjac(('a', 'b'), [0], [0], [1.])
+        s = MockSubjac(("a", "b"), [0], [0], [1.0])
         mat = self._build({s.key: s}, (2, 2))
 
-        mat._pre_update(np.dtype('complex128'))
-        self.assertEqual(mat._matrix.data.dtype.kind, 'c')
+        mat._pre_update(np.dtype("complex128"))
+        self.assertEqual(mat._matrix.data.dtype.kind, "c")
 
-        mat._pre_update(np.dtype('float64'))
-        self.assertEqual(mat._matrix.data.dtype.kind, 'f')
+        mat._pre_update(np.dtype("float64"))
+        self.assertEqual(mat._matrix.data.dtype.kind, "f")
 
     def test_transpose(self):
         """transpose returns the correct transposed matrix."""
-        s = MockSubjac(('a', 'b'), [0, 1], [1, 0], [3., 7.])
+        s = MockSubjac(("a", "b"), [0, 1], [1, 0], [3.0, 7.0])
         mat = self._build({s.key: s}, (2, 2))
         _run_update_cycle(mat, [s])
 
-        np.testing.assert_array_equal(mat.transpose().toarray(),
-                                      np.array([[0., 7.], [3., 0.]]))
+        np.testing.assert_array_equal(mat.transpose().toarray(), np.array([[0.0, 7.0], [3.0, 0.0]]))
 
     def test_dump(self):
         """dump prints msginfo and sorted (row, col, value) entries to stdout."""
-        s = MockSubjac(('a', 'b'), [1, 0], [0, 1], [3., 7.])
+        s = MockSubjac(("a", "b"), [1, 0], [0, 1], [3.0, 7.0])
         mat = self._build({s.key: s}, (2, 2))
         _run_update_cycle(mat, [s])
 
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
-            mat.dump('test')
+            mat.dump("test")
         output = buf.getvalue()
 
-        self.assertIn('test', output)
-        self.assertIn('0, 1, 7.0', output)
-        self.assertIn('1, 0, 3.0', output)
+        self.assertIn("test", output)
+        self.assertIn("0, 1, 7.0", output)
+        self.assertIn("1, 0, 3.0", output)
 
 
 class _CompressedMatrixUpdateTests(_MatrixUpdateTests):
@@ -193,24 +195,24 @@ class _CompressedMatrixUpdateTests(_MatrixUpdateTests):
 
     def test_cross_subjac_duplicates_accumulate(self):
         """Two subjacs writing to the same position accumulate their values."""
-        s1 = MockSubjac(('a', 'b'), [0], [0], [10.])
-        s2 = MockSubjac(('c', 'd'), [0], [0], [5.])
+        s1 = MockSubjac(("a", "b"), [0], [0], [10.0])
+        s2 = MockSubjac(("c", "d"), [0], [0], [5.0])
         mat = self._build({s1.key: s1, s2.key: s2}, (2, 2))
         _run_update_cycle(mat, [s1, s2])
 
-        self.assertAlmostEqual(mat._matrix.toarray()[0, 0], 15.)
+        self.assertAlmostEqual(mat._matrix.toarray()[0, 0], 15.0)
 
     def test_within_subjac_duplicates_accumulate(self):
         """A subjac with repeated (row, col) entries accumulates via np.add.at."""
-        s = MockSubjac(('a', 'b'), [0, 0], [0, 0], [10., 5.])
+        s = MockSubjac(("a", "b"), [0, 0], [0, 0], [10.0, 5.0])
         mat = self._build({s.key: s}, (2, 2))
         _run_update_cycle(mat, [s])
 
-        self.assertAlmostEqual(mat._matrix.toarray()[0, 0], 15.)
+        self.assertAlmostEqual(mat._matrix.toarray()[0, 0], 15.0)
 
     def test_transpose_cached(self):
         """Transpose result is cached and reused."""
-        s = MockSubjac(('a', 'b'), [0], [1], [3.])
+        s = MockSubjac(("a", "b"), [0], [1], [3.0])
         mat = self._build({s.key: s}, (2, 2))
         _run_update_cycle(mat, [s])
 
@@ -220,7 +222,7 @@ class _CompressedMatrixUpdateTests(_MatrixUpdateTests):
 
     def test_transpose_cache_reset_on_update(self):
         """Transpose cache is invalidated after each update cycle."""
-        s = MockSubjac(('a', 'b'), [0], [1], [3.])
+        s = MockSubjac(("a", "b"), [0], [1], [3.0])
         mat = self._build({s.key: s}, (2, 2))
         _run_update_cycle(mat, [s])
         mat.transpose()
@@ -242,22 +244,22 @@ class _CompressedMatrixBuildTests:
         Two COO entries at the same (row, col) from different subjacs map to
         the same index in the compressed matrix.
         """
-        s1 = MockSubjac(('a', 'b'), [0], [0], [1.])
-        s2 = MockSubjac(('c', 'd'), [0], [0], [2.])
+        s1 = MockSubjac(("a", "b"), [0], [0], [1.0])
+        s2 = MockSubjac(("c", "d"), [0], [0], [2.0])
         mat = self._build_matrix({s1.key: s1, s2.key: s2}, (2, 2))
 
         np.testing.assert_array_equal(getattr(mat, self._map_attr), [0, 0])
 
     def test_no_within_subjac_duplicates_flagged(self):
         """Subjac with unique (row, col) pairs is not flagged as having duplicates."""
-        s = MockSubjac(('a', 'b'), [0, 1, 2], [0, 1, 2], [1., 2., 3.])
+        s = MockSubjac(("a", "b"), [0, 1, 2], [0, 1, 2], [1.0, 2.0, 3.0])
         mat = self._build_matrix({s.key: s}, (3, 3))
 
         self.assertFalse(mat._has_within_subjac_duplicates[s.key])
 
     def test_within_subjac_duplicates_flagged(self):
         """Subjac with repeated (row, col) pairs is correctly flagged."""
-        s = MockSubjac(('a', 'b'), [0, 0], [0, 0], [1., 2.])
+        s = MockSubjac(("a", "b"), [0, 0], [0, 0], [1.0, 2.0])
         mat = self._build_matrix({s.key: s}, (2, 2))
 
         self.assertTrue(mat._has_within_subjac_duplicates[s.key])
@@ -268,8 +270,8 @@ class TestCOOMatrixBuild(unittest.TestCase):
 
     def test_coo_slices_correct(self):
         """_build correctly records contiguous slices for each subjac."""
-        s1 = MockSubjac(('a', 'b'), [0, 1], [0, 1], [1., 2.])
-        s2 = MockSubjac(('c', 'd'), [0, 1, 2], [2, 2, 2], [3., 4., 5.])
+        s1 = MockSubjac(("a", "b"), [0, 1], [0, 1], [1.0, 2.0])
+        s2 = MockSubjac(("c", "d"), [0, 1, 2], [2, 2, 2], [3.0, 4.0, 5.0])
         mat = COOMatrix({s1.key: s1, s2.key: s2})
         mat._build(3, 3)
 
@@ -278,8 +280,8 @@ class TestCOOMatrixBuild(unittest.TestCase):
 
     def test_total_nnz(self):
         """_build allocates arrays of the correct total size."""
-        s1 = MockSubjac(('a', 'b'), [0, 1], [0, 1], [1., 2.])
-        s2 = MockSubjac(('c', 'd'), [0], [2], [3.])
+        s1 = MockSubjac(("a", "b"), [0, 1], [0, 1], [1.0, 2.0])
+        s2 = MockSubjac(("c", "d"), [0], [2], [3.0])
         mat = COOMatrix({s1.key: s1, s2.key: s2})
         mat._build(3, 3)
 
@@ -300,7 +302,7 @@ class TestCOOMatrixUpdate(_MatrixUpdateTests, unittest.TestCase):
 class TestCSCMatrixBuild(_CompressedMatrixBuildTests, unittest.TestCase):
     """Tests for CSCMatrix._build."""
 
-    _map_attr = '_coo_to_csc_map'
+    _map_attr = "_coo_to_csc_map"
 
     def _build_matrix(self, submats, shape):
         mat = CSCMatrix(submats)
@@ -316,7 +318,7 @@ class TestCSCMatrixBuild(_CompressedMatrixBuildTests, unittest.TestCase):
         COO entry 1: (row=2, col=0) -> CSC index 0
         COO entry 2: (row=1, col=1) -> CSC index 1
         """
-        s = MockSubjac(('a', 'b'), [0, 2, 1], [2, 0, 1], [1., 2., 3.])
+        s = MockSubjac(("a", "b"), [0, 2, 1], [2, 0, 1], [1.0, 2.0, 3.0])
         mat = CSCMatrix({s.key: s})
         mat._build(3, 3)
 
@@ -335,7 +337,7 @@ class TestCSCMatrixUpdate(_CompressedMatrixUpdateTests, unittest.TestCase):
 class TestCSRMatrixBuild(_CompressedMatrixBuildTests, unittest.TestCase):
     """Tests for CSRMatrix._build."""
 
-    _map_attr = '_coo_to_csr_map'
+    _map_attr = "_coo_to_csr_map"
 
     def _build_matrix(self, submats, shape):
         mat = CSRMatrix(submats)
@@ -351,7 +353,7 @@ class TestCSRMatrixBuild(_CompressedMatrixBuildTests, unittest.TestCase):
         COO entry 1: (row=2, col=0) -> CSR index 2
         COO entry 2: (row=1, col=1) -> CSR index 1
         """
-        s = MockSubjac(('a', 'b'), [0, 2, 1], [2, 0, 1], [1., 2., 3.])
+        s = MockSubjac(("a", "b"), [0, 2, 1], [2, 0, 1], [1.0, 2.0, 3.0])
         mat = CSRMatrix({s.key: s})
         mat._build(3, 3)
 
@@ -367,5 +369,5 @@ class TestCSRMatrixUpdate(_CompressedMatrixUpdateTests, unittest.TestCase):
         return mat
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

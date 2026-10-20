@@ -59,11 +59,16 @@ class InputResidsComp(ImplicitComponent):
         This method is used since input/residual sizes may not
         be known until final setup.
         """
-        for name in self._var_rel_names['input']:
+        for name in self._var_rel_names["input"]:
             meta = self._var_rel2meta[name]
-            resid_name = f'resid_{name}'
-            self.add_residual(resid_name, shape=meta['shape'], units=meta['units'],
-                              desc=meta['desc'], ref=self._refs[name])
+            resid_name = f"resid_{name}"
+            self.add_residual(
+                resid_name,
+                shape=meta["shape"],
+                units=meta["units"],
+                desc=meta["desc"],
+                ref=self._refs[name],
+            )
 
     def setup_partials(self):
         """
@@ -72,9 +77,9 @@ class InputResidsComp(ImplicitComponent):
         This method is used because input/residual sizes
         may not be known until final setup.
         """
-        for name in self._var_rel_names['input']:
-            resid_name = 'resid_' + name
-            size = self._var_rel2meta[name]['size']
+        for name in self._var_rel_names["input"]:
+            resid_name = "resid_" + name
+            size = self._var_rel2meta[name]["size"]
             ar = np.arange(size, dtype=int)
             self.declare_partials(of=resid_name, wrt=name, rows=ar, cols=ar, val=1.0)
 

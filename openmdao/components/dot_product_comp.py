@@ -39,9 +39,16 @@ class DotProductComp(ExplicitComponent):
         self._products = []
 
         opt = self.options
-        self.add_product(c_name=opt['c_name'], a_name=opt['a_name'], b_name=opt['b_name'],
-                         c_units=opt['c_units'], a_units=opt['a_units'], b_units=opt['b_units'],
-                         vec_size=opt['vec_size'], length=opt['length'])
+        self.add_product(
+            c_name=opt["c_name"],
+            a_name=opt["a_name"],
+            b_name=opt["b_name"],
+            c_units=opt["c_units"],
+            a_units=opt["a_units"],
+            b_units=opt["b_units"],
+            vec_size=opt["vec_size"],
+            length=opt["length"],
+        )
 
         self._no_check_partials = True
 
@@ -49,25 +56,43 @@ class DotProductComp(ExplicitComponent):
         """
         Declare options.
         """
-        self.options.declare('vec_size', types=int, default=1,
-                             desc='The number of points at which the dot product is computed')
-        self.options.declare('length', types=int, default=3,
-                             desc='The length of vectors a and b')
-        self.options.declare('a_name', types=str, default='a',
-                             desc='The variable name for input vector a.')
-        self.options.declare('b_name', types=str, default='b',
-                             desc='The variable name for input vector b.')
-        self.options.declare('c_name', types=str, default='c',
-                             desc='The variable name for output vector c.')
-        self.options.declare('a_units', types=str, default=None, allow_none=True,
-                             desc='The units for vector a.')
-        self.options.declare('b_units', types=str, default=None, allow_none=True,
-                             desc='The units for vector b.')
-        self.options.declare('c_units', types=str, default=None, allow_none=True,
-                             desc='The units for vector c.')
+        self.options.declare(
+            "vec_size",
+            types=int,
+            default=1,
+            desc="The number of points at which the dot product is computed",
+        )
+        self.options.declare("length", types=int, default=3, desc="The length of vectors a and b")
+        self.options.declare(
+            "a_name", types=str, default="a", desc="The variable name for input vector a."
+        )
+        self.options.declare(
+            "b_name", types=str, default="b", desc="The variable name for input vector b."
+        )
+        self.options.declare(
+            "c_name", types=str, default="c", desc="The variable name for output vector c."
+        )
+        self.options.declare(
+            "a_units", types=str, default=None, allow_none=True, desc="The units for vector a."
+        )
+        self.options.declare(
+            "b_units", types=str, default=None, allow_none=True, desc="The units for vector b."
+        )
+        self.options.declare(
+            "c_units", types=str, default=None, allow_none=True, desc="The units for vector c."
+        )
 
-    def add_product(self, c_name, a_name='a', b_name='b', c_units=None, a_units=None, b_units=None,
-                    vec_size=1, length=3):
+    def add_product(
+        self,
+        c_name,
+        a_name="a",
+        b_name="b",
+        c_units=None,
+        a_units=None,
+        b_units=None,
+        vec_size=1,
+        length=3,
+    ):
         """
         Add a new output product to the dot product component.
 
@@ -93,16 +118,18 @@ class DotProductComp(ExplicitComponent):
             The length of the vectors a and b.  Their shapes are
             (vec_size, length).
         """
-        self._products.append({
-            'a_name': a_name,
-            'b_name': b_name,
-            'c_name': c_name,
-            'a_units': a_units,
-            'b_units': b_units,
-            'c_units': c_units,
-            'vec_size': vec_size,
-            'length': length
-        })
+        self._products.append(
+            {
+                "a_name": a_name,
+                "b_name": b_name,
+                "c_name": c_name,
+                "a_units": a_units,
+                "b_units": b_units,
+                "c_units": c_units,
+                "vec_size": vec_size,
+                "length": length,
+            }
+        )
 
         # add inputs and outputs for all products
         if self._static_mode:
@@ -114,51 +141,69 @@ class DotProductComp(ExplicitComponent):
 
         if c_name not in var_rel2meta:
             self.add_output(name=c_name, shape=(vec_size,), units=c_units)
-        elif c_name in var_rel_names['input']:
-            raise NameError(f"{self.msginfo}: '{c_name}' specified as an output, "
-                            "but it has already been defined as an input.")
+        elif c_name in var_rel_names["input"]:
+            raise NameError(
+                f"{self.msginfo}: '{c_name}' specified as an output, "
+                "but it has already been defined as an input."
+            )
         else:
             raise NameError(f"{self.msginfo}: Multiple definition of output '{c_name}'.")
 
         if a_name not in var_rel2meta:
             self.add_input(name=a_name, shape=(vec_size, length), units=a_units)
-        elif a_name in var_rel_names['output']:
-            raise NameError(f"{self.msginfo}: '{a_name}' specified as an input, "
-                            "but it has already been defined as an output.")
+        elif a_name in var_rel_names["output"]:
+            raise NameError(
+                f"{self.msginfo}: '{a_name}' specified as an input, "
+                "but it has already been defined as an output."
+            )
         else:
             meta = var_rel2meta[a_name]
-            if a_units != meta['units']:
-                raise ValueError(f"{self.msginfo}: Conflicting units '{a_units}' specified "
-                                 f"for input '{a_name}', which has already been defined "
-                                 f"with units '{meta['units']}'.")
-            if vec_size != meta['shape'][0]:
-                raise ValueError(f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
-                                 f"for input '{a_name}', which has already been defined "
-                                 f"with vec_size={meta['shape'][0]}.")
-            if length != meta['shape'][1]:
-                raise ValueError(f"{self.msginfo}: Conflicting length={length} specified "
-                                 f"for input '{a_name}', which has already been defined "
-                                 f"with length={meta['shape'][1]}.")
+            if a_units != meta["units"]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting units '{a_units}' specified "
+                    f"for input '{a_name}', which has already been defined "
+                    f"with units '{meta['units']}'."
+                )
+            if vec_size != meta["shape"][0]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
+                    f"for input '{a_name}', which has already been defined "
+                    f"with vec_size={meta['shape'][0]}."
+                )
+            if length != meta["shape"][1]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting length={length} specified "
+                    f"for input '{a_name}', which has already been defined "
+                    f"with length={meta['shape'][1]}."
+                )
 
         if b_name not in var_rel2meta:
             self.add_input(name=b_name, shape=(vec_size, length), units=b_units)
-        elif b_name in var_rel_names['output']:
-            raise NameError(f"{self.msginfo}: '{b_name}' specified as an input, "
-                            "but it has already been defined as an output.")
+        elif b_name in var_rel_names["output"]:
+            raise NameError(
+                f"{self.msginfo}: '{b_name}' specified as an input, "
+                "but it has already been defined as an output."
+            )
         else:
             meta = var_rel2meta[b_name]
-            if b_units != meta['units']:
-                raise ValueError(f"{self.msginfo}: Conflicting units '{b_units}' specified "
-                                 f"for input '{b_name}', which has already been defined "
-                                 f"with units '{meta['units']}'.")
-            if vec_size != meta['shape'][0]:
-                raise ValueError(f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
-                                 f"for input '{b_name}', which has already been defined "
-                                 f"with vec_size={meta['shape'][0]}.")
-            if length != meta['shape'][1]:
-                raise ValueError(f"{self.msginfo}: Conflicting length={length} specified "
-                                 f"for input '{b_name}', which has already been defined "
-                                 f"with length={meta['shape'][1]}.")
+            if b_units != meta["units"]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting units '{b_units}' specified "
+                    f"for input '{b_name}', which has already been defined "
+                    f"with units '{meta['units']}'."
+                )
+            if vec_size != meta["shape"][0]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting vec_size={vec_size} specified "
+                    f"for input '{b_name}', which has already been defined "
+                    f"with vec_size={meta['shape'][0]}."
+                )
+            if length != meta["shape"][1]:
+                raise ValueError(
+                    f"{self.msginfo}: Conflicting length={length} specified "
+                    f"for input '{b_name}', which has already been defined "
+                    f"with length={meta['shape'][1]}."
+                )
 
         row_idxs = np.repeat(np.arange(vec_size), length)
         col_idxs = np.arange(vec_size * length)
@@ -178,9 +223,9 @@ class DotProductComp(ExplicitComponent):
             Unscaled, dimensional output variables read via outputs[key].
         """
         for product in self._products:
-            a = inputs[product['a_name']]
-            b = inputs[product['b_name']]
-            outputs[product['c_name']] = np.einsum('ni,ni->n', a, b)
+            a = inputs[product["a_name"]]
+            b = inputs[product["b_name"]]
+            outputs[product["c_name"]] = np.einsum("ni,ni->n", a, b)
 
     def compute_partials(self, inputs, partials):
         """
@@ -194,9 +239,9 @@ class DotProductComp(ExplicitComponent):
             Sub-jac components written to partials[output_name, input_name].
         """
         for product in self._products:
-            a = inputs[product['a_name']]
-            b = inputs[product['b_name']]
+            a = inputs[product["a_name"]]
+            b = inputs[product["b_name"]]
 
             # Use the following for sparse partials
-            partials[product['c_name'], product['a_name']] = b.ravel()
-            partials[product['c_name'], product['b_name']] = a.ravel()
+            partials[product["c_name"], product["a_name"]] = b.ravel()
+            partials[product["c_name"], product["b_name"]] = a.ravel()

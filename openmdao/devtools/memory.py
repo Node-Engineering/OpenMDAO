@@ -16,8 +16,8 @@ try:
         -------
         The max resident memory used by this process and its children, in MB.
         """
-        denom = 1024.
-        if sys.platform == 'darwin':
+        denom = 1024.0
+        if sys.platform == "darwin":
             denom *= denom
         total = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / denom
         total += resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / denom
@@ -25,13 +25,15 @@ try:
 
 except ImportError:
     resource = None
+
     def max_mem_usage():
         raise RuntimeError("The 'max_mem_usage' function requires the 'resource' package.")
+
 
 try:
     import psutil
 
-    def mem_usage(msg='', out=sys.stdout, resident=True):
+    def mem_usage(msg="", out=sys.stdout, resident=True):
         """
         Display current resident or virtual memory usage.
 
@@ -48,14 +50,14 @@ try:
         -------
         The current memory used by this process, in MB.
         """
-        denom = 1024. * 1024.
+        denom = 1024.0 * 1024.0
         p = psutil.Process(os.getpid())
         if resident:
             mem = p.memory_info().rss / denom
         else:
             mem = p.memory_info().vms / denom
         if msg:
-            print(msg,"%6.3f MB" % mem, file=out)
+            print(msg, "%6.3f MB" % mem, file=out)
         return mem
 
     def diff_mem(fn):
@@ -74,6 +76,7 @@ try:
         function
             The wrapper function.
         """
+
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             startmem = mem_usage()
@@ -81,13 +84,16 @@ try:
             maxmem = mem_usage()
             diff = maxmem - startmem
             if diff > 0.0:
-                if args and hasattr(args[0], 'pathname'):
+                if args and hasattr(args[0], "pathname"):
                     name = args[0].pathname
                 else:
                     name = str(args[0])
-                print(name, "%s added %.0f KB (total: %6.3f MB)" %
-                      (fn.__name__, diff * 1024., maxmem))
+                print(
+                    name,
+                    "%s added %.0f KB (total: %6.3f MB)" % (fn.__name__, diff * 1024.0, maxmem),
+                )
             return ret
+
         return wrapper
 
     def check_iter_mem(niter, func, *args, **kwargs):
@@ -115,15 +121,24 @@ try:
 
 except ImportError:
     psutil = None
+
     def mem_usage(*args, **kwargs):
-        raise RuntimeError("The 'mem_usage' function requires the 'psutil' package.  You can "
-                           "install it using 'pip install psutil'.")
+        raise RuntimeError(
+            "The 'mem_usage' function requires the 'psutil' package.  You can "
+            "install it using 'pip install psutil'."
+        )
+
     def diff_mem(*args, **kwargs):
-        raise RuntimeError("The 'diff_mem' function requires the 'psutil' package.  You can "
-                           "install it using 'pip install psutil'.")
+        raise RuntimeError(
+            "The 'diff_mem' function requires the 'psutil' package.  You can "
+            "install it using 'pip install psutil'."
+        )
+
     def check_iter_mem(*args, **kwargs):
-        raise RuntimeError("The 'check_iter_mem' function requires the 'psutil' package.  You can "
-                           "install it using 'pip install psutil'.")
+        raise RuntimeError(
+            "The 'check_iter_mem' function requires the 'psutil' package.  You can "
+            "install it using 'pip install psutil'."
+        )
 
 
 try:
@@ -154,14 +169,13 @@ try:
         """
         gc.collect()
         start_objs = objgraph.typestats()
-        start_objs['frame'] += 1
-        start_objs['function'] += 1
-        start_objs['builtin_function_or_method'] += 1
-        start_objs['cell'] += 1
+        start_objs["frame"] += 1
+        start_objs["function"] += 1
+        start_objs["builtin_function_or_method"] += 1
+        start_objs["cell"] += 1
         ret = fn(*args, **kwargs)
         lst.extend([(str(o), delta) for o, _, delta in objgraph.growth(peak_stats=start_objs)])
         return ret
-
 
     def new_objects(fn):
         """
@@ -177,6 +191,7 @@ try:
         function
             A wrapper for fn that reports possible memory leaks.
         """
+
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             lst = []
@@ -184,8 +199,8 @@ try:
             for obj, delta_objs in lst:
                 print(str(fn), "added %s %+d" % (obj, delta_objs))
             return ret
-        return wrapper
 
+        return wrapper
 
     def check_iter_leaks(niter, func, *args, **kwargs):
         """
@@ -212,11 +227,11 @@ try:
         iters = []
         gc.collect()
         start_objs = objgraph.typestats()
-        if 'frame' in start_objs:
-            start_objs['frame'] += 1
-        start_objs['function'] += 1
-        start_objs['builtin_function_or_method'] += 1
-        start_objs['cell'] += 1
+        if "frame" in start_objs:
+            start_objs["frame"] += 1
+        start_objs["function"] += 1
+        start_objs["builtin_function_or_method"] += 1
+        start_objs["cell"] += 1
         for i in range(niter):
             func(*args, **kwargs)
             gc.collect()
@@ -227,7 +242,6 @@ try:
         set2 = set(iters[-1])
 
         return list(set2 - set1)
-
 
     def list_iter_leaks(leakset, out=sys.stdout):
         """
@@ -250,21 +264,31 @@ try:
 
 except ImportError:
     objgraph = None
+
     def get_new_objects(*args, **kwargs):
-        raise RuntimeError("The 'get_new_objects' function requires the 'objgraph' package.  "
-                           "You can install it using 'pip install objgraph'.")
+        raise RuntimeError(
+            "The 'get_new_objects' function requires the 'objgraph' package.  "
+            "You can install it using 'pip install objgraph'."
+        )
 
     def new_objects(*args, **kwargs):
-        raise RuntimeError("The 'new_objects' decorator requires the 'objgraph' package.  You can "
-                           "install it using 'pip install objgraph'.")
+        raise RuntimeError(
+            "The 'new_objects' decorator requires the 'objgraph' package.  You can "
+            "install it using 'pip install objgraph'."
+        )
 
     def check_iter_leaks(*args, **kwargs):
-        raise RuntimeError("The 'check_iter_leaks' function requires the 'objgraph' package.  "
-                           "You can install it using 'pip install objgraph'.")
+        raise RuntimeError(
+            "The 'check_iter_leaks' function requires the 'objgraph' package.  "
+            "You can install it using 'pip install objgraph'."
+        )
 
     def list_iter_leaks(*args, **kwargs):
-        raise RuntimeError("The 'list_iter_leaks' function requires the 'objgraph' package.  "
-                           "You can install it using 'pip install objgraph'.")
+        raise RuntimeError(
+            "The 'list_iter_leaks' function requires the 'objgraph' package.  "
+            "You can install it using 'pip install objgraph'."
+        )
+
 
 def plot_mem(mems, fname=None):
     """
@@ -278,12 +302,12 @@ def plot_mem(mems, fname=None):
         If specified, save the plot to this file.
     """
     import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots()
     mems = list(mems)
     ax.plot(list(range(len(mems))), mems)
-    ax.set(xlabel='Iterations', ylabel='Memory (MB)', title='Memory useage per iteration')
+    ax.set(xlabel="Iterations", ylabel="Memory (MB)", title="Memory useage per iteration")
     ax.grid()
     if fname is not None:
         fig.savefig(fname)
     plt.show()
-

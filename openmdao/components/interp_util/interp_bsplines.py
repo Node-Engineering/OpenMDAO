@@ -1,6 +1,7 @@
 """
 Interpolation usng simple B-splines.
 """
+
 import numpy as np
 from scipy.sparse import csr_matrix
 
@@ -54,29 +55,34 @@ class InterpBSplines(InterpAlgorithm):
         super().__init__(grid, values, interp, **kwargs)
 
         self._vectorized = True
-        self.k = self.options['order'] + 1
-        self._name = 'bsplines'
+        self.k = self.options["order"] + 1
+        self._name = "bsplines"
         self._jac = None
 
         # It doesn't make sense to define a grid for bsplines.
         self.grid = None
-        self.x_cp_start = self.options['x_cp_start']
-        self.x_cp_end = self.options['x_cp_end']
+        self.x_cp_start = self.options["x_cp_start"]
+        self.x_cp_end = self.options["x_cp_end"]
 
     def initialize(self):
         """
         Declare options.
         """
-        self.options.declare('order', default=4,
-                             desc='B-spline order.')
-        self.options.declare('x_cp_start', default=None, allow_none=True,
-                             types=(float, int),
-                             desc='Location of first control point. If None, use the first '
-                             'interpolation point.')
-        self.options.declare('x_cp_end', default=None, allow_none=True,
-                             types=(float, int),
-                             desc='Location of last control point. If None, use the last '
-                             'interpolation point.')
+        self.options.declare("order", default=4, desc="B-spline order.")
+        self.options.declare(
+            "x_cp_start",
+            default=None,
+            allow_none=True,
+            types=(float, int),
+            desc="Location of first control point. If None, use the first interpolation point.",
+        )
+        self.options.declare(
+            "x_cp_end",
+            default=None,
+            allow_none=True,
+            types=(float, int),
+            desc="Location of last control point. If None, use the last interpolation point.",
+        )
 
     def check_config(self):
         """
@@ -106,7 +112,6 @@ class InterpBSplines(InterpAlgorithm):
             Derivative of interpolated values with respect to grid.
         """
         if self._jac is None:
-
             # Map onto [0, 1]
 
             if self.x_cp_start is not None:
@@ -125,10 +130,9 @@ class InterpBSplines(InterpAlgorithm):
             x_mapped = (x - shift) / scale
 
             n_cp = self.values.shape[-1]
-            self._jac = self.get_bspline_mtx(n_cp, x_mapped,
-                                             order=self.options['order']).tocoo()
+            self._jac = self.get_bspline_mtx(n_cp, x_mapped, order=self.options["order"]).tocoo()
 
-        result = np.einsum('ij,kj->ki', self._jac.toarray(), self.values)
+        result = np.einsum("ij,kj->ki", self._jac.toarray(), self.values)
 
         return result, None, self._jac, None
 
@@ -167,8 +171,8 @@ class InterpBSplines(InterpAlgorithm):
             Sparse matrix of B-spline coefficients.
         """
         knots = np.zeros(num_cp + order)
-        knots[order - 1:num_cp + 1] = np.linspace(0, 1, num_cp - order + 2)
-        knots[num_cp + 1:] = 1.0
+        knots[order - 1 : num_cp + 1] = np.linspace(0, 1, num_cp - order + 2)
+        knots[num_cp + 1 :] = 1.0
 
         basis = np.zeros(order, dtype=t_vec.dtype)
         arange = np.arange(order)
@@ -190,8 +194,8 @@ class InterpBSplines(InterpAlgorithm):
                         i0 = ind - order
                         break
 
-            basis[:] = 0.
-            basis[-1] = 1.
+            basis[:] = 0.0
+            basis[-1] = 1.0
 
             for i in range(2, order + 1):
                 ll = i - 1
@@ -203,28 +207,30 @@ class InterpBSplines(InterpAlgorithm):
                     basis[j1 - 1] = (knots[n + ll] - t) / (knots[n + ll] - knots[n]) * basis[j1]
 
                 else:
-                    basis[j1 - 1] = 0.
+                    basis[j1 - 1] = 0.0
 
                 for j in range(j1 + 1, j2):
                     n = i0 + j
 
                     if knots[n + ll - 1] != knots[n - 1]:
-                        basis[j - 1] = (t - knots[n - 1]) / \
-                            (knots[n + ll - 1] - knots[n - 1]) * basis[j - 1]
+                        basis[j - 1] = (
+                            (t - knots[n - 1]) / (knots[n + ll - 1] - knots[n - 1]) * basis[j - 1]
+                        )
 
                     else:
-                        basis[j - 1] = 0.
+                        basis[j - 1] = 0.0
 
                     if knots[n + ll] != knots[n]:
                         basis[j - 1] += (knots[n + ll] - t) / (knots[n + ll] - knots[n]) * basis[j]
 
                 n = i0 + j2
                 if knots[n + ll - 1] != knots[n - 1]:
-                    basis[j2 - 1] = (t - knots[n - 1]) / \
-                        (knots[n + ll - 1] - knots[n - 1]) * basis[j2 - 1]
+                    basis[j2 - 1] = (
+                        (t - knots[n - 1]) / (knots[n + ll - 1] - knots[n - 1]) * basis[j2 - 1]
+                    )
 
                 else:
-                    basis[j2 - 1] = 0.
+                    basis[j2 - 1] = 0.0
 
             data[ipt, :] = basis
             rows[ipt, :] = ipt

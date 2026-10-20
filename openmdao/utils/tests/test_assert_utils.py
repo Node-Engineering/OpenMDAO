@@ -9,34 +9,37 @@ from openmdao.test_suite.components.paraboloid import Paraboloid
 from openmdao.test_suite.components.sellar import SellarNoDerivatives
 from openmdao.test_suite.components.sellar_feature import SellarNoDerivativesCS
 from openmdao.test_suite.components.partial_check_feature import BrokenDerivComp
-from openmdao.utils.assert_utils import assert_check_partials, assert_no_approx_partials, assert_no_dict_jacobians
+from openmdao.utils.assert_utils import (
+    assert_check_partials,
+    assert_no_approx_partials,
+    assert_no_dict_jacobians,
+)
 from openmdao.utils.testing_utils import snum_equal
 
 
 class TestAssertUtils(unittest.TestCase):
-
     def test_assert_check_partials_no_exception_expected(self):
 
         class MyComp(om.ExplicitComponent):
             def setup(self):
-                self.add_input('x1', 3.0)
-                self.add_input('x2', 5.0)
+                self.add_input("x1", 3.0)
+                self.add_input("x2", 5.0)
 
-                self.add_output('y', 5.5)
+                self.add_output("y", 5.5)
 
-                self.declare_partials(of='*', wrt='*')
+                self.declare_partials(of="*", wrt="*")
 
             def compute(self, inputs, outputs):
-                outputs['y'] = 3.0 * inputs['x1'] + 4.0 * inputs['x2']
+                outputs["y"] = 3.0 * inputs["x1"] + 4.0 * inputs["x2"]
 
-            def compute_partials(self, inputs,     partials):
+            def compute_partials(self, inputs, partials):
                 """Correct derivative."""
                 J = partials
-                J['y', 'x1'] = np.array([3.0])
-                J['y', 'x2'] = np.array([4.0])
+                J["y", "x1"] = np.array([3.0])
+                J["y", "x2"] = np.array([4.0])
 
         prob = om.Problem()
-        prob.model.add_subsystem('comp', MyComp())
+        prob.model.add_subsystem("comp", MyComp())
 
         prob.set_solver_print(level=0)
         prob.setup()
@@ -44,12 +47,12 @@ class TestAssertUtils(unittest.TestCase):
 
         data = prob.check_partials(out_stream=None)
 
-        assert_check_partials(data, atol=1.e-6, rtol=1.e-6)
+        assert_check_partials(data, atol=1.0e-6, rtol=1.0e-6)
 
     def test_assert_check_partials_exception_expected(self):
 
         prob = om.Problem()
-        prob.model.add_subsystem('comp', BrokenDerivComp())
+        prob.model.add_subsystem("comp", BrokenDerivComp())
 
         prob.set_solver_print(level=0)
 
@@ -82,23 +85,23 @@ J_fd - J_fwd:
 [[-36.]]
 """.strip()
 
-        if np.__version__.split('.')[0] > '1':
-            expected = expected.replace('difference:', 'difference among violations:')
+        if np.__version__.split(".")[0] > "1":
+            expected = expected.replace("difference:", "difference among violations:")
 
         try:
-            assert_check_partials(data, atol=1.e-6, rtol=1.e-6, verbose=True)
+            assert_check_partials(data, atol=1.0e-6, rtol=1.0e-6, verbose=True)
         except Exception as err:
-            errlines = err.args[0].split('\n')
+            errlines = err.args[0].split("\n")
             check = []
             for line in errlines:
-                if not '(ACTUAL)' in line and not "Mismatch at index:" in line:
+                if not "(ACTUAL)" in line and not "Mismatch at index:" in line:
                     check.append(line)
-            errstr = '\n'.join(check).strip()
+            errstr = "\n".join(check).strip()
             if not snum_equal(errstr, expected):
                 # just show normal string diff
                 self.assertEqual(errstr, expected)
         else:
-            self.fail('Exception expected.')
+            self.fail("Exception expected.")
 
     def test_assert_no_approx_partials_exception_expected(self):
 
@@ -112,16 +115,15 @@ J_fd - J_fwd:
             assert_no_approx_partials(prob.model, include_self=True, recurse=True)
 
         except AssertionError as err:
-            expected_err = \
-'''The following components use approximated partials:
+            expected_err = """The following components use approximated partials:
     cycle.d1
         of=*               wrt=*               method=cs
     cycle.d2
         of=*               wrt=*               method=cs
-'''
+"""
             self.assertEqual(str(err), expected_err)
         else:
-            self.fail('Exception expected.')
+            self.fail("Exception expected.")
 
     def test_assert_no_approx_partials_cs_method(self):
 
@@ -132,12 +134,12 @@ J_fd - J_fwd:
         prob.final_setup()
 
         with self.assertRaises(AssertionError):
-            assert_no_approx_partials(prob.model, include_self=True, recurse=True, method='any')
+            assert_no_approx_partials(prob.model, include_self=True, recurse=True, method="any")
 
-        with self.assertRaises(AssertionError) :
-            assert_no_approx_partials(prob.model, include_self=True, recurse=True, method='cs')
+        with self.assertRaises(AssertionError):
+            assert_no_approx_partials(prob.model, include_self=True, recurse=True, method="cs")
 
-        assert_no_approx_partials(prob.model, include_self=True, recurse=True, method='fd')
+        assert_no_approx_partials(prob.model, include_self=True, recurse=True, method="fd")
 
     def test_assert_no_approx_partials_fd_method(self):
 
@@ -148,12 +150,12 @@ J_fd - J_fwd:
         prob.final_setup()
 
         with self.assertRaises(AssertionError):
-            assert_no_approx_partials(prob.model, include_self=True, recurse=True, method='any')
+            assert_no_approx_partials(prob.model, include_self=True, recurse=True, method="any")
 
         with self.assertRaises(AssertionError):
-            assert_no_approx_partials(prob.model, include_self=True, recurse=True, method='fd')
+            assert_no_approx_partials(prob.model, include_self=True, recurse=True, method="fd")
 
-        assert_no_approx_partials(prob.model, include_self=True, recurse=True, method='cs')
+        assert_no_approx_partials(prob.model, include_self=True, recurse=True, method="cs")
 
     def test_assert_no_approx_partials_exception_not_expected(self):
 
@@ -167,16 +169,16 @@ J_fd - J_fwd:
     def test_assert_no_approx_partials_exception_exclude_single_pathname(self):
 
         prob = om.Problem()
-        C1 = prob.model.add_subsystem('C1', om.ExecComp('y=x+1.', x=2.0))
-        C1.declare_partials('y', 'x', method='fd')
+        C1 = prob.model.add_subsystem("C1", om.ExecComp("y=x+1.", x=2.0))
+        C1.declare_partials("y", "x", method="fd")
 
         prob.setup()
         prob.final_setup()
 
-        with self.assertRaises(AssertionError) :
+        with self.assertRaises(AssertionError):
             assert_no_approx_partials(prob.model, include_self=True, recurse=True)
 
-        assert_no_approx_partials(prob.model, include_self=True, recurse=True, excludes='C1')
+        assert_no_approx_partials(prob.model, include_self=True, recurse=True, excludes="C1")
 
     def test_assert_no_approx_partials_exception_exclude_pathnames(self):
 
@@ -186,8 +188,9 @@ J_fd - J_fwd:
         prob.setup()
         prob.final_setup()
 
-        assert_no_approx_partials(prob.model, include_self=True, recurse=True,
-                                  excludes=['cycle.d1', 'cycle.d2'])
+        assert_no_approx_partials(
+            prob.model, include_self=True, recurse=True, excludes=["cycle.d1", "cycle.d2"]
+        )
 
     def test_assert_no_dict_jacobians_exception_expected(self):
 
@@ -205,19 +208,19 @@ J_fd - J_fwd:
             expected_err = "The following groups use dictionary jacobians:\n\n    cycle"
             self.assertEqual(str(err), expected_err)
         else:
-            self.fail('Exception expected.')
+            self.fail("Exception expected.")
 
     def test_assert_no_dict_jacobians_exception_not_expected(self):
 
-        model = om.Group(assembled_jac_type='dense')
+        model = om.Group(assembled_jac_type="dense")
         ivc = om.IndepVarComp()
-        ivc.add_output('x', 3.0)
-        ivc.add_output('y', -4.0)
-        model.add_subsystem('des_vars', ivc)
-        model.add_subsystem('parab_comp', Paraboloid())
+        ivc.add_output("x", 3.0)
+        ivc.add_output("y", -4.0)
+        model.add_subsystem("des_vars", ivc)
+        model.add_subsystem("parab_comp", Paraboloid())
 
-        model.connect('des_vars.x', 'parab_comp.x')
-        model.connect('des_vars.y', 'parab_comp.y')
+        model.connect("des_vars.x", "parab_comp.x")
+        model.connect("des_vars.y", "parab_comp.y")
 
         prob = om.Problem(model)
         prob.model.linear_solver = om.DirectSolver(assemble_jac=True)
@@ -231,21 +234,21 @@ J_fd - J_fwd:
 
         class MyComp(om.ExplicitComponent):
             def setup(self):
-                self.add_input('x', 3.0)
+                self.add_input("x", 3.0)
 
-                self.add_output('y', 5.5)
+                self.add_output("y", 5.5)
 
-                self.declare_partials(of='*', wrt='*')
+                self.declare_partials(of="*", wrt="*")
 
             def compute(self, inputs, outputs):
                 # Introduce an error.
-                outputs['y'] = 3.0 * inputs['x']
+                outputs["y"] = 3.0 * inputs["x"]
 
             def compute_partials(self, inputs, partials):
-                partials['y', 'x'] = np.nan
+                partials["y", "x"] = np.nan
 
         prob = om.Problem()
-        prob.model.add_subsystem('comp', MyComp())
+        prob.model.add_subsystem("comp", MyComp())
 
         prob.set_solver_print(level=0)
 
@@ -271,22 +274,22 @@ J_fd - J_fwd:
 [[nan]]
 """.strip()
 
-        if np.__version__.split('.')[0] > '1':
-            expected = expected.replace('difference:', 'difference among violations:')
+        if np.__version__.split(".")[0] > "1":
+            expected = expected.replace("difference:", "difference among violations:")
 
         try:
-            assert_check_partials(data, atol=1.e-6, rtol=1.e-6, verbose=True)
+            assert_check_partials(data, atol=1.0e-6, rtol=1.0e-6, verbose=True)
         except ValueError as err:
-            errlines = err.args[0].split('\n')
+            errlines = err.args[0].split("\n")
             check = []
             for line in errlines:
-                if not '(ACTUAL)' in line and not "Mismatch at index:" in line:
+                if not "(ACTUAL)" in line and not "Mismatch at index:" in line:
                     check.append(line)
-            errstr = '\n'.join(check).strip()
+            errstr = "\n".join(check).strip()
             if not snum_equal(errstr, expected):
                 self.assertEqual(errstr, expected)
         else:
-            self.fail('Exception expected.')
+            self.fail("Exception expected.")
 
 
 if __name__ == "__main__":

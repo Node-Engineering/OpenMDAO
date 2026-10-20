@@ -1,6 +1,7 @@
 """
 Various graph related utilities.
 """
+
 from pprint import pformat
 import textwrap
 import networkx as nx
@@ -93,12 +94,14 @@ def get_cycle_tree(group):
     topname = group.pathname
     group_tree_dict = {}
     for cpath, cpsccs in cpathdict.items():
-        group_tree_dict[cpath] = [([], scc, set(scc), i, cpath, None)
-                                  for i, scc in enumerate(cpsccs)]
+        group_tree_dict[cpath] = [
+            ([], scc, set(scc), i, cpath, None) for i, scc in enumerate(cpsccs)
+        ]
 
-    it = group._sys_tree_visitor(iter_solver_info, predicate=lambda s: isinstance(s, Group),
-                                 yield_none=False)
-    for tup in sorted(it, key=lambda x: (x[0].count('.'), len(x[0]))):
+    it = group._sys_tree_visitor(
+        iter_solver_info, predicate=lambda s: isinstance(s, Group), yield_none=False
+    )
+    for tup in sorted(it, key=lambda x: (x[0].count("."), len(x[0]))):
         path = tup[0]
         if not tup[2]:  # no sccs
             continue
@@ -111,7 +114,7 @@ def get_cycle_tree(group):
 
         tree = group_tree_dict[path] if path in group_tree_dict else None
 
-        prefix = path + '.' if path else ''
+        prefix = path + "." if path else ""
         for children, parent_scc, unique, _, parpath, _ in parent_tree:
             if prefix:
                 matching_comps = [c for c in parent_scc if c.startswith(prefix)]
@@ -124,7 +127,7 @@ def get_cycle_tree(group):
                 for sub_scc in sub_sccs:
                     if not sub_scc.isdisjoint(parent_scc) and sub_scc != parent_scc:
                         if tree is None:
-                            group_tree_dict[path] = tree = ([])
+                            group_tree_dict[path] = tree = []
                         tree.append(([], sub_scc, set(sub_scc), len(tree), path, parpath))
                         children.append(tree[-1])
                         # remmove the childs scc comps from the parent 'unique' scc
@@ -144,14 +147,14 @@ def print_cycle_tree(group):
     """
     G, group_tree_dict = get_cycle_tree(group)
 
-    def _print_tree(node, nscc, indent=''):
+    def _print_tree(node, nscc, indent=""):
         children, scc, unique, i, path, _ = node
         print(indent, f"cycle {i + 1} of {nscc} for '{path}'")
         for u in unique:
             print(indent, f"  {u}")
         if children:
             for tup in children:
-                _print_tree(tup, len(group_tree_dict[tup[4]]), indent + '  ')
+                _print_tree(tup, len(group_tree_dict[tup[4]]), indent + "  ")
 
     for lst in group_tree_dict.values():
         for _, _, _, idx, _, parpath in lst:
@@ -186,13 +189,13 @@ def get_unresolved_knowns(graph, meta_name, nodes):
         if node in unresolved:
             continue
 
-        if getattr(gnodes[node]['conn_meta'], meta_name, None) is not None:  # node has known shape
+        if getattr(gnodes[node]["conn_meta"], meta_name, None) is not None:  # node has known shape
             for succ in graph.successors(node):
-                if getattr(gnodes[succ]['conn_meta'], meta_name, None) is None:
+                if getattr(gnodes[succ]["conn_meta"], meta_name, None) is None:
                     unresolved.add(node)
                     break
             for pred in graph.predecessors(node):
-                if getattr(gnodes[pred]['conn_meta'], meta_name, None) is None:
+                if getattr(gnodes[pred]["conn_meta"], meta_name, None) is None:
                     unresolved.add(node)
                     break
 
@@ -221,10 +224,10 @@ def is_unresolved(graph, node, meta_name):
     """
     nodes = graph.nodes
     for s in graph.successors(node):
-        if getattr(nodes[s]['conn_meta'], meta_name) is None:
+        if getattr(nodes[s]["conn_meta"], meta_name) is None:
             return True
     for p in graph.predecessors(node):
-        if getattr(nodes[p]['conn_meta'], meta_name) is None:
+        if getattr(nodes[p]["conn_meta"], meta_name) is None:
             return True
     return False
 
@@ -303,8 +306,8 @@ def get_active_edges(graph, knowns, meta_name):
 
     for known in knowns:
         for succ in graph.successors(known):
-            if getattr(nodes[succ]['conn_meta'], meta_name) is None:
-                if edges[known, succ]['multi']:
+            if getattr(nodes[succ]["conn_meta"], meta_name) is None:
+                if edges[known, succ]["multi"]:
                     computed_nodes.add(succ)
                 else:
                     active_single_edges.add((known, succ))
@@ -366,10 +369,10 @@ def dump_edges(G, show_none=False):
     for u, v, data in G.edges(data=True):
         print(f"{u} -> {v}:")
         if show_none:
-            print(textwrap.indent(pformat(data), '  '))
+            print(textwrap.indent(pformat(data), "  "))
         else:
             dct = {k: v for k, v in data.items() if v is not None}
-            print(textwrap.indent(pformat(dct), '  '))
+            print(textwrap.indent(pformat(dct), "  "))
 
 
 def escape_dot_string(s):
@@ -387,7 +390,7 @@ def escape_dot_string(s):
         The escaped string.
     """
     # Escape backslashes and quotes
-    s = s.replace('\\', '\\\\')
+    s = s.replace("\\", "\\\\")
     s = s.replace('"', '\\"')
     return s
 
@@ -411,12 +414,12 @@ def _get_dot_label_str(G, node):
     attrs = G.nodes[node]
 
     # Check if label is HTML (indicated by html_label attribute)
-    if 'html_label' in attrs:
+    if "html_label" in attrs:
         # Use angle brackets for HTML labels
-        return f'<{attrs["html_label"]}>'
-    elif 'label' in attrs:
+        return f"<{attrs['html_label']}>"
+    elif "label" in attrs:
         # Regular text label with escaping
-        label = escape_dot_string(attrs['label'])
+        label = escape_dot_string(attrs["label"])
         return f'"{label}"'
     else:
         # Default to node name
@@ -453,8 +456,8 @@ def networkx_to_dot(G):
         lines.append("graph G {")
         edge_op = "--"
 
-    orientation = G.graph.get('orientation', 'LR')
-    shape = G.graph.get('shape', 'ellipse')
+    orientation = G.graph.get("orientation", "LR")
+    shape = G.graph.get("shape", "ellipse")
 
     # Add graph attributes for better layout
     lines.append(f"  rankdir={orientation};")  # Left to right layout
@@ -464,10 +467,10 @@ def networkx_to_dot(G):
     # Add nodes with attributes
     for node, attrs in G.nodes(data=True):
         label = _get_dot_label_str(G, node)
-        attr_strs = [f'label={label}']
+        attr_strs = [f"label={label}"]
 
         # Add other attributes
-        for key in ['shape', 'color', 'style', 'fillcolor', 'penwidth', 'tooltip']:
+        for key in ["shape", "color", "style", "fillcolor", "penwidth", "tooltip"]:
             if key in attrs:
                 attr_strs.append(f'{key}="{attrs[key]}"')
 
@@ -480,14 +483,14 @@ def networkx_to_dot(G):
         attr_strs = []
 
         # Handle HTML labels for edges
-        if 'html_label' in attrs:
-            attr_strs.append(f'label=<{attrs["html_label"]}>')
-        elif 'label' in attrs:
-            label = escape_dot_string(str(attrs['label']))
+        if "html_label" in attrs:
+            attr_strs.append(f"label=<{attrs['html_label']}>")
+        elif "label" in attrs:
+            label = escape_dot_string(str(attrs["label"]))
             attr_strs.append(f'label="{label}"')
 
         # Add other edge attributes
-        for key in ['color', 'style', 'weight', 'dir', 'arrowhead', 'tooltip']:
+        for key in ["color", "style", "weight", "dir", "arrowhead", "tooltip"]:
             if key in attrs:
                 attr_strs.append(f'{key}="{attrs[key]}"')
 
@@ -546,7 +549,7 @@ def dot_to_html(dot_string, outfile="graph.html", show=True):
 
     html_content = html_template.replace("DOT_STRING_PLACEHOLDER", dot_string)
 
-    with open(outfile, 'w') as f:
+    with open(outfile, "w") as f:
         f.write(html_content)
 
     print(f"Graph visualization saved to {outfile}")

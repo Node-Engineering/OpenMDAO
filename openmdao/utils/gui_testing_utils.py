@@ -19,12 +19,12 @@ class _GuiTestCase(unittest.TestCase):
         msg : string
             message string from console.
         """
-        if msg.type == 'warning':
+        if msg.type == "warning":
             self.console_warning = True
-            print('    Console Warning: ' + msg.text)
-        elif msg.type == 'error':
+            print("    Console Warning: " + msg.text)
+        elif msg.type == "error":
             self.console_error = True
-            print('    Console Error: ' + msg.text)
+            print("    Console Error: " + msg.text)
 
     def handle_page_err(self, msg):
         """
@@ -36,7 +36,7 @@ class _GuiTestCase(unittest.TestCase):
             error message string.
         """
         self.page_error = True
-        print('    Error on page: ', msg)
+        print("    Error on page: ", msg)
         print(type(msg))
 
     def handle_request_err(self, msg):
@@ -49,7 +49,7 @@ class _GuiTestCase(unittest.TestCase):
             error message string.
         """
         self.page_error = True
-        print('    Request error: ', msg)
+        print("    Request error: ", msg)
 
     def setup_error_handlers(self):
         """
@@ -60,9 +60,9 @@ class _GuiTestCase(unittest.TestCase):
         self.console_error = False
         self.page_error = False
 
-        self.page.on('console', lambda msg: self.handle_console_err(msg))
-        self.page.on('pageerror', lambda msg: self.handle_page_err(msg))
-        self.page.on('requestfailed', lambda msg: self.handle_request_err(msg))
+        self.page.on("console", lambda msg: self.handle_console_err(msg))
+        self.page.on("pageerror", lambda msg: self.handle_page_err(msg))
+        self.page.on("requestfailed", lambda msg: self.handle_request_err(msg))
 
     async def setup_browser(self, playwright):
         """
@@ -73,7 +73,7 @@ class _GuiTestCase(unittest.TestCase):
         playwright : class playwright.async_api._generated.Playwright
             main playwright class.
         """
-        self.browser = await playwright.chromium.launch(args=['--start-fullscreen'])
+        self.browser = await playwright.chromium.launch(args=["--start-fullscreen"])
         self.page = await self.browser.new_page()
 
         await self.page.bring_to_front()
@@ -99,11 +99,11 @@ class _GuiTestCase(unittest.TestCase):
         selector : string
             selector used to locate the element.
         """
-        handle = await self.page.wait_for_selector(selector, state='attached', timeout=3055)
+        handle = await self.page.wait_for_selector(selector, state="attached", timeout=3055)
 
-        self.assertIsNotNone(handle,
-                             "Could not find element with selector '" +
-                             selector + "' in the N2 diagram.")
+        self.assertIsNotNone(
+            handle, "Could not find element with selector '" + selector + "' in the N2 diagram."
+        )
 
         return handle
 
@@ -118,6 +118,6 @@ def get_free_port():
         A free port.
     """
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as _socket:
-        _socket.bind(('', 0))
+        _socket.bind(("", 0))
         _, port = _socket.getsockname()
         return port

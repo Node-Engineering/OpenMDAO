@@ -24,7 +24,7 @@ class LinearBlockGS(BlockLinearSolver):
         option is turned on.
     """
 
-    SOLVER = 'LN: LNBGS'
+    SOLVER = "LN: LNBGS"
 
     def __init__(self, **kwargs):
         """
@@ -41,14 +41,18 @@ class LinearBlockGS(BlockLinearSolver):
         """
         super()._declare_options()
 
-        self.options.declare('use_aitken', types=bool, default=False,
-                             desc='set to True to use Aitken relaxation')
-        self.options.declare('aitken_min_factor', default=0.1,
-                             desc='lower limit for Aitken relaxation factor')
-        self.options.declare('aitken_max_factor', default=1.5,
-                             desc='upper limit for Aitken relaxation factor')
-        self.options.declare('aitken_initial_factor', default=1.0,
-                             desc='initial value for Aitken relaxation factor')
+        self.options.declare(
+            "use_aitken", types=bool, default=False, desc="set to True to use Aitken relaxation"
+        )
+        self.options.declare(
+            "aitken_min_factor", default=0.1, desc="lower limit for Aitken relaxation factor"
+        )
+        self.options.declare(
+            "aitken_max_factor", default=1.5, desc="upper limit for Aitken relaxation factor"
+        )
+        self.options.declare(
+            "aitken_initial_factor", default=1.0, desc="initial value for Aitken relaxation factor"
+        )
 
     def _iter_initialize(self):
         """
@@ -61,8 +65,8 @@ class LinearBlockGS(BlockLinearSolver):
         float
             error at the first iteration.
         """
-        if self.options['use_aitken']:
-            if self._mode == 'fwd':
+        if self.options["use_aitken"]:
+            if self._mode == "fwd":
                 self._delta_d_n_1 = self._system()._doutputs.asarray(copy=True)
             else:
                 self._delta_d_n_1 = self._system()._dresiduals.asarray(copy=True)
@@ -76,18 +80,18 @@ class LinearBlockGS(BlockLinearSolver):
         """
         system = self._system()
         mode = self._mode
-        use_aitken = self.options['use_aitken']
+        use_aitken = self.options["use_aitken"]
 
         if use_aitken:
-            aitken_min_factor = self.options['aitken_min_factor']
-            aitken_max_factor = self.options['aitken_max_factor']
+            aitken_min_factor = self.options["aitken_min_factor"]
+            aitken_max_factor = self.options["aitken_max_factor"]
 
             # some variables that are used for Aitken's relaxation
             delta_d_n_1 = self._delta_d_n_1
             theta_n_1 = self._theta_n_1
 
             # store a copy of the outputs, used to compute the change in outputs later
-            if self._mode == 'fwd':
+            if self._mode == "fwd":
                 d_out_vec = system._doutputs
             else:
                 d_out_vec = system._dresiduals
@@ -97,10 +101,10 @@ class LinearBlockGS(BlockLinearSolver):
 
         relevance = system._relevance
 
-        if mode == 'fwd':
+        if mode == "fwd":
             for subsys in relevance.filter(system._all_subsystem_iter()):
                 # must always do the transfer on all procs even if subsys not local
-                system._transfer('linear', mode, subsys.name)
+                system._transfer("linear", mode, subsys.name)
 
                 if not subsys._is_local:
                     continue
@@ -138,7 +142,7 @@ class LinearBlockGS(BlockLinearSolver):
                     subslice = b_vec._parent_slice
                     b_vec.set_val(0.0)
 
-                    system._transfer('linear', mode, subsys.name)
+                    system._transfer("linear", mode, subsys.name)
 
                     b_vec *= -1.0
                     b_vec += self._rhs_vec[subslice]
@@ -153,18 +157,18 @@ class LinearBlockGS(BlockLinearSolver):
                         subsys._apply_linear(mode, scope_out, scope_in)
                     else:
                         b_vec.set_val(0.0)
-                else:   # subsys not local
-                    system._transfer('linear', mode, subsys.name)
+                else:  # subsys not local
+                    system._transfer("linear", mode, subsys.name)
 
         if use_aitken:
-            if self._mode == 'fwd':
+            if self._mode == "fwd":
                 d_resid_vec = system._dresiduals
                 d_out_vec = system._doutputs
             else:
                 d_resid_vec = system._doutputs
                 d_out_vec = system._dresiduals
 
-            theta_n = self.options['aitken_initial_factor']
+            theta_n = self.options["aitken_initial_factor"]
 
             # compute the change in the outputs after the NLBGS iteration
             delta_d_n -= d_out_vec.asarray()
@@ -186,7 +190,7 @@ class LinearBlockGS(BlockLinearSolver):
                 else:
                     temp_norm = np.linalg.norm(temp)
 
-                if temp_norm == 0.:
+                if temp_norm == 0.0:
                     temp_norm = 1e-12  # prevent division by 0 below
 
                 # If MPI, piggyback on the output and residual vectors to perform a distributed
@@ -200,7 +204,7 @@ class LinearBlockGS(BlockLinearSolver):
                 else:
                     tddo = temp.dot(delta_d_n)
 
-                theta_n = theta_n_1 * (1 - tddo / temp_norm ** 2)
+                theta_n = theta_n_1 * (1 - tddo / temp_norm**2)
 
             else:
                 # keep the initial the relaxation factor

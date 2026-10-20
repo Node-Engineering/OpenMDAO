@@ -89,12 +89,12 @@ class NLBGSGroup(om.Group):
         self.linear_solver = om.DirectSolver(assemble_jac=True)
 
     def initialize(self):
-        self.options.declare('use_guess', types=bool, default=False)
+        self.options.declare("use_guess", types=bool, default=False)
 
     def guess_nonlinear(self, inputs, outputs, residuals):
-        if self.options['use_guess']:
+        if self.options["use_guess"]:
             # this guess will cause an AnalysisError
-            outputs["coupling.balance.x"] = -1.
+            outputs["coupling.balance.x"] = -1.0
 
 
 class TestOutputCache(unittest.TestCase):
@@ -113,9 +113,9 @@ class TestOutputCache(unittest.TestCase):
 
         prob.run_model()
 
-        assert_near_equal(prob['simple.coupling.sub_comp1.z'][0], 15.66717076361843, 1e-6)
-        assert_near_equal(prob['simple.coupling.sub_comp2.z'][0], 15.66717076361843, 1e-6)
-        assert_near_equal(prob['simple.coupling.balance.x'][0], 6.6054982979676495, 1e-6)
+        assert_near_equal(prob["simple.coupling.sub_comp1.z"][0], 15.66717076361843, 1e-6)
+        assert_near_equal(prob["simple.coupling.sub_comp2.z"][0], 15.66717076361843, 1e-6)
+        assert_near_equal(prob["simple.coupling.balance.x"][0], 6.6054982979676495, 1e-6)
 
         # prob.model.list_outputs()
 
@@ -132,14 +132,14 @@ class TestOutputCache(unittest.TestCase):
 
         # prob.model.list_outputs()
 
-        assert_near_equal(prob['simple.coupling.sub_comp1.z'][0], 8.51905504, 1e-6)
-        assert_near_equal(prob['simple.coupling.sub_comp2.z'][0], 8.51905504, 1e-6)
-        assert_near_equal(prob['simple.coupling.balance.x'][0], 6.28613102, 1e-6)
+        assert_near_equal(prob["simple.coupling.sub_comp1.z"][0], 8.51905504, 1e-6)
+        assert_near_equal(prob["simple.coupling.sub_comp2.z"][0], 8.51905504, 1e-6)
+        assert_near_equal(prob["simple.coupling.balance.x"][0], 6.28613102, 1e-6)
 
     def test_warning(self):
         prob = om.Problem()
         model = prob.model
-        model.add_subsystem('coupling', CoupledGroup(err_on_non_converge=False))
+        model.add_subsystem("coupling", CoupledGroup(err_on_non_converge=False))
 
         prob.setup()
 
@@ -165,15 +165,15 @@ class TestOutputCache(unittest.TestCase):
 
         prob.run_model()
 
-        assert_near_equal(prob['simple.coupling.sub_comp1.z'][0], 15.66717076361843, 1e-6)
-        assert_near_equal(prob['simple.coupling.sub_comp2.z'][0], 15.66717076361843, 1e-6)
-        assert_near_equal(prob['simple.coupling.balance.x'][0], 6.6054982979676495, 1e-6)
+        assert_near_equal(prob["simple.coupling.sub_comp1.z"][0], 15.66717076361843, 1e-6)
+        assert_near_equal(prob["simple.coupling.sub_comp2.z"][0], 15.66717076361843, 1e-6)
+        assert_near_equal(prob["simple.coupling.balance.x"][0], 6.6054982979676495, 1e-6)
 
         #
         # use the guess which will cause the run to fail
         #
 
-        simple.options['use_guess'] = True
+        simple.options["use_guess"] = True
 
         try:
             prob.run_model()
@@ -190,9 +190,9 @@ class TestOutputCache(unittest.TestCase):
         prob.set_val("simple.coupling.sub_comp2.b", val=3.0)
         prob.run_model()
 
-        assert_near_equal(prob['simple.coupling.sub_comp1.z'][0], 8.51905504, 1e-6)
-        assert_near_equal(prob['simple.coupling.sub_comp2.z'][0], 8.51905504, 1e-6)
-        assert_near_equal(prob['simple.coupling.balance.x'][0], 6.28613102, 1e-6)
+        assert_near_equal(prob["simple.coupling.sub_comp1.z"][0], 8.51905504, 1e-6)
+        assert_near_equal(prob["simple.coupling.sub_comp2.z"][0], 8.51905504, 1e-6)
+        assert_near_equal(prob["simple.coupling.balance.x"][0], 6.28613102, 1e-6)
 
 
 if __name__ == "__main__":

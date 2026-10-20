@@ -6,6 +6,7 @@ try:
     import jax
     from jax import jit
     import jax.numpy as jnp
+
     jax.config.update("jax_enable_x64", True)
 except (ImportError, ModuleNotFoundError):
     jax = None
@@ -13,7 +14,7 @@ except (ImportError, ModuleNotFoundError):
 
 
 @jit
-def act_tanh(x, mu=1.0E-2, z=0., a=-1., b=1.):
+def act_tanh(x, mu=1.0e-2, z=0.0, a=-1.0, b=1.0):
     """
     Compute a differentiable activation function based on the hyperbolic tangent.
 
@@ -49,11 +50,11 @@ def act_tanh(x, mu=1.0E-2, z=0., a=-1., b=1.):
     """
     dy = b - a
     tanh_term = jnp.tanh((x - z) / mu)
-    return 0.5 * dy * (1. + tanh_term) + a
+    return 0.5 * dy * (1.0 + tanh_term) + a
 
 
 @jit
-def smooth_max(x, y, mu=1.0E-2):
+def smooth_max(x, y, mu=1.0e-2):
     """
     Compute a differentiable maximum between two arrays of the same shape.
 
@@ -77,12 +78,12 @@ def smooth_max(x, y, mu=1.0E-2):
         at the expense of the smoothness of the approximation.
     """
     x_greater = act_tanh(x, mu, y, 0.0, 1.0)
-    y_greater = 1. - x_greater
+    y_greater = 1.0 - x_greater
     return x_greater * x + y_greater * y
 
 
 @jit
-def smooth_min(x, y, mu=1.0E-2):
+def smooth_min(x, y, mu=1.0e-2):
     """
     Compute a differentiable minimum between two arrays of the same shape.
 
@@ -106,12 +107,12 @@ def smooth_min(x, y, mu=1.0E-2):
         smoothness of the approximation.
     """
     x_greater = act_tanh(x, mu, y, 0.0, 1.0)
-    y_greater = 1. - x_greater
+    y_greater = 1.0 - x_greater
     return x_greater * y + y_greater * x
 
 
 @jit
-def smooth_abs(x, mu=1.0E-2):
+def smooth_abs(x, mu=1.0e-2):
     """
     Compute a differentiable approximation to the absolute value function.
 

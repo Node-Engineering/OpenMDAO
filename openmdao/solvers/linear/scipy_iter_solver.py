@@ -13,7 +13,7 @@ _SOLVER_TYPES = {
     # 'bicgstab': bicgstab,
     # 'cg': cg,
     # 'cgs': cgs,
-    'gmres': gmres,
+    "gmres": gmres,
 }
 
 
@@ -34,7 +34,7 @@ class ScipyKrylov(LinearSolver):
         Object for checking the right-hand side of the linear solve.
     """
 
-    SOLVER = 'LN: SCIPY'
+    SOLVER = "LN: SCIPY"
 
     def __init__(self, **kwargs):
         """
@@ -49,7 +49,7 @@ class ScipyKrylov(LinearSolver):
         """
         Return a generator of linear solvers using assembled jacs.
         """
-        if self.options['assemble_jac']:
+        if self.options["assemble_jac"]:
             yield self, self.preferred_sparse_format()
         if self.precon is not None:
             for tup in self.precon._assembled_jac_solver_iter():
@@ -61,26 +61,37 @@ class ScipyKrylov(LinearSolver):
         """
         super()._declare_options()
 
-        self.options.declare('solver', default='gmres', values=tuple(_SOLVER_TYPES.keys()),
-                             desc='function handle for actual solver')
+        self.options.declare(
+            "solver",
+            default="gmres",
+            values=tuple(_SOLVER_TYPES.keys()),
+            desc="function handle for actual solver",
+        )
 
-        self.options.declare('restart', default=20, types=int,
-                             desc='Number of iterations between restarts. Larger values increase '
-                                  'iteration cost, but may be necessary for convergence. This '
-                                  'option applies only to gmres.')
+        self.options.declare(
+            "restart",
+            default=20,
+            types=int,
+            desc="Number of iterations between restarts. Larger values increase "
+            "iteration cost, but may be necessary for convergence. This "
+            "option applies only to gmres.",
+        )
 
-        self.options.declare('rhs_checking', types=(bool, dict),
-                             default=False,
-                             desc="If True, check RHS vs. cache and/or zero to avoid some solves."
-                             "Can also be set to a dict of options for the LinearRHSChecker to "
-                             "allow finer control over it. Allowed options are: "
-                             f"{LinearRHSChecker.options}")
+        self.options.declare(
+            "rhs_checking",
+            types=(bool, dict),
+            default=False,
+            desc="If True, check RHS vs. cache and/or zero to avoid some solves."
+            "Can also be set to a dict of options for the LinearRHSChecker to "
+            "allow finer control over it. Allowed options are: "
+            f"{LinearRHSChecker.options}",
+        )
 
         # changing the default maxiter from the base class
-        self.options['maxiter'] = 1000
-        self.options['atol'] = 1.0e-12
+        self.options["maxiter"] = 1000
+        self.options["atol"] = 1.0e-12
 
-        self.supports['implicit_components'] = True
+        self.supports["implicit_components"] = True
 
     def check_config(self, logger):
         """
@@ -91,7 +102,7 @@ class ScipyKrylov(LinearSolver):
         logger : object
             The object that manages logging output.
         """
-        if self.options['rhs_checking'] is False:
+        if self.options["rhs_checking"] is False:
             system = self._system()
             redundant_adj = system.pathname in system._relevance.get_redundant_adjoint_systems()
             if redundant_adj:
@@ -118,10 +129,11 @@ class ScipyKrylov(LinearSolver):
         if self.precon is not None:
             self.precon._setup_solvers(self._system(), self._depth + 1)
 
-        self._lin_rhs_checker = LinearRHSChecker.create(self._system(),
-                                                        self.options['rhs_checking'])
+        self._lin_rhs_checker = LinearRHSChecker.create(
+            self._system(), self.options["rhs_checking"]
+        )
 
-    def _set_solver_print(self, level=2, type_='all'):
+    def _set_solver_print(self, level=2, type_="all"):
         """
         Control printing for solvers and subsolvers in the model.
 
@@ -136,7 +148,7 @@ class ScipyKrylov(LinearSolver):
         """
         super()._set_solver_print(level=level, type_=type_)
 
-        if self.precon is not None and type_ != 'NL':
+        if self.precon is not None and type_ != "NL":
             self.precon._set_solver_print(level=level, type_=type_)
 
     def _linearize_children(self):
@@ -176,7 +188,7 @@ class ScipyKrylov(LinearSolver):
         """
         system = self._system()
 
-        if self._mode == 'fwd':
+        if self._mode == "fwd":
             x_vec = system._doutputs
             b_vec = system._dresiduals
         else:  # rev
@@ -226,15 +238,15 @@ class ScipyKrylov(LinearSolver):
         self._mode = mode
 
         system = self._system()
-        solver = _SOLVER_TYPES[self.options['solver']]
+        solver = _SOLVER_TYPES[self.options["solver"]]
         if solver is gmres:
-            restart = self.options['restart']
+            restart = self.options["restart"]
 
-        maxiter = self.options['maxiter']
-        atol = self.options['atol']
-        rtol = self.options['rtol']
+        maxiter = self.options["maxiter"]
+        atol = self.options["atol"]
+        rtol = self.options["rtol"]
 
-        if mode == 'fwd':
+        if mode == "fwd":
             x_vec = system._doutputs
             b_vec = system._dresiduals
         else:  # rev
@@ -263,29 +275,57 @@ class ScipyKrylov(LinearSolver):
         self._iter_count = 0
         if solver is gmres:
             if Version(Version(scipy.__version__).base_version) < Version("1.12"):
-                x, info = solver(linop, b_vec.asarray(True), M=M, restart=restart,
-                                 x0=x_vec_combined, maxiter=maxiter, tol=atol, atol='legacy',
-                                 callback=self._monitor, callback_type='legacy')
+                x, info = solver(
+                    linop,
+                    b_vec.asarray(True),
+                    M=M,
+                    restart=restart,
+                    x0=x_vec_combined,
+                    maxiter=maxiter,
+                    tol=atol,
+                    atol="legacy",
+                    callback=self._monitor,
+                    callback_type="legacy",
+                )
             else:
-                x, info = solver(linop, b_vec.asarray(True), M=M, restart=restart,
-                                 x0=x_vec_combined, maxiter=maxiter, atol=atol, rtol=rtol,
-                                 callback=self._monitor, callback_type='legacy')
+                x, info = solver(
+                    linop,
+                    b_vec.asarray(True),
+                    M=M,
+                    restart=restart,
+                    x0=x_vec_combined,
+                    maxiter=maxiter,
+                    atol=atol,
+                    rtol=rtol,
+                    callback=self._monitor,
+                    callback_type="legacy",
+                )
         else:
-            x, info = solver(linop, b_vec.asarray(True), M=M,
-                             x0=x_vec_combined, maxiter=maxiter, tol=atol, atol='legacy',
-                             callback=self._monitor, callback_type='legacy')
+            x, info = solver(
+                linop,
+                b_vec.asarray(True),
+                M=M,
+                x0=x_vec_combined,
+                maxiter=maxiter,
+                tol=atol,
+                atol="legacy",
+                callback=self._monitor,
+                callback_type="legacy",
+            )
 
         if info == 0:
             x_vec.set_val(x)
         elif info > 0:
             self._convergence_failure()
         else:
-            msg = (f"Solver '{self.SOLVER}' on system '{self._system().pathname}': "
-                   f"had an illegal input or breakdown (info={info}) after {self._iter_count} "
-                   "iterations.")
+            msg = (
+                f"Solver '{self.SOLVER}' on system '{self._system().pathname}': "
+                f"had an illegal input or breakdown (info={info}) after {self._iter_count} "
+                "iterations."
+            )
             self.report_failure(msg)
 
-        if not system.under_complex_step and self._lin_rhs_checker is not None and mode == 'rev':
+        if not system.under_complex_step and self._lin_rhs_checker is not None and mode == "rev":
             self._lin_rhs_checker.add_solution(b_vec.asarray(), x, system, copy=True)
 
     def _apply_precon(self, in_vec):
@@ -309,7 +349,7 @@ class ScipyKrylov(LinearSolver):
         system._dinputs.set_val(0.0)
 
         # assign x and b vectors based on mode
-        if mode == 'fwd':
+        if mode == "fwd":
             x_vec = system._doutputs
             b_vec = system._dresiduals
         else:  # rev
@@ -347,4 +387,4 @@ class ScipyKrylov(LinearSolver):
         str
             The preferred sparse format for the dr/do matrix of a split jacobian.
         """
-        return 'csr'
+        return "csr"

@@ -9,7 +9,7 @@ from openmdao.test_suite.components.sellar_feature import SellarMDA
 
 # Compare memory usage after running setup 10 times to
 # running setup 100 times
-ITERS = [ 10, 100 ]
+ITERS = [10, 100]
 
 # The code with the leak problem would report a difference of memory
 # used between 10 and 100 iter runs of 36.9MiB. After fixing, it was
@@ -17,12 +17,13 @@ ITERS = [ 10, 100 ]
 MAX_MEM_DIFF_KB = 200
 
 
-@unittest.skipIf(os.environ.get('COVERAGE_RUN') == 'true',
-                 "Invalid when running with coverage.")
-@unittest.skipIf(os.environ.get('GITHUB_ACTIONS') and os.environ.get('RUNNER_OS') == 'MacOS',
-                 "macOS CI has different Python memory allocator behavior")
+@unittest.skipIf(os.environ.get("COVERAGE_RUN") == "true", "Invalid when running with coverage.")
+@unittest.skipIf(
+    os.environ.get("GITHUB_ACTIONS") and os.environ.get("RUNNER_OS") == "MacOS",
+    "macOS CI has different Python memory allocator behavior",
+)
 class TestSetupMemLeak(unittest.TestCase):
-    """ Test for memory leaks when calling setup() multiple times """
+    """Test for memory leaks when calling setup() multiple times"""
 
     def test_setup_memleak(self):
         # Record the memory still in use after each run
@@ -37,7 +38,7 @@ class TestSetupMemLeak(unittest.TestCase):
             prob.model = SellarMDA()
 
             for i in range(memtest):
-                prob.setup(check=False) # called here causes memory leak
+                prob.setup(check=False)  # called here causes memory leak
                 prob.set_solver_print(level=0)
                 prob.run_driver()
                 totals = prob.compute_totals("z", "x")
@@ -50,7 +51,7 @@ class TestSetupMemLeak(unittest.TestCase):
                     snapshot0 = tracemalloc.take_snapshot()
 
             snapshot = tracemalloc.take_snapshot()
-            top_stats = snapshot.compare_to(snapshot0, 'lineno')
+            top_stats = snapshot.compare_to(snapshot0, "lineno")
 
             total_mem = 0
             for stat in top_stats:
@@ -62,12 +63,15 @@ class TestSetupMemLeak(unittest.TestCase):
             mem_used.append(total_mem)
 
         tracemalloc.stop()
-        mem_diff = (mem_used[1] - mem_used[0])/1024
+        mem_diff = (mem_used[1] - mem_used[0]) / 1024
 
-        self.assertLess(mem_diff, MAX_MEM_DIFF_KB,
-            "Memory leak in setup(): %.1f KiB difference between %d and %d iter runs" %
-                (mem_diff, ITERS[0], ITERS[1]))
+        self.assertLess(
+            mem_diff,
+            MAX_MEM_DIFF_KB,
+            "Memory leak in setup(): %.1f KiB difference between %d and %d iter runs"
+            % (mem_diff, ITERS[0], ITERS[1]),
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

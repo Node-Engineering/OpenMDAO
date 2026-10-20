@@ -4,53 +4,89 @@ Base class for interpolation methods that calculate values for each dimension in
 Based on Tables in NPSS, and was added to bridge the gap between some of the slower scipy
 implementations.
 """
+
 import numpy as np
 
 from openmdao.components.interp_util.interp_akima import InterpAkima, Interp1DAkima
 from openmdao.components.interp_util.interp_bsplines import InterpBSplines
 from openmdao.components.interp_util.interp_cubic import InterpCubic
-from openmdao.components.interp_util.interp_lagrange2 import InterpLagrange2, Interp3DLagrange2, \
-    Interp2DLagrange2, Interp1DLagrange2
-from openmdao.components.interp_util.interp_lagrange3 import InterpLagrange3, Interp3DLagrange3, \
-    Interp2DLagrange3, Interp1DLagrange3
+from openmdao.components.interp_util.interp_lagrange2 import (
+    InterpLagrange2,
+    Interp3DLagrange2,
+    Interp2DLagrange2,
+    Interp1DLagrange2,
+)
+from openmdao.components.interp_util.interp_lagrange3 import (
+    InterpLagrange3,
+    Interp3DLagrange3,
+    Interp2DLagrange3,
+    Interp1DLagrange3,
+)
 from openmdao.components.interp_util.interp_scipy import InterpScipy
-from openmdao.components.interp_util.interp_slinear import InterpLinear, Interp3DSlinear, \
-    Interp1DSlinear, Interp2DSlinear
+from openmdao.components.interp_util.interp_slinear import (
+    InterpLinear,
+    Interp3DSlinear,
+    Interp1DSlinear,
+    Interp2DSlinear,
+)
 
 from openmdao.components.interp_util.outofbounds_error import OutOfBoundsError
 from openmdao.utils.array_utils import shape_to_len
 
 
 INTERP_METHODS = {
-    'slinear': InterpLinear,
-    'lagrange2': InterpLagrange2,
-    'lagrange3': InterpLagrange3,
-    'cubic': InterpCubic,
-    'akima': InterpAkima,
-    'scipy_cubic': InterpScipy,
-    'scipy_slinear': InterpScipy,
-    'scipy_quintic': InterpScipy,
-    'bsplines': InterpBSplines,
-    '1D-slinear': Interp1DSlinear,
-    '2D-slinear': Interp2DSlinear,
-    '3D-slinear': Interp3DSlinear,
-    '1D-lagrange2': Interp1DLagrange2,
-    '2D-lagrange2': Interp2DLagrange2,
-    '3D-lagrange2': Interp3DLagrange2,
-    '1D-lagrange3': Interp1DLagrange3,
-    '2D-lagrange3': Interp2DLagrange3,
-    '3D-lagrange3': Interp3DLagrange3,
-    '1D-akima': Interp1DAkima
+    "slinear": InterpLinear,
+    "lagrange2": InterpLagrange2,
+    "lagrange3": InterpLagrange3,
+    "cubic": InterpCubic,
+    "akima": InterpAkima,
+    "scipy_cubic": InterpScipy,
+    "scipy_slinear": InterpScipy,
+    "scipy_quintic": InterpScipy,
+    "bsplines": InterpBSplines,
+    "1D-slinear": Interp1DSlinear,
+    "2D-slinear": Interp2DSlinear,
+    "3D-slinear": Interp3DSlinear,
+    "1D-lagrange2": Interp1DLagrange2,
+    "2D-lagrange2": Interp2DLagrange2,
+    "3D-lagrange2": Interp3DLagrange2,
+    "1D-lagrange3": Interp1DLagrange3,
+    "2D-lagrange3": Interp2DLagrange3,
+    "3D-lagrange3": Interp3DLagrange3,
+    "1D-akima": Interp1DAkima,
 }
 
-TABLE_METHODS = ['slinear', 'lagrange2', 'lagrange3', 'cubic', 'akima',
-                 'scipy_cubic', 'scipy_slinear', 'scipy_quintic',
-                 '3D-slinear', '2D-slinear', '1D-slinear',
-                 '1D-akima',
-                 '3D-lagrange2', '2D-lagrange2', '1D-lagrange2',
-                 '3D-lagrange3', '2D-lagrange3', '1D-lagrange3']
-SPLINE_METHODS = ['slinear', 'lagrange2', 'lagrange3', 'cubic', 'akima', 'bsplines',
-                  'scipy_cubic', 'scipy_slinear', 'scipy_quintic']
+TABLE_METHODS = [
+    "slinear",
+    "lagrange2",
+    "lagrange3",
+    "cubic",
+    "akima",
+    "scipy_cubic",
+    "scipy_slinear",
+    "scipy_quintic",
+    "3D-slinear",
+    "2D-slinear",
+    "1D-slinear",
+    "1D-akima",
+    "3D-lagrange2",
+    "2D-lagrange2",
+    "1D-lagrange2",
+    "3D-lagrange3",
+    "2D-lagrange3",
+    "1D-lagrange3",
+]
+SPLINE_METHODS = [
+    "slinear",
+    "lagrange2",
+    "lagrange3",
+    "cubic",
+    "akima",
+    "bsplines",
+    "scipy_cubic",
+    "scipy_slinear",
+    "scipy_quintic",
+]
 
 
 class InterpND(object):
@@ -124,8 +160,18 @@ class InterpND(object):
         Cache of current evaluation point.
     """
 
-    def __init__(self, method="slinear", points=None, values=None, x_interp=None, extrapolate=False,
-                 num_cp=None, x_cp_start=None, x_cp_end=None, **kwargs):
+    def __init__(
+        self,
+        method="slinear",
+        points=None,
+        values=None,
+        x_interp=None,
+        extrapolate=False,
+        num_cp=None,
+        x_cp_start=None,
+        x_cp_end=None,
+        **kwargs,
+    ):
         """
         Initialize an InterpND object.
 
@@ -142,9 +188,10 @@ class InterpND(object):
             msg = "Argument 'method' should be a string."
             raise ValueError(msg)
         elif method not in INTERP_METHODS:
-            all_m = ', '.join(['"' + m + '"' for m in INTERP_METHODS])
-            raise ValueError('Interpolation method "%s" is not defined. Valid methods are '
-                             '%s.' % (method, all_m))
+            all_m = ", ".join(['"' + m + '"' for m in INTERP_METHODS])
+            raise ValueError(
+                'Interpolation method "%s" is not defined. Valid methods are %s.' % (method, all_m)
+            )
 
         self.extrapolate = extrapolate
 
@@ -156,59 +203,60 @@ class InterpND(object):
                 msg = "Either 'points' or 'num_cp' must be specified."
                 raise ValueError(msg)
         else:
-
             if isinstance(points, np.ndarray):
                 points = [points]
 
             for i, p in enumerate(points):
                 n_p = len(p)
-                if not np.all(np.diff(p) > 0.):
-                    raise ValueError("The points in dimension %d must be strictly "
-                                     "ascending" % i)
+                if not np.all(np.diff(p) > 0.0):
+                    raise ValueError("The points in dimension %d must be strictly ascending" % i)
                 if not np.asarray(p).ndim == 1:
-                    raise ValueError("The points in dimension %d must be "
-                                     "1-dimensional" % i)
+                    raise ValueError("The points in dimension %d must be 1-dimensional" % i)
 
         # Table Interpolation
         if x_interp is None:
-
             if values is None:
                 msg = "Either 'values' or 'x_interp' must be specified."
                 raise ValueError(msg)
 
-            if method == 'bsplines':
+            if method == "bsplines":
                 msg = "Method 'bsplines' is not supported for table interpolation."
                 raise ValueError(msg)
 
-            if not hasattr(values, 'ndim'):
+            if not hasattr(values, "ndim"):
                 # allow reasonable duck-typed values
                 values = np.asarray(values)
 
-            if hasattr(values, 'dtype') and hasattr(values, 'astype'):
+            if hasattr(values, "dtype") and hasattr(values, "astype"):
                 if not np.issubdtype(values.dtype, np.inexact):
                     values = values.astype(float)
 
             if len(points) > values.ndim:
-                raise ValueError("There are %d point arrays, but values has %d "
-                                 "dimensions" % (len(points), values.ndim))
+                raise ValueError(
+                    "There are %d point arrays, but values has %d "
+                    "dimensions" % (len(points), values.ndim)
+                )
 
-            if (method.startswith('scipy') or method == 'akima') and \
-               (np.iscomplexobj(values[:]) or np.any(np.iscomplex(points[0]))):
+            if (method.startswith("scipy") or method == "akima") and (
+                np.iscomplexobj(values[:]) or np.any(np.iscomplex(points[0]))
+            ):
                 msg = f"Interpolation method '{method}' does not support complex points or values."
                 raise ValueError(msg)
 
             for i, p in enumerate(points):
                 n_p = len(p)
                 if values.shape[i] != n_p:
-                    raise ValueError("There are %d points and %d values in "
-                                     "dimension %d" % (len(p), values.shape[i], i))
+                    raise ValueError(
+                        "There are %d points and %d values in "
+                        "dimension %d" % (len(p), values.shape[i], i)
+                    )
 
         else:
             # interpolating spline
 
-            if method == 'bsplines':
-                kwargs['x_cp_start'] = x_cp_start
-                kwargs['x_cp_end'] = x_cp_end
+            if method == "bsplines":
+                kwargs["x_cp_start"] = x_cp_start
+                kwargs["x_cp_end"] = x_cp_end
 
         self.grid = tuple([np.asarray(p) for p in points])
         self.values = values
@@ -223,8 +271,8 @@ class InterpND(object):
         # Cache spline coefficients.
         interp = INTERP_METHODS[method]
 
-        if method.startswith('scipy'):
-            kwargs['interp_method'] = method
+        if method.startswith("scipy"):
+            kwargs["interp_method"] = method
 
         table = interp(self.grid, values, interp, **kwargs)
         table.check_config()
@@ -337,8 +385,13 @@ class InterpND(object):
         if not self.extrapolate:
             for i, p in enumerate(xi.T):
                 if np.isnan(p).any():
-                    raise OutOfBoundsError("One of the requested xi contains a NaN",
-                                           i, np.nan, self.grid[i][0], self.grid[i][-1])
+                    raise OutOfBoundsError(
+                        "One of the requested xi contains a NaN",
+                        i,
+                        np.nan,
+                        self.grid[i][0],
+                        self.grid[i][-1],
+                    )
 
                 eps = 1e-14 * self.grid[i][-1]
                 if np.any(p < self.grid[i][0] - eps) or np.any(p > self.grid[i][-1] + eps):
@@ -347,8 +400,13 @@ class InterpND(object):
                     # First violating entry is enough to direct the user.
                     violated_idx = set(p1).union(p2).pop()
                     value = p[violated_idx]
-                    raise OutOfBoundsError("One of the requested xi is out of bounds",
-                                           i, value, self.grid[i][0], self.grid[i][-1])
+                    raise OutOfBoundsError(
+                        "One of the requested xi is out of bounds",
+                        i,
+                        value,
+                        self.grid[i][0],
+                        self.grid[i][-1],
+                    )
 
         if self._compute_d_dvalues:
             # If the table grid or values are component inputs, then we need to create a new table
@@ -356,8 +414,10 @@ class InterpND(object):
             interp = self._interp
             self.table = interp(self.grid, self.values, interp, **self._interp_options)
             if not self.table._supports_d_dvalues:
-                raise RuntimeError(f'Method {self.table._name} does not support the '
-                                   '"training_data_gradients" option.')
+                raise RuntimeError(
+                    f"Method {self.table._name} does not support the "
+                    '"training_data_gradients" option.'
+                )
 
             self.table._compute_d_dvalues = True
 
@@ -367,7 +427,7 @@ class InterpND(object):
 
         else:
             n_nodes, nx = xi.shape
-            result = np.empty((n_nodes, ), dtype=xi.dtype)
+            result = np.empty((n_nodes,), dtype=xi.dtype)
             derivs_x = np.empty((n_nodes, nx), dtype=xi.dtype)
             derivs_val = None
 
@@ -414,8 +474,7 @@ class InterpND(object):
 
         table = self.table
         if table._vectorized:
-
-            if table._name == 'bsplines':
+            if table._name == "bsplines":
                 # bsplines is fully vectorized.
                 table.values = values
                 result, _, derivs_val, _ = table.evaluate_vectorized(xi)
@@ -430,7 +489,6 @@ class InterpND(object):
                 derivs_val = None
 
                 for j in range(n_nodes):
-
                     table = interp(self.grid, values[j, :], interp, **self._interp_options)
                     table._compute_d_dvalues = False
                     table._compute_d_dx = False
@@ -446,7 +504,6 @@ class InterpND(object):
 
             # TODO: it might be possible to vectorize over n_nodes.
             for j in range(n_nodes):
-
                 table = interp(self.grid, values[j, :], interp, **self._interp_options)
                 table._compute_d_dvalues = True
                 table._compute_d_dx = False
@@ -541,7 +598,7 @@ class InterpND(object):
                     values[j] = 1.0
                     table = interp([grid[i]], values, interp, **opts)
                     table._compute_d_dvalues = False
-                    deriv_i_j, _, _, _ = table.evaluate(pt[i:i + 1])
+                    deriv_i_j, _, _, _ = table.evaluate(pt[i : i + 1])
                     deriv_i[j] = deriv_i_j.item()
                     values[j] = 0.0
 
@@ -582,7 +639,7 @@ class InterpND(object):
 
             # This way works for the rest of the interpolation methods.
             for k in range(n_interp):
-                val = self.training_gradients(x_interp[k:k + 1])
+                val = self.training_gradients(x_interp[k : k + 1])
                 dy_ddata[k, :] = val
             dy_ddata = np.broadcast_to(dy_ddata, (vec_size, n_interp, n_cp))
 

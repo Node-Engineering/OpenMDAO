@@ -1,6 +1,7 @@
 """
 Code for generating a dashboard for case recorder files.
 """
+
 import argparse
 import pathlib
 import importlib
@@ -80,16 +81,16 @@ tabulator_editors = {
 
 # default options used in all the Tabulators
 tabulator_defaults = {
-    'disabled': True,
-    'header_filters': True,
-    'pagination': None,
-    'selectable': False,
-    'editors': tabulator_editors,
-    'sortable': True,
-    'show_index': False,
-    'sizing_mode': 'stretch_height',
-    'theme': 'bootstrap5',
-    'stylesheets': [":host .tabulator {font-size: 10px;}"]
+    "disabled": True,
+    "header_filters": True,
+    "pagination": None,
+    "selectable": False,
+    "editors": tabulator_editors,
+    "sortable": True,
+    "show_index": False,
+    "sizing_mode": "stretch_height",
+    "theme": "bootstrap5",
+    "stylesheets": [":host .tabulator {font-size: 10px;}"],
 }
 
 # to have a standard order of the metadata across the table in the dashboard display
@@ -182,7 +183,7 @@ def _elide_string(s, max_length):
     if len(s) <= max_length:
         return s
     half_length = (max_length - 3) // 2
-    return s[:half_length] + '...' + s[-half_length:]
+    return s[:half_length] + "..." + s[-half_length:]
 
 
 def view_cases(case_recorder_file, show=True):
@@ -221,10 +222,10 @@ def view_cases(case_recorder_file, show=True):
         ["openmdao_version", cr.openmdao_version],
         ["format_version", cr._format_version],
         ["sources", cr.list_sources()],
-        ["driver name", cr.problem_metadata['driver']['name']],
+        ["driver name", cr.problem_metadata["driver"]["name"]],
     ]
-    if 'optimizer' in cr.problem_metadata['driver']['options']:
-        data.append(["driver optimizer", cr.problem_metadata['driver']['options']['optimizer']])
+    if "optimizer" in cr.problem_metadata["driver"]["options"]:
+        data.append(["driver optimizer", cr.problem_metadata["driver"]["options"]["optimizer"]])
     df = pd.DataFrame(data, columns=["Name", "Value"])
     summary_table_pane = pn.widgets.Tabulator(
         df,
@@ -296,36 +297,38 @@ def view_cases(case_recorder_file, show=True):
 
         case0_inputs_pane = pn.Column(pn.pane.Markdown("# Inputs"))
         if case0.inputs:
-            df_case0_inputs = pd.DataFrame(list(case0.inputs.keys()),
-                                           columns=[f"{len(case0.inputs.keys())} Inputs"])
-            case0_inputs_table_pane = pn.widgets.Tabulator(df_case0_inputs,
-                                                           **tabulator_defaults)
+            df_case0_inputs = pd.DataFrame(
+                list(case0.inputs.keys()), columns=[f"{len(case0.inputs.keys())} Inputs"]
+            )
+            case0_inputs_table_pane = pn.widgets.Tabulator(df_case0_inputs, **tabulator_defaults)
         else:
             case0_inputs_table_pane = pn.pane.Markdown("### There are no inputs in Case 0")
         case0_inputs_pane.append(case0_inputs_table_pane)
 
         case0_outputs_pane = pn.Column(pn.pane.Markdown("# Outputs"))
         if case0.outputs:
-            df_case0_outputs = pd.DataFrame(list(case0.outputs.keys()),
-                                            columns=[f"{len(case0.outputs.keys())} Outputs"])
-            case0_outputs_table_pane = pn.widgets.Tabulator(df_case0_outputs,
-                                                            **tabulator_defaults)
+            df_case0_outputs = pd.DataFrame(
+                list(case0.outputs.keys()), columns=[f"{len(case0.outputs.keys())} Outputs"]
+            )
+            case0_outputs_table_pane = pn.widgets.Tabulator(df_case0_outputs, **tabulator_defaults)
         else:
             case0_outputs_table_pane = pn.pane.Markdown("### There are no outputs in Case 0")
         case0_outputs_pane.append(case0_outputs_table_pane)
 
         case0_residuals_pane = pn.Column(pn.pane.Markdown("# Residuals"))
         if case0.residuals:
-            df_case0_residuals = pd.DataFrame(list(case0.residuals.keys()),
-                                              columns=[f"{len(case0.residuals.keys())} Residuals"])
-            case0_residuals_table_pane = pn.widgets.Tabulator(df_case0_residuals,
-                                                              **tabulator_defaults)
+            df_case0_residuals = pd.DataFrame(
+                list(case0.residuals.keys()), columns=[f"{len(case0.residuals.keys())} Residuals"]
+            )
+            case0_residuals_table_pane = pn.widgets.Tabulator(
+                df_case0_residuals, **tabulator_defaults
+            )
         else:
             case0_residuals_table_pane = pn.pane.Markdown("### There are no residuals in Case 0")
         case0_residuals_pane.append(case0_residuals_table_pane)
 
         case0_variables_pane = pn.Column(
-            f"There are {len(case0.inputs)if case0.inputs else 0} inputs,"
+            f"There are {len(case0.inputs) if case0.inputs else 0} inputs,"
             f" {len(case0.outputs) if case0.outputs else 0} outputs,"
             f" and {len(case0.residuals) if case0.residuals else 0} residuals in Case 0.",
             pn.Row(
@@ -346,40 +349,40 @@ def view_cases(case_recorder_file, show=True):
 
     # See if we are missing any metadata names.
     metadata_names_in_file = set()
-    for name, properties in cr.problem_metadata['variables'].items():
+    for name, properties in cr.problem_metadata["variables"].items():
         if isinstance(properties, dict):
             metadata_names_in_file.update(list(properties.keys()))
         else:
-            if name not in ['execution_order',]:
+            if name not in [
+                "execution_order",
+            ]:
                 issue_warning(
                     f"problem_metadata['variables'] has unexpected type"
                     f" of '{type(properties)}' for '{name}'",
                     category=CaseRecorderWarning,
                 )
 
-    df_variables = variable_metadata_to_data_frame(cr.problem_metadata['variables'])
+    df_variables = variable_metadata_to_data_frame(cr.problem_metadata["variables"])
     variables_table_pane = pn.widgets.Tabulator(df_variables, **tabulator_defaults)
     variables_pane = pn.Column(
         f"Here is the metadata for the {len(cr.problem_metadata['variables'])}"
         " variables in the problem",
-        variables_table_pane
+        variables_table_pane,
     )
     tabs_list.append(("Metadata variables", variables_pane))
 
     # design_vars pane
-    df_metadata_desvars = variable_metadata_to_data_frame(cr.problem_metadata['design_vars'])
-    metadata_desvars_table_pane = pn.widgets.Tabulator(
-        df_metadata_desvars, **tabulator_defaults
-    )
+    df_metadata_desvars = variable_metadata_to_data_frame(cr.problem_metadata["design_vars"])
+    metadata_desvars_table_pane = pn.widgets.Tabulator(df_metadata_desvars, **tabulator_defaults)
     design_vars_pane = pn.Column(
         f"Here is the metadata for the {len(cr.problem_metadata['design_vars'])}"
         " design variables in the problem",
-        metadata_desvars_table_pane
+        metadata_desvars_table_pane,
     )
     tabs_list.append(("Metadata design_vars", design_vars_pane))
 
     # responses pane
-    df_responses = variable_metadata_to_data_frame(cr.problem_metadata['responses'])
+    df_responses = variable_metadata_to_data_frame(cr.problem_metadata["responses"])
     responses_table_pane = pn.widgets.Tabulator(df_responses, **tabulator_defaults)
     responses_pane = pn.Column(
         f"Here is the metadata for the {len(cr.problem_metadata['responses'])}"
@@ -389,19 +392,18 @@ def view_cases(case_recorder_file, show=True):
     tabs_list.append(("Metadata responses", responses_pane))
 
     # Execution order pane
-    if 'execution_order' in cr.problem_metadata['variables'].keys():
+    if "execution_order" in cr.problem_metadata["variables"].keys():
         # A hack to get around the fact that Panel doesn't do column sizing
         # correctly. It only seems to look at the first 40 lines to see what the max size is.
         # But making the column heading the length of the longest string is a close
         # approximation to what is needed
-        execution_order = cr.problem_metadata['variables']['execution_order']
+        execution_order = cr.problem_metadata["variables"]["execution_order"]
         max_string_length = len(max(execution_order, key=len))
-        padded_column_name = "Systems".center(max_string_length, '_')
+        padded_column_name = "Systems".center(max_string_length, "_")
         df_execution_order = pd.DataFrame(execution_order, columns=[padded_column_name])
         execution_order_table_pane = pn.widgets.Tabulator(df_execution_order, **tabulator_defaults)
         execution_order_pane = pn.Column(
-            "This page lists the execution order of the systems",
-            execution_order_table_pane
+            "This page lists the execution order of the systems", execution_order_table_pane
         )
         tabs_list.append(("Execution Order", execution_order_pane))
 
@@ -410,16 +412,12 @@ def view_cases(case_recorder_file, show=True):
         list(cr.problem_metadata["abs2prom"]["input"].items()),
         columns=["Absolute Name", "Promoted Name"],
     )
-    abs2prom_inputs_table_pane = pn.widgets.Tabulator(
-        df_abs2prom_inputs, **tabulator_defaults
-    )
+    abs2prom_inputs_table_pane = pn.widgets.Tabulator(df_abs2prom_inputs, **tabulator_defaults)
     df_abs2prom_outputs = pd.DataFrame(
         list(cr.problem_metadata["abs2prom"]["output"].items()),
         columns=["Absolute Name", "Promoted Name"],
     )
-    abs2prom_outputs_table_pane = pn.widgets.Tabulator(
-        df_abs2prom_outputs, **tabulator_defaults
-    )
+    abs2prom_outputs_table_pane = pn.widgets.Tabulator(df_abs2prom_outputs, **tabulator_defaults)
     abs2prom_pane = pn.Column(
         f"There are {len(cr.problem_metadata['abs2prom']['input'])} inputs"
         f" and {len(cr.problem_metadata['abs2prom']['output'])} outputs in the metadata abs2prom",
@@ -473,9 +471,9 @@ def view_cases(case_recorder_file, show=True):
 
     port = 0
     home_dir = "."
-    assets_dir = pathlib.Path(
-        importlib.util.find_spec("openmdao").origin
-    ).parent.joinpath("recorders/assets/")
+    assets_dir = pathlib.Path(importlib.util.find_spec("openmdao").origin).parent.joinpath(
+        "recorders/assets/"
+    )
 
     if show:
         if port == 0:

@@ -1,6 +1,7 @@
 """
 Utilities for the use of jax in combination with OpenMDAO.
 """
+
 import sys
 import os
 import ast
@@ -14,8 +15,12 @@ import importlib
 import numpy as np
 from scipy.sparse import coo_matrix
 
-from openmdao.utils.code_utils import _get_long_name, remove_src_blocks, replace_src_block, \
-    get_function_deps
+from openmdao.utils.code_utils import (
+    _get_long_name,
+    remove_src_blocks,
+    replace_src_block,
+    get_function_deps,
+)
 from openmdao.utils.file_utils import get_module_path, _load_and_exec
 from openmdao.utils.om_warnings import issue_warning
 
@@ -43,11 +48,11 @@ def jit_stub(f, *args, **kwargs):
 
 try:
     import jax
+
     jax.config.update("jax_enable_x64", True)  # jax by default uses 32 bit floats
     import jax.numpy as jnp
     from jax import jit, tree_util
 except ImportError:
-
     jax = None
     jnp = np
     jit = jit_stub
@@ -114,19 +119,19 @@ class CompJaxifyBase(ast.NodeTransformer):
 
     # these ops require static objects so their args should not be traced.  Traced array ops should
     # use jnp and static ones should use np.
-    _static_ops = {'reshape'}
-    _np_names = {'np', 'numpy'}
+    _static_ops = {"reshape"}
+    _np_names = {"np", "numpy"}
 
     def __init__(self, comp, funcname, verbose=False):  # noqa
         self._comp = weakref.ref(comp)
         self._funcname = funcname
         func = getattr(comp, funcname)
-        if 'jnp' not in func.__globals__:
-            func.__globals__['jnp'] = jnp
+        if "jnp" not in func.__globals__:
+            func.__globals__["jnp"] = jnp
         namespace = func.__globals__.copy()
 
         static_attrs, static_dcts = get_self_static_attrs(func)
-        self_statics = ['_self_statics_'] if static_attrs or static_dcts else []
+        self_statics = ["_self_statics_"] if static_attrs or static_dcts else []
         if self_statics:
             self.get_self_statics = self._get_self_statics_func(static_attrs, static_dcts)
         else:
@@ -134,12 +139,12 @@ class CompJaxifyBase(ast.NodeTransformer):
 
         self._orig_args = list(inspect.signature(func).parameters)
 
-        node = self.visit(ast.parse(textwrap.dedent(inspect.getsource(func)), mode='exec'))
+        node = self.visit(ast.parse(textwrap.dedent(inspect.getsource(func)), mode="exec"))
         self._new_ast = ast.fix_missing_locations(node)
 
-        code = compile(self._new_ast, '<ast>', 'exec')
-        exec(code, namespace)    # nosec
-        self.compute_primal = namespace['compute_primal']
+        code = compile(self._new_ast, "<ast>", "exec")
+        exec(code, namespace)  # nosec
+        self.compute_primal = namespace["compute_primal"]
 
         if verbose:
             print(f"\n{comp.pathname}:\n{self.get_compute_primal_src()}\n")
@@ -169,17 +174,19 @@ class CompJaxifyBase(ast.NodeTransformer):
         except Exception:
             raise RuntimeError(f"Couldn't obtain class source for {self._comp().__class__}.")
 
-        compute_primal_src = textwrap.indent(textwrap.dedent(self.get_compute_primal_src()),
-                                             ' ' * 4)
+        compute_primal_src = textwrap.indent(
+            textwrap.dedent(self.get_compute_primal_src()), " " * 4
+        )
 
-        class_src = replace_src_block(class_src, self._funcname, compute_primal_src,
-                                      block_start_tok='def')
-        class_src = remove_src_blocks(class_src, self._get_del_methods(), block_start_tok='def')
+        class_src = replace_src_block(
+            class_src, self._funcname, compute_primal_src, block_start_tok="def"
+        )
+        class_src = remove_src_blocks(class_src, self._get_del_methods(), block_start_tok="def")
 
         return class_src.rstrip()
 
     def _get_self_statics_func(self, static_attrs, static_dcts):
-        fsrc = ['def get_self_statics(self):']
+        fsrc = ["def get_self_statics(self):"]
         tupargs = []
         for attr in static_attrs:
             tupargs.append(f"self.{attr}")
@@ -187,12 +194,12 @@ class CompJaxifyBase(ast.NodeTransformer):
             for entry in entries:
                 tupargs.append(f"self.{name}['{entry}']")
             if len(entries) == 1:
-                tupargs.append('')  # so we'll get a trailing comma for a 1 item tuple
-        fsrc.append(f'    return ({", ".join(tupargs)})')
-        fsrc = '\n'.join(fsrc)
+                tupargs.append("")  # so we'll get a trailing comma for a 1 item tuple
+        fsrc.append(f"    return ({', '.join(tupargs)})")
+        fsrc = "\n".join(fsrc)
         namespace = getattr(self._comp(), self._funcname).__globals__.copy()
         exec(fsrc, namespace)  # nosec
-        return namespace['get_self_statics']
+        return namespace["get_self_statics"]
 
     def _get_pre_body(self):
         if not self._comp()._discrete_outputs:
@@ -201,14 +208,23 @@ class CompJaxifyBase(ast.NodeTransformer):
         # add a statement to pull individual values out of the discrete outputs
         elts = [ast.Name(id=name, ctx=ast.Store()) for name in self._comp()._discrete_outputs]
         return [
-            ast.Assign(targets=[ast.Tuple(elts=elts, ctx=ast.Store())],
-                       value=ast.Call(
-                           func=ast.Attribute(value=ast.Attribute(value=ast.Name(id='self',
-                                                                                 ctx=ast.Load()),
-                                                                  attr='_discrete_outputs',
-                                                                  ctx=ast.Load()),
-                                              attr='values', ctx=ast.Load()),
-                                      args=[], keywords=[]))]
+            ast.Assign(
+                targets=[ast.Tuple(elts=elts, ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Attribute(
+                            value=ast.Name(id="self", ctx=ast.Load()),
+                            attr="_discrete_outputs",
+                            ctx=ast.Load(),
+                        ),
+                        attr="values",
+                        ctx=ast.Load(),
+                    ),
+                    args=[],
+                    keywords=[],
+                ),
+            )
+        ]
 
     def _get_post_body(self):
         if not self._comp()._discrete_outputs:
@@ -217,22 +233,44 @@ class CompJaxifyBase(ast.NodeTransformer):
         # add a statement to set the values of self._discrete outputs
         elts = [ast.Name(id=name, ctx=ast.Load()) for name in self._comp()._discrete_outputs]
         args = [ast.Tuple(elts=elts, ctx=ast.Load())]
-        return [ast.Expr(value=ast.Call(func=ast.Attribute(
-            value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()),
-                                attr='_discrete_outputs', ctx=ast.Load()),
-                                attr='set_vals', ctx=ast.Load()), args=args, keywords=[]))]
+        return [
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Attribute(
+                            value=ast.Name(id="self", ctx=ast.Load()),
+                            attr="_discrete_outputs",
+                            ctx=ast.Load(),
+                        ),
+                        attr="set_vals",
+                        ctx=ast.Load(),
+                    ),
+                    args=args,
+                    keywords=[],
+                )
+            )
+        ]
 
     def _make_return(self):
-        val = ast.Tuple([ast.Name(id=n, ctx=ast.Load())
-                         for n in self._get_compute_primal_returns()], ctx=ast.Load())
+        val = ast.Tuple(
+            [ast.Name(id=n, ctx=ast.Load()) for n in self._get_compute_primal_returns()],
+            ctx=ast.Load(),
+        )
         return ast.Return(val)
 
     def _get_new_args(self):
-        new_args = [ast.arg('self', annotation=None)]
+        new_args = [ast.arg("self", annotation=None)]
         for arg_name in self._get_compute_primal_args():
             new_args.append(ast.arg(arg=arg_name, annotation=None))
-        return ast.arguments(args=new_args, posonlyargs=[], vararg=None, kwonlyargs=[],
-                             kw_defaults=[], kwarg=None, defaults=[])
+        return ast.arguments(
+            args=new_args,
+            posonlyargs=[],
+            vararg=None,
+            kwonlyargs=[],
+            kw_defaults=[],
+            kwarg=None,
+            defaults=[],
+        )
 
     def visit_FunctionDef(self, node):
         """
@@ -266,8 +304,9 @@ class CompJaxifyBase(ast.NodeTransformer):
         newbody.append(self._make_return())
 
         newargs = self._get_new_args()
-        return ast.FunctionDef('compute_primal', newargs, newbody, node.decorator_list,
-                               node.returns, node.type_comment)
+        return ast.FunctionDef(
+            "compute_primal", newargs, newbody, node.decorator_list, node.returns, node.type_comment
+        )
 
     def visit_Subscript(self, node):
         """
@@ -289,8 +328,12 @@ class CompJaxifyBase(ast.NodeTransformer):
         # NOTE: this will only work if the subscript is a string constant. If the subscript is a
         # variable or some other expression, then we don't modify it and the conversion will
         # likely fail.
-        if (isinstance(node.value, ast.Name) and node.value.id in self._orig_args and
-                isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str)):
+        if (
+            isinstance(node.value, ast.Name)
+            and node.value.id in self._orig_args
+            and isinstance(node.slice, ast.Constant)
+            and isinstance(node.slice.value, str)
+        ):
             return ast.copy_location(ast.Name(id=_fixname(node.slice.value), ctx=node.ctx), node)
 
         return self.generic_visit(node)
@@ -311,8 +354,12 @@ class CompJaxifyBase(ast.NodeTransformer):
         """
         if isinstance(node.value, ast.Name) and node.value.id in self._np_names:
             if node.attr not in self._static_ops:
-                return ast.copy_location(ast.Attribute(value=ast.Name(id='jnp', ctx=ast.Load()),
-                                                       attr=node.attr, ctx=node.ctx), node)
+                return ast.copy_location(
+                    ast.Attribute(
+                        value=ast.Name(id="jnp", ctx=ast.Load()), attr=node.attr, ctx=node.ctx
+                    ),
+                    node,
+                )
         return self.generic_visit(node)
 
     def visit_Assign(self, node):
@@ -363,18 +410,18 @@ class ExplicitCompJaxify(CompJaxifyBase):
     """
 
     def __init__(self, comp, verbose=False):  # noqa
-        super().__init__(comp, 'compute', verbose)
+        super().__init__(comp, "compute", verbose)
 
     def _get_compute_primal_args(self):
         # ensure that ordering of args and returns exactly matches the order of the inputs and
         # outputs vectors.
-        return chain(self._comp()._var_rel_names['input'], self._comp()._discrete_inputs)
+        return chain(self._comp()._var_rel_names["input"], self._comp()._discrete_inputs)
 
     def _get_compute_primal_returns(self):
-        return chain(self._comp()._var_rel_names['output'], self._comp()._discrete_outputs)
+        return chain(self._comp()._var_rel_names["output"], self._comp()._discrete_outputs)
 
     def _get_del_methods(self):
-        return ['compute', 'compute_partials', 'compute_jacvec_product']
+        return ["compute", "compute_partials", "compute_jacvec_product"]
 
 
 class ImplicitCompJaxify(CompJaxifyBase):
@@ -403,19 +450,22 @@ class ImplicitCompJaxify(CompJaxifyBase):
     """
 
     def __init__(self, comp, verbose=False):  # noqa
-        super().__init__(comp, 'apply_nonlinear', verbose)
+        super().__init__(comp, "apply_nonlinear", verbose)
 
     def _get_compute_primal_args(self):
         # ensure that ordering of args and returns exactly matches the order of the inputs,
         # outputs, and residuals vectors.
-        return chain(self._comp()._var_rel_names['input'], self._comp()._var_rel_names['output'],
-                     self._comp()._discrete_inputs)
+        return chain(
+            self._comp()._var_rel_names["input"],
+            self._comp()._var_rel_names["output"],
+            self._comp()._discrete_inputs,
+        )
 
     def _get_compute_primal_returns(self):
-        return chain(self._comp()._var_rel_names['output'], self._comp()._discrete_outputs)
+        return chain(self._comp()._var_rel_names["output"], self._comp()._discrete_outputs)
 
     def _get_del_methods(self):
-        return ['apply_nonlinear', 'linearize', 'apply_linear']
+        return ["apply_nonlinear", "linearize", "apply_linear"]
 
 
 class SelfAttrFinder(ast.NodeVisitor):
@@ -445,7 +495,7 @@ class SelfAttrFinder(ast.NodeVisitor):
         self._attrs = set()
         self._funcs = set()
         self._dcts = defaultdict(set)
-        self.visit(ast.parse(textwrap.dedent(inspect.getsource(method)), mode='exec'))
+        self.visit(ast.parse(textwrap.dedent(inspect.getsource(method)), mode="exec"))
 
     def visit_Attribute(self, node):
         """
@@ -461,8 +511,8 @@ class SelfAttrFinder(ast.NodeVisitor):
         name = _get_long_name(node)
         if name is None:
             return
-        if name.startswith('self.'):
-            self._attrs.add(name.partition('.')[2])
+        if name.startswith("self."):
+            self._attrs.add(name.partition(".")[2])
 
     def visit_Subscript(self, node):
         """
@@ -478,11 +528,11 @@ class SelfAttrFinder(ast.NodeVisitor):
         name = _get_long_name(node.value)
         if name is None:
             return
-        if name.startswith('self.'):
+        if name.startswith("self."):
             if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
-                self._dcts[name.partition('.')[2]].add(node.slice.value)
+                self._dcts[name.partition(".")[2]].add(node.slice.value)
             else:
-                self._attrs.add(name.partition('.')[2])
+                self._attrs.add(name.partition(".")[2])
         self.visit(node.slice)
 
     def visit_Call(self, node):
@@ -497,12 +547,12 @@ class SelfAttrFinder(ast.NodeVisitor):
             The Call node being visited.
         """
         name = _get_long_name(node.func)
-        if name is not None and name.startswith('self.'):
-            parts = name.split('.')
+        if name is not None and name.startswith("self."):
+            parts = name.split(".")
             if len(parts) == 2:
                 self._funcs.add(parts[1])
             else:
-                self._attrs.add('.'.join(parts[1:-1]))
+                self._attrs.add(".".join(parts[1:-1]))
 
         for arg in node.args:
             self.visit(arg)
@@ -529,7 +579,7 @@ class ReturnChecker(ast.NodeVisitor):
     def __init__(self, method):  # noqa
         self._returns = []
         self._fstack = []
-        self.visit(ast.parse(textwrap.dedent(inspect.getsource(method)), mode='exec'))
+        self.visit(ast.parse(textwrap.dedent(inspect.getsource(method)), mode="exec"))
 
     def returns_tuple(self):
         """
@@ -544,8 +594,10 @@ class ReturnChecker(ast.NodeVisitor):
             ret = self._returns[0]
             for r in self._returns[1:]:
                 if r != ret:
-                    raise RuntimeError("ReturnChecker can't handle a method with multiple return "
-                                       "statements that return different types.")
+                    raise RuntimeError(
+                        "ReturnChecker can't handle a method with multiple return "
+                        "statements that return different types."
+                    )
             return ret
         return False
 
@@ -595,14 +647,16 @@ def get_self_static_attrs(method):
     """
     saf = SelfAttrFinder(method)
     static_attrs = sorted(saf._attrs)
-    static_dcts = [(name, sorted(eset)) for name, eset in sorted(saf._dcts.items(),
-                                                                 key=lambda x: x[0])]
+    static_dcts = [
+        (name, sorted(eset)) for name, eset in sorted(saf._dcts.items(), key=lambda x: x[0])
+    ]
 
     return static_attrs, static_dcts
 
 
-_invalid = frozenset((':', '(', ')', '[', ']', '{', '}', ' ', '-',
-                      '+', '*', '/', '^', '%', '!', '<', '>', '='))
+_invalid = frozenset(
+    (":", "(", ")", "[", "]", "{", "}", " ", "-", "+", "*", "/", "^", "%", "!", "<", ">", "=")
+)
 
 
 def _fixname(name):
@@ -622,16 +676,16 @@ def _fixname(name):
     intr = _invalid.intersection(name)
     if intr:
         for c in intr:
-            name = name.replace(c, '_')
+            name = name.replace(c, "_")
     return name
 
 
 if jax is None:
+
     def _jax_register_pytree_class(cls):
         pass
 
 else:
-
     _registered_classes = set()
 
     def _jax_register_pytree_class(cls):
@@ -652,7 +706,7 @@ else:
             _registered_classes.add(cls)
 
 
-def get_vmap_tangents(vals, direction, fill=1., coloring=None):
+def get_vmap_tangents(vals, direction, fill=1.0, coloring=None):
     """
     Return a tuple of tangents values for use with vmap.
 
@@ -690,7 +744,7 @@ def get_vmap_tangents(vals, direction, fill=1., coloring=None):
         colors = list(coloring.color_iter(direction))
         tangent = np.zeros((totsize, len(colors)))
         for i, nzs in enumerate(colors):
-            tangent[nzs, i] = 1.
+            tangent[nzs, i] = 1.0
         ncols = len(colors)
     # take the 2D tangent array and reshape it to match the shape of each input variable.
     # (with the additional batching dimension as the last axis)
@@ -719,7 +773,7 @@ def _update_subjac_sparsity(sparsity_iter, pathname, subjacs_info):
     subjacs_info : dict
         The subjac sparsity info.
     """
-    prefix = pathname + '.'
+    prefix = pathname + "."
     for of, wrt, rows, cols, shape in sparsity_iter:
         # sparsity uses relative names, so convert to absolute
         abs_key = (prefix + of, prefix + wrt)
@@ -728,43 +782,48 @@ def _update_subjac_sparsity(sparsity_iter, pathname, subjacs_info):
                 continue
 
             subjacs_info[abs_key] = {
-                'shape': shape,
-                'dependent': True,
-                'rows': rows,
-                'cols': cols,
-                'diagonal': False,
-                'val': np.zeros(shape) if rows is None else np.zeros(len(rows))
+                "shape": shape,
+                "dependent": True,
+                "rows": rows,
+                "cols": cols,
+                "diagonal": False,
+                "val": np.zeros(shape) if rows is None else np.zeros(len(rows)),
             }
         else:
             subj = subjacs_info[abs_key]
-            diag = subj['diagonal']
+            diag = subj["diagonal"]
             if diag:
                 assert shape[0] == shape[1]
                 if rows is None:
-                    raise RuntimeError(f"Subjacobian ({of}, {wrt}) is labeled as diagonal but is "
-                                       "dense.")
+                    raise RuntimeError(
+                        f"Subjacobian ({of}, {wrt}) is labeled as diagonal but is dense."
+                    )
                 elif len(rows) > shape[0]:
-                    raise RuntimeError(f"Subjacobian ({of}, {wrt}) is labeled as diagonal but the "
-                                       "number of row/cols > diag size "
-                                       f"({len(rows)} > {shape[0]}).")
+                    raise RuntimeError(
+                        f"Subjacobian ({of}, {wrt}) is labeled as diagonal but the "
+                        "number of row/cols > diag size "
+                        f"({len(rows)} > {shape[0]})."
+                    )
                 elif len(rows) < shape[0]:
-                    subj['diagonal'] = diag = False
-                    issue_warning(f"Subjacobian ({of}, {wrt}) is labeled as diagonal but is "
-                                  "actually more sparse than that, row/cols < diag size "
-                                  f"({len(rows)} < {shape[0]}).")
+                    subj["diagonal"] = diag = False
+                    issue_warning(
+                        f"Subjacobian ({of}, {wrt}) is labeled as diagonal but is "
+                        "actually more sparse than that, row/cols < diag size "
+                        f"({len(rows)} < {shape[0]})."
+                    )
 
             if rows is not None:
                 if len(rows) == 0:
                     del subjacs_info[abs_key]
                 else:
-                    subj['sparsity'] = (rows, cols, shape)
+                    subj["sparsity"] = (rows, cols, shape)
 
 
 def _re_init(self):
     """
     Re-initialize the component for a new run.
     """
-    self._tangents = {'fwd': None, 'rev': None}
+    self._tangents = {"fwd": None, "rev": None}
     self._do_sparsity = False
     self._sparsity = None
     self._jac_func_ = None
@@ -868,7 +927,7 @@ def _compute_sparsity(self, direction=None, num_iters=1, perturb_size=1e-9, use_
     if direction is None:
         direction = self.best_partial_deriv_direction()
 
-    assert direction in ['fwd', 'rev']
+    assert direction in ["fwd", "rev"]
 
     ncontouts = self._outputs.nvars()
 
@@ -883,7 +942,10 @@ def _compute_sparsity(self, direction=None, num_iters=1, perturb_size=1e-9, use_
         ncontins = self._inputs.nvars()
         pvecs = (self._inputs,)
         wrtsize = len(self._inputs)
-        save_vecs = (self._outputs, self._residuals,)
+        save_vecs = (
+            self._outputs,
+            self._residuals,
+        )
 
     sparsity = None
     idiscvals = tuple(self._discrete_inputs.values())
@@ -895,8 +957,8 @@ def _compute_sparsity(self, direction=None, num_iters=1, perturb_size=1e-9, use_
     # so we can use the unperturbed values for the tangents
     full_invals = tuple(self._get_compute_primal_invals())
     icontvals = full_invals[:ncontins]  # continuous inputs
-    if direction == 'fwd':
-        tangents = get_vmap_tangents(icontvals, 'fwd', fill=np.nan if use_nan else 1.)
+    if direction == "fwd":
+        tangents = get_vmap_tangents(icontvals, "fwd", fill=np.nan if use_nan else 1.0)
 
         def jvp_at_point(tangent, contvals):
             # [1] is the derivative, [0] is the primal (we don't need the primal)
@@ -905,8 +967,9 @@ def _compute_sparsity(self, direction=None, num_iters=1, perturb_size=1e-9, use_
         Jfunc = jax.vmap(jvp_at_point, in_axes=[-1, None], out_axes=-1)
     else:
         # these are really cotangents
-        tangents = get_vmap_tangents(tuple(self._outputs.values()), 'rev',
-                                     fill=np.nan if use_nan else 1.)
+        tangents = get_vmap_tangents(
+            tuple(self._outputs.values()), "rev", fill=np.nan if use_nan else 1.0
+        )
 
         def vjp_at_point(cotangent, contvals):
             return jax.vjp(differentiable_part, *contvals)[1](cotangent)
@@ -914,13 +977,14 @@ def _compute_sparsity(self, direction=None, num_iters=1, perturb_size=1e-9, use_
         # vectorize over last axis of cotangents
         Jfunc = jax.vmap(vjp_at_point, in_axes=[-1, None], out_axes=-1)
 
-    if self.options['use_jit']:
+    if self.options["use_jit"]:
         Jfunc = jax.jit(Jfunc)
 
     sparsity = np.zeros((len(self._outputs), wrtsize))
 
-    for _ in self._perturbation_iter(num_iters=num_iters, perturb_size=perturb_size,
-                                     perturb_vecs=pvecs, save_vecs=save_vecs):
+    for _ in self._perturbation_iter(
+        num_iters=num_iters, perturb_size=perturb_size, perturb_vecs=pvecs, save_vecs=save_vecs
+    ):
         self._apply_nonlinear()
 
         full_invals = tuple(self._get_compute_primal_invals())
@@ -942,7 +1006,7 @@ def _compute_sparsity(self, direction=None, num_iters=1, perturb_size=1e-9, use_
             # dimension.  Then vertically stack all the flattened 'variable' arrays.
             J = np.vstack([j.reshape(np.prod(j.shape[:-1], dtype=int), j.shape[-1]) for j in J])
 
-        if direction != 'fwd':
+        if direction != "fwd":
             J = J.T
 
         if sparsity is None:
@@ -953,20 +1017,20 @@ def _compute_sparsity(self, direction=None, num_iters=1, perturb_size=1e-9, use_
     if implicit:
         # we need to swap input and output cols because OpenMDAO jacs have output wrts first
         # followed by input wrts but compute_primal takes inputs first followed by outputs
-        sparsity = np.hstack((sparsity[:, -len(self._outputs):], sparsity[:, :len(self._inputs)]))
+        sparsity = np.hstack((sparsity[:, -len(self._outputs) :], sparsity[:, : len(self._inputs)]))
 
     nz = np.nonzero(sparsity)
     data = np.ones(len(nz[0]), dtype=bool)
     sparsity = coo_matrix((data, nz), shape=sparsity.shape)
 
     info = {
-        'tol': 0.,
-        'orders': None,
-        'good_tol': 0.,
-        'nz_matches': 0,
-        'n_tested': 0,
-        'nz_entries': len(nz[0]),
-        'J_shape': sparsity.shape,
+        "tol": 0.0,
+        "orders": None,
+        "good_tol": 0.0,
+        "nz_matches": 0,
+        "n_tested": 0,
+        "nz_entries": len(nz[0]),
+        "J_shape": sparsity.shape,
     }
 
     self._update_subjac_sparsity(self.subjac_sparsity_iter(sparsity=sparsity))
@@ -1032,15 +1096,19 @@ def _ensure_returns_tuple(func):
     try:
         checker = ReturnChecker(func)
     except Exception:
-        issue_warning(f"Failed to parse function {func.__name__} to check if it returns a tuple."
-                      "Returning original function.")
+        issue_warning(
+            f"Failed to parse function {func.__name__} to check if it returns a tuple."
+            "Returning original function."
+        )
         return func
     else:
         if checker.returns_tuple():
             return func
         else:
+
             def wrapper(*args, **kwargs):
                 return (func(*args, **kwargs),)
+
             wrapper.__name__ = func.__name__
             wrapper.__doc__ = func.__doc__
             return wrapper
@@ -1088,8 +1156,9 @@ def _jax_derivs2partials(self, deriv_vals, partials, ofnames, wrtnames):
     wrtnames : list
         The input names.
     """
-    nested_tup = isinstance(deriv_vals, tuple) and len(deriv_vals) > 0 and \
-        isinstance(deriv_vals[0], tuple)
+    nested_tup = (
+        isinstance(deriv_vals, tuple) and len(deriv_vals) > 0 and isinstance(deriv_vals[0], tuple)
+    )
     nof = len(ofnames)
 
     wrtnames = list(wrtnames)
@@ -1108,17 +1177,17 @@ def _jax_derivs2partials(self, deriv_vals, partials, ofnames, wrtnames):
             if nof > 1 or nested_tup:
                 dvals = dvals[ofidx]
 
-            dvals = dvals[wrtidx].reshape(ofmeta['size'], self._var_rel2meta[wrtname]['size'])
+            dvals = dvals[wrtidx].reshape(ofmeta["size"], self._var_rel2meta[wrtname]["size"])
 
             sjmeta = partials.get_metadata(key)
-            rows = sjmeta['rows']
+            rows = sjmeta["rows"]
             if rows is None:
                 partials[ofname, wrtname] = dvals
             else:
                 # Convert to numpy before the fancy index. Indexing a jax array here
                 # routes every gather through jax's dispatch machinery, which dominated
                 # runtime for components with declared sparsity.
-                partials[ofname, wrtname] = np.asarray(dvals)[rows, sjmeta['cols']]
+                partials[ofname, wrtname] = np.asarray(dvals)[rows, sjmeta["cols"]]
 
 
 def _check_output_shapes(self):
@@ -1126,7 +1195,7 @@ def _check_output_shapes(self):
     Compare declared output shapes of compute_primal to those computed by jax.eval_shape.
     """
     rel_vars = self._var_rel2meta
-    output_shapes = {n: rel_vars[n]['shape'] for n in self._var_rel_names['output']}
+    output_shapes = {n: rel_vars[n]["shape"] for n in self._var_rel_names["output"]}
 
     discrete_inputs = self._discrete_inputs.values() if self._discrete_inputs else ()
     differentiable_cp = _get_differentiable_compute_primal(self, discrete_inputs)
@@ -1147,19 +1216,22 @@ def _check_output_shapes(self):
             computed_out_shapes.append(None)
 
     if len(output_shapes) != len(computed_out_shapes):
-        raise RuntimeError(f"{self.msginfo}: The number of continuous outputs returned from "
-                           f"compute_primal ({len(computed_out_shapes)}) doesn't match the number "
-                           f"of declared continuous outputs ({len(output_shapes)}).")
+        raise RuntimeError(
+            f"{self.msginfo}: The number of continuous outputs returned from "
+            f"compute_primal ({len(computed_out_shapes)}) doesn't match the number "
+            f"of declared continuous outputs ({len(output_shapes)})."
+        )
 
     bad = []
     for shape_tup, comp_shape in zip(output_shapes.items(), computed_out_shapes):
         name, shape = shape_tup
         if shape != comp_shape:
-            bad.append(f"Shape mismatch for output '{name}': expected {shape} but "
-                       f"got {comp_shape}.")
+            bad.append(
+                f"Shape mismatch for output '{name}': expected {shape} but got {comp_shape}."
+            )
 
     if bad:
-        msg =  '\n   '.join(bad)
+        msg = "\n   ".join(bad)
         raise RuntimeError(f"{self.msginfo}:\n   {msg}")
 
 
@@ -1167,16 +1239,29 @@ def _to_compute_primal_setup_parser(parser):
     """
     Set up the command line options for the 'openmdao call_tree' command line tool.
     """
-    parser.add_argument('file', nargs=1, help='Python file or module containing the class.')
-    parser.add_argument('-c', '--class', action='store', dest='klass',
-                        help='Component class to be converted.')
-    parser.add_argument('-i', '--import', action='store', dest='imported',
-                        help='Try to import the file as a module and convert the specified class.'
-                        ' This requires that the class be initializable with no arguments.')
-    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
-                        help='Print status information.')
-    parser.add_argument('-o', '--outfile', action='store', dest='outfile',
-                        default='stdout', help='Output file.  Defaults to stdout.')
+    parser.add_argument("file", nargs=1, help="Python file or module containing the class.")
+    parser.add_argument(
+        "-c", "--class", action="store", dest="klass", help="Component class to be converted."
+    )
+    parser.add_argument(
+        "-i",
+        "--import",
+        action="store",
+        dest="imported",
+        help="Try to import the file as a module and convert the specified class."
+        " This requires that the class be initializable with no arguments.",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", dest="verbose", help="Print status information."
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        action="store",
+        dest="outfile",
+        default="stdout",
+        help="Output file.  Defaults to stdout.",
+    )
 
 
 def _to_compute_primal_exec(options, user_args):
@@ -1192,7 +1277,7 @@ def _to_compute_primal_exec(options, user_args):
 
     if options.imported:
         fname = options.file[0]
-        if fname.endswith('.py'):
+        if fname.endswith(".py"):
             fname = options.file[0]
             if not os.path.exists(fname):
                 raise FileNotFoundError(f"File '{fname}' not found.")
@@ -1226,7 +1311,7 @@ def _to_compute_primal_exec(options, user_args):
                     return
 
                 p = Problem()
-                p.model.add_subsystem('comp', inst)
+                p.model.add_subsystem("comp", inst)
                 p.setup()
 
                 to_compute_primal(inst, outfile=options.outfile)
@@ -1236,21 +1321,25 @@ def _to_compute_primal_exec(options, user_args):
             return
 
     else:
+
         def _to_compute_primal(model):
             found = False
-            classpath = options.klass.split('.')
+            classpath = options.klass.split(".")
             cname = classpath[-1]
-            cmod = '.'.join(classpath[:-1])
+            cmod = ".".join(classpath[:-1])
             npaths = len(classpath)
             for s in model.system_iter(recurse=True, typ=Component):
                 for cls in inspect.getmro(type(s)):
                     if cls.__name__ == cname:
                         if npaths == 1 or cls.__module__ == cmod:
                             if options.verbose:
-                                print(f"Converting class '{options.klass}' compute method to "
-                                      f"compute_primal method for instance '{s.pathname}'.")
-                                to_compute_primal(s, outfile=options.outfile,
-                                                  verbose=options.verbose)
+                                print(
+                                    f"Converting class '{options.klass}' compute method to "
+                                    f"compute_primal method for instance '{s.pathname}'."
+                                )
+                                to_compute_primal(
+                                    s, outfile=options.outfile, verbose=options.verbose
+                                )
                                 found = True
                                 break
                 if found:
@@ -1261,18 +1350,23 @@ def _to_compute_primal_exec(options, user_args):
 
         def _set_dyn_hook(prob):
             # set the _to_compute_primal hook to be called right after _setup_var_data on the model
-            prob.model.pathname = ''
-            hooks._register_hook('_setup_var_data', class_name='Group', inst_id='',
-                                 post=_to_compute_primal, exit=True)
+            prob.model.pathname = ""
+            hooks._register_hook(
+                "_setup_var_data",
+                class_name="Group",
+                inst_id="",
+                post=_to_compute_primal,
+                exit=True,
+            )
             hooks._setup_hooks(prob.model)
 
         # register the hook to be called right after setup on the problem
-        hooks._register_hook('setup', 'Problem', pre=_set_dyn_hook, ncalls=1)
+        hooks._register_hook("setup", "Problem", pre=_set_dyn_hook, ncalls=1)
 
         _load_and_exec(options.file[0], user_args)
 
 
-def to_compute_primal(inst, outfile='stdout', verbose=False):
+def to_compute_primal(inst, outfile="stdout", verbose=False):
     """
     Convert the given Component's compute method to a compute_primal method that works with jax.
 
@@ -1301,34 +1395,34 @@ def to_compute_primal(inst, outfile='stdout', verbose=False):
         print(f"'{classname}' is not an ImplicitComponent or ExplicitComponent.")
         return
 
-    if outfile == 'stdout':
+    if outfile == "stdout":
         print(jaxer.get_class_src())
     else:
-        with open(outfile, 'w') as f:
+        with open(outfile, "w") as f:
             print(jaxer.get_class_src(), file=f)
 
 
 def _update_add_input_kwargs(self, **kwargs):
-    if self.options['default_to_dyn_shapes']:
-        if kwargs.get('val') is None and kwargs.get('shape') is None:
-            if kwargs.get('copy_shape') is None and kwargs.get('compute_shape') is None:
-                if kwargs.get('shape_by_conn') is None:
-                    kwargs['shape_by_conn'] = True
+    if self.options["default_to_dyn_shapes"]:
+        if kwargs.get("val") is None and kwargs.get("shape") is None:
+            if kwargs.get("copy_shape") is None and kwargs.get("compute_shape") is None:
+                if kwargs.get("shape_by_conn") is None:
+                    kwargs["shape_by_conn"] = True
 
     return kwargs
 
 
 def _update_add_output_kwargs(self, name, **kwargs):
-    if self.options['default_to_dyn_shapes']:
-        if kwargs.get('val') is None and kwargs.get('shape') is None:
-            if kwargs.get('copy_shape') is None and kwargs.get('compute_shape') is None:
+    if self.options["default_to_dyn_shapes"]:
+        if kwargs.get("val") is None and kwargs.get("shape") is None:
+            if kwargs.get("copy_shape") is None and kwargs.get("compute_shape") is None:
                 # add our own compute_shape function
-                kwargs['compute_shape'] = self._get_compute_shape_func(name)
+                kwargs["compute_shape"] = self._get_compute_shape_func(name)
 
     return kwargs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import openmdao.api as om
 
     def func(x, y):  # noqa: D103
@@ -1337,12 +1431,12 @@ if __name__ == '__main__':
         zz = q + x * 1.5
         return z, zz
 
-    print('partials are:\n', list(get_function_deps(func, ('z', 'zz'))))
+    print("partials are:\n", list(get_function_deps(func, ("z", "zz"))))
 
     p = om.Problem()
-    comp = p.model.add_subsystem('comp', om.ExecComp('y = 2.0*x', x=np.ones(3), y=np.ones(3)))
-    comp.derivs_method = 'jax'
+    comp = p.model.add_subsystem("comp", om.ExecComp("y = 2.0*x", x=np.ones(3), y=np.ones(3)))
+    comp.derivs_method = "jax"
     p.setup()
     p.run_model()
 
-    print(p.compute_totals(of=['comp.y'], wrt=['comp.x']))
+    print(p.compute_totals(of=["comp.y"], wrt=["comp.x"]))

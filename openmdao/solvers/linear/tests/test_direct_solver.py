@@ -15,6 +15,7 @@ from openmdao.utils.array_utils import evenly_distrib_idxs
 from openmdao.utils.assert_utils import assert_near_equal
 from openmdao.utils.general_utils import printoptions
 from openmdao.utils.mpi import MPI
+
 try:
     from openmdao.vectors.petsc_vector import PETScVector
 except ImportError:
@@ -23,60 +24,61 @@ except ImportError:
 
 class NanComp(om.ExplicitComponent):
     def setup(self):
-        self.add_input('x', 1.0)
-        self.add_output('y', 1.0)
+        self.add_input("x", 1.0)
+        self.add_output("y", 1.0)
 
-        self.declare_partials(of='*', wrt='*')
+        self.declare_partials(of="*", wrt="*")
 
     def compute(self, inputs, outputs):
-        outputs['y'] = 3.0*inputs['x']
+        outputs["y"] = 3.0 * inputs["x"]
 
     def compute_partials(self, inputs, partials):
         """Intentionally incorrect derivative."""
         J = partials
-        J['y', 'x'] = np.nan
+        J["y", "x"] = np.nan
 
 
 class SingularComp(om.ImplicitComponent):
     def setup(self):
-        self.add_input('x', 1.0)
-        self.add_output('y', 1.0)
+        self.add_input("x", 1.0)
+        self.add_output("y", 1.0)
 
-        self.declare_partials(of='*', wrt='*')
+        self.declare_partials(of="*", wrt="*")
 
     def compute_partials(self, inputs, partials):
         """Intentionally incorrect derivative."""
         J = partials
-        J['y', 'x'] = 0.0
-        J['y', 'y'] = 0.0
+        J["y", "x"] = 0.0
+        J["y", "y"] = 0.0
 
 
 class NanComp2(om.ExplicitComponent):
     def setup(self):
-        self.add_input('x', 1.0)
-        self.add_output('y', 1.0)
-        self.add_output('y2', 1.0)
+        self.add_input("x", 1.0)
+        self.add_output("y", 1.0)
+        self.add_output("y2", 1.0)
 
-        self.declare_partials(of='*', wrt='*')
+        self.declare_partials(of="*", wrt="*")
 
     def compute(self, inputs, outputs):
-        outputs['y'] = 3.0*inputs['x']
-        outputs['y2'] = 2.0*inputs['x']
+        outputs["y"] = 3.0 * inputs["x"]
+        outputs["y2"] = 2.0 * inputs["x"]
 
     def compute_partials(self, inputs, partials):
         """Intentionally incorrect derivative."""
         J = partials
-        J['y', 'x'] = np.nan
-        J['y2', 'x'] = 2.0
+        J["y", "x"] = np.nan
+        J["y2", "x"] = 2.0
+
 
 class DupPartialsComp(om.ExplicitComponent):
     def setup(self):
-        self.add_input('c', np.zeros(19))
-        self.add_output('x', np.zeros(11))
+        self.add_input("c", np.zeros(19))
+        self.add_output("x", np.zeros(11))
 
-        rows = [0,  1,  4, 10, 7, 9, 10, 4]
-        cols = [0, 18, 11,  2, 5, 9,  2, 11]
-        self.declare_partials(of='x', wrt='c', rows=rows, cols=cols)
+        rows = [0, 1, 4, 10, 7, 9, 10, 4]
+        cols = [0, 18, 11, 2, 5, 9, 2, 11]
+        self.declare_partials(of="x", wrt="c", rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         pass
@@ -89,7 +91,7 @@ class DistribComp(om.ExplicitComponent):
     def __init__(self, arr_size=11, **kwargs):
         super().__init__(**kwargs)
         self.arr_size = arr_size
-        self.options['distributed'] = True
+        self.options["distributed"] = True
 
     def setup(self):
         comm = self.comm
@@ -97,20 +99,19 @@ class DistribComp(om.ExplicitComponent):
 
         sizes, _ = evenly_distrib_idxs(comm.size, self.arr_size)
 
-        self.add_input('x', np.ones(sizes[rank]))
-        self.add_output('y', np.ones(sizes[rank]))
+        self.add_input("x", np.ones(sizes[rank]))
+        self.add_output("y", np.ones(sizes[rank]))
 
-        self.declare_partials(of='y', wrt='x', method='cs')
+        self.declare_partials(of="y", wrt="x", method="cs")
 
     def compute(self, inputs, outputs):
         if self.comm.rank == 0:
-            outputs['y'] = 2.0 * inputs['x']
+            outputs["y"] = 2.0 * inputs["x"]
         else:
-            outputs['y'] = 3.0 * inputs['x']
+            outputs["y"] = 3.0 * inputs["x"]
 
 
 class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
-
     linear_solver_class = om.DirectSolver
 
     def test_specify_solver(self):
@@ -124,12 +125,12 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob.setup()
         prob.run_model()
 
-        wrt = ['z']
-        of = ['obj']
+        wrt = ["z"]
+        of = ["obj"]
 
-        J = prob.compute_totals(of=of, wrt=wrt, return_format='flat_dict')
-        assert_near_equal(J['obj', 'z'][0][0], 9.61001056, .00001)
-        assert_near_equal(J['obj', 'z'][0][1], 1.78448534, .00001)
+        J = prob.compute_totals(of=of, wrt=wrt, return_format="flat_dict")
+        assert_near_equal(J["obj", "z"][0][0], 9.61001056, 0.00001)
+        assert_near_equal(J["obj", "z"][0][1], 1.78448534, 0.00001)
 
     # DirectSolver doesn't iterate.
     def test_solve_linear_maxiter(self):
@@ -138,7 +139,7 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
 
         msg = "\"DirectSolver: Option '%s' cannot be set because it has not been declared.\""
 
-        for option in ['atol', 'rtol', 'maxiter', 'err_on_non_converge']:
+        for option in ["atol", "rtol", "maxiter", "err_on_non_converge"]:
             with self.assertRaises(KeyError) as context:
                 solver.options[option] = 1
 
@@ -149,15 +150,15 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
 
         p = om.Problem()
         model = p.model
-        dv = model.add_subsystem('des_vars', om.IndepVarComp())
+        dv = model.add_subsystem("des_vars", om.IndepVarComp())
         # just need a dummy variable so the sizes don't match between root and g1
-        dv.add_output('dummy', val=1.0, shape=10)
+        dv.add_output("dummy", val=1.0, shape=10)
 
-        g1 = model.add_subsystem('g1', TestImplicitGroup(lnSolverClass=om.DirectSolver))
+        g1 = model.add_subsystem("g1", TestImplicitGroup(lnSolverClass=om.DirectSolver))
 
         p.setup()
 
-        g1.linear_solver.options['assemble_jac'] = False
+        g1.linear_solver.options["assemble_jac"] = False
 
         p.set_solver_print(level=0)
 
@@ -171,7 +172,7 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         d_outputs.set_val(0.0)
         g1._linearize(g1._assembled_jac)
         g1.linear_solver._linearize()
-        g1.run_solve_linear('fwd')
+        g1.run_solve_linear("fwd")
 
         output = d_outputs.asarray()
         assert_near_equal(output, g1.expected_solution, 1e-15)
@@ -182,7 +183,7 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         d_outputs.set_val(1.0)
         d_residuals.set_val(0.0)
         g1.linear_solver._linearize()
-        g1.run_solve_linear('rev')
+        g1.run_solve_linear("rev")
 
         output = d_residuals.asarray()
         assert_near_equal(output, g1.expected_solution, 3e-15)
@@ -190,81 +191,95 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
     def test_rev_mode_bug(self):
 
         prob = om.Problem()
-        prob.model = SellarDerivatives(nonlinear_solver=om.NewtonSolver(solve_subsystems=False),
-                                       linear_solver=om.DirectSolver())
+        prob.model = SellarDerivatives(
+            nonlinear_solver=om.NewtonSolver(solve_subsystems=False),
+            linear_solver=om.DirectSolver(),
+        )
 
-        prob.setup(check=False, mode='rev')
+        prob.setup(check=False, mode="rev")
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        assert_near_equal(prob['y1'], 25.58830273, .00001)
-        assert_near_equal(prob['y2'], 12.05848819, .00001)
+        assert_near_equal(prob["y1"], 25.58830273, 0.00001)
+        assert_near_equal(prob["y2"], 12.05848819, 0.00001)
 
-        wrt = ['x', 'z']
-        of = ['obj', 'con1', 'con2']
+        wrt = ["x", "z"]
+        of = ["obj", "con1", "con2"]
 
         Jbase = {}
-        Jbase['con1', 'x'] = [[-0.98061433]]
-        Jbase['con1', 'z'] = np.array([[-9.61002285, -0.78449158]])
-        Jbase['con2', 'x'] = [[0.09692762]]
-        Jbase['con2', 'z'] = np.array([[1.94989079, 1.0775421]])
-        Jbase['obj', 'x'] = [[2.98061392]]
-        Jbase['obj', 'z'] = np.array([[9.61001155, 1.78448534]])
+        Jbase["con1", "x"] = [[-0.98061433]]
+        Jbase["con1", "z"] = np.array([[-9.61002285, -0.78449158]])
+        Jbase["con2", "x"] = [[0.09692762]]
+        Jbase["con2", "z"] = np.array([[1.94989079, 1.0775421]])
+        Jbase["obj", "x"] = [[2.98061392]]
+        Jbase["obj", "z"] = np.array([[9.61001155, 1.78448534]])
 
-        J = prob.compute_totals(of=of, wrt=wrt, return_format='flat_dict')
+        J = prob.compute_totals(of=of, wrt=wrt, return_format="flat_dict")
         for key, val in Jbase.items():
-            assert_near_equal(J[key], val, .00001)
+            assert_near_equal(J[key], val, 0.00001)
 
         # In the bug, the solver mode got switched from fwd to rev when it shouldn't
         # have been, causing a singular matrix and NaNs in the output.
         prob.run_model()
 
-        assert_near_equal(prob['y1'], 25.58830273, .00001)
-        assert_near_equal(prob['y2'], 12.05848819, .00001)
+        assert_near_equal(prob["y1"], 25.58830273, 0.00001)
+        assert_near_equal(prob["y2"], 12.05848819, 0.00001)
 
     def test_multi_dim_src_indices(self):
         prob = om.Problem()
         model = prob.model
         size = 5
 
-        model.add_subsystem('indeps', om.IndepVarComp('x', np.arange(5).reshape((1,size,1))))
-        model.add_subsystem('comp', om.ExecComp('y = x * 2.', x=np.zeros((size,)), y=np.zeros((size,))))
-        src_indices = [[0]*size, np.arange(size, dtype=int), [0]*size]
-        model.connect('indeps.x', 'comp.x', src_indices=src_indices)
+        model.add_subsystem("indeps", om.IndepVarComp("x", np.arange(5).reshape((1, size, 1))))
+        model.add_subsystem(
+            "comp", om.ExecComp("y = x * 2.", x=np.zeros((size,)), y=np.zeros((size,)))
+        )
+        src_indices = [[0] * size, np.arange(size, dtype=int), [0] * size]
+        model.connect("indeps.x", "comp.x", src_indices=src_indices)
 
         model.linear_solver = om.DirectSolver()
         prob.setup()
         prob.run_model()
 
-        J = prob.compute_totals(wrt=['indeps.x'], of=['comp.y'], return_format='array')
-        np.testing.assert_almost_equal(J, np.eye(size) * 2.)
+        J = prob.compute_totals(wrt=["indeps.x"], of=["comp.y"], return_format="array")
+        np.testing.assert_almost_equal(J, np.eye(size) * 2.0)
 
     def test_raise_error_on_singular(self):
         prob = om.Problem()
         model = prob.model
 
         comp = om.IndepVarComp()
-        comp.add_output('dXdt:TAS', val=1.0)
-        comp.add_output('accel_target', val=2.0)
-        model.add_subsystem('des_vars', comp, promotes=['*'])
+        comp.add_output("dXdt:TAS", val=1.0)
+        comp.add_output("accel_target", val=2.0)
+        model.add_subsystem("des_vars", comp, promotes=["*"])
 
-        teg = model.add_subsystem('thrust_equilibrium_group', subsys=om.Group())
-        teg.add_subsystem('dynamics', om.ExecComp('z = 2.0*thrust'), promotes=['*'])
+        teg = model.add_subsystem("thrust_equilibrium_group", subsys=om.Group())
+        teg.add_subsystem("dynamics", om.ExecComp("z = 2.0*thrust"), promotes=["*"])
 
         thrust_bal = om.BalanceComp()
-        thrust_bal.add_balance(name='thrust', val=1207.1, lhs_name='dXdt:TAS',
-                               rhs_name='accel_target', eq_units='m/s**2', lower=-10.0, upper=10000.0)
+        thrust_bal.add_balance(
+            name="thrust",
+            val=1207.1,
+            lhs_name="dXdt:TAS",
+            rhs_name="accel_target",
+            eq_units="m/s**2",
+            lower=-10.0,
+            upper=10000.0,
+        )
 
-        teg.add_subsystem(name='thrust_bal', subsys=thrust_bal,
-                          promotes_inputs=['dXdt:TAS', 'accel_target'],
-                          promotes_outputs=['thrust'])
+        teg.add_subsystem(
+            name="thrust_bal",
+            subsys=thrust_bal,
+            promotes_inputs=["dXdt:TAS", "accel_target"],
+            promotes_outputs=["thrust"],
+        )
 
         teg.linear_solver = om.DirectSolver(assemble_jac=False)
 
         teg.nonlinear_solver = om.NewtonSolver()
-        teg.nonlinear_solver.options['solve_subsystems'] = True
-        teg.nonlinear_solver.options['max_sub_solves'] = 1
-        teg.nonlinear_solver.options['atol'] = 1e-4
+        teg.nonlinear_solver.options["solve_subsystems"] = True
+        teg.nonlinear_solver.options["max_sub_solves"] = 1
+        teg.nonlinear_solver.options["atol"] = 1e-4
 
         prob.setup()
         prob.set_solver_print(level=0)
@@ -281,12 +296,12 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('des_vars', om.IndepVarComp('x', 1.0), promotes=['*'])
-        model.add_subsystem('dupcomp', DupPartialsComp())
+        model.add_subsystem("des_vars", om.IndepVarComp("x", 1.0), promotes=["*"])
+        model.add_subsystem("dupcomp", DupPartialsComp())
 
         model.linear_solver = om.DirectSolver(assemble_jac=True)
 
-        with printoptions(legacy='1.21'):
+        with printoptions(legacy="1.21"):
             with self.assertRaises(Exception) as cm:
                 prob.setup()
 
@@ -299,28 +314,38 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         model = prob.model
 
         comp = om.IndepVarComp()
-        comp.add_output('dXdt:TAS', val=1.0)
-        comp.add_output('accel_target', val=2.0)
-        model.add_subsystem('des_vars', comp, promotes=['*'])
+        comp.add_output("dXdt:TAS", val=1.0)
+        comp.add_output("accel_target", val=2.0)
+        model.add_subsystem("des_vars", comp, promotes=["*"])
 
-        teg = model.add_subsystem('thrust_equilibrium_group', subsys=om.Group())
-        teg.add_subsystem('dynamics', om.ExecComp('z = 2.0*thrust'), promotes=['*'])
+        teg = model.add_subsystem("thrust_equilibrium_group", subsys=om.Group())
+        teg.add_subsystem("dynamics", om.ExecComp("z = 2.0*thrust"), promotes=["*"])
 
         thrust_bal = om.BalanceComp()
-        thrust_bal.add_balance(name='thrust', val=1207.1, lhs_name='dXdt:TAS',
-                               rhs_name='accel_target', eq_units='m/s**2', lower=-10.0, upper=10000.0)
+        thrust_bal.add_balance(
+            name="thrust",
+            val=1207.1,
+            lhs_name="dXdt:TAS",
+            rhs_name="accel_target",
+            eq_units="m/s**2",
+            lower=-10.0,
+            upper=10000.0,
+        )
 
-        teg.add_subsystem(name='thrust_bal', subsys=thrust_bal,
-                          promotes_inputs=['dXdt:TAS', 'accel_target'],
-                          promotes_outputs=['thrust'])
+        teg.add_subsystem(
+            name="thrust_bal",
+            subsys=thrust_bal,
+            promotes_inputs=["dXdt:TAS", "accel_target"],
+            promotes_outputs=["thrust"],
+        )
 
         teg.linear_solver = om.DirectSolver(assemble_jac=True)
-        teg.options['assembled_jac_type'] = 'dense'
+        teg.options["assembled_jac_type"] = "dense"
 
         teg.nonlinear_solver = om.NewtonSolver()
-        teg.nonlinear_solver.options['solve_subsystems'] = True
-        teg.nonlinear_solver.options['max_sub_solves'] = 1
-        teg.nonlinear_solver.options['atol'] = 1e-4
+        teg.nonlinear_solver.options["solve_subsystems"] = True
+        teg.nonlinear_solver.options["max_sub_solves"] = 1
+        teg.nonlinear_solver.options["atol"] = 1e-4
 
         prob.setup()
         prob.set_solver_print(level=0)
@@ -337,27 +362,37 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         model = prob.model
 
         comp = om.IndepVarComp()
-        comp.add_output('dXdt:TAS', val=1.0)
-        comp.add_output('accel_target', val=2.0)
-        model.add_subsystem('des_vars', comp, promotes=['*'])
+        comp.add_output("dXdt:TAS", val=1.0)
+        comp.add_output("accel_target", val=2.0)
+        model.add_subsystem("des_vars", comp, promotes=["*"])
 
-        teg = model.add_subsystem('thrust_equilibrium_group', subsys=om.Group())
-        teg.add_subsystem('dynamics', om.ExecComp('z = 2.0*thrust'), promotes=['*'])
+        teg = model.add_subsystem("thrust_equilibrium_group", subsys=om.Group())
+        teg.add_subsystem("dynamics", om.ExecComp("z = 2.0*thrust"), promotes=["*"])
 
         thrust_bal = om.BalanceComp()
-        thrust_bal.add_balance(name='thrust', val=1207.1, lhs_name='dXdt:TAS',
-                               rhs_name='accel_target', eq_units='m/s**2', lower=-10.0, upper=10000.0)
+        thrust_bal.add_balance(
+            name="thrust",
+            val=1207.1,
+            lhs_name="dXdt:TAS",
+            rhs_name="accel_target",
+            eq_units="m/s**2",
+            lower=-10.0,
+            upper=10000.0,
+        )
 
-        teg.add_subsystem(name='thrust_bal', subsys=thrust_bal,
-                          promotes_inputs=['dXdt:TAS', 'accel_target'],
-                          promotes_outputs=['thrust'])
+        teg.add_subsystem(
+            name="thrust_bal",
+            subsys=thrust_bal,
+            promotes_inputs=["dXdt:TAS", "accel_target"],
+            promotes_outputs=["thrust"],
+        )
 
         teg.linear_solver = om.DirectSolver(assemble_jac=True)
 
         teg.nonlinear_solver = om.NewtonSolver()
-        teg.nonlinear_solver.options['solve_subsystems'] = True
-        teg.nonlinear_solver.options['max_sub_solves'] = 1
-        teg.nonlinear_solver.options['atol'] = 1e-4
+        teg.nonlinear_solver.options["solve_subsystems"] = True
+        teg.nonlinear_solver.options["max_sub_solves"] = 1
+        teg.nonlinear_solver.options["atol"] = 1e-4
 
         prob.setup()
         prob.set_solver_print(level=0)
@@ -374,32 +409,42 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         model = prob.model
 
         comp = om.IndepVarComp()
-        comp.add_output('dXdt:TAS', val=1.0)
-        comp.add_output('accel_target', val=2.0)
-        model.add_subsystem('des_vars', comp, promotes=['*'])
+        comp.add_output("dXdt:TAS", val=1.0)
+        comp.add_output("accel_target", val=2.0)
+        model.add_subsystem("des_vars", comp, promotes=["*"])
 
-        teg = model.add_subsystem('thrust_equilibrium_group', subsys=om.Group())
-        teg.add_subsystem('dynamics', om.ExecComp('z = 2.0*thrust'), promotes=['*'])
+        teg = model.add_subsystem("thrust_equilibrium_group", subsys=om.Group())
+        teg.add_subsystem("dynamics", om.ExecComp("z = 2.0*thrust"), promotes=["*"])
 
         thrust_bal = om.BalanceComp()
-        thrust_bal.add_balance(name='thrust', val=1207.1, lhs_name='dXdt:TAS',
-                               rhs_name='accel_target', eq_units='m/s**2', lower=-10.0, upper=10000.0)
+        thrust_bal.add_balance(
+            name="thrust",
+            val=1207.1,
+            lhs_name="dXdt:TAS",
+            rhs_name="accel_target",
+            eq_units="m/s**2",
+            lower=-10.0,
+            upper=10000.0,
+        )
 
-        teg.add_subsystem(name='thrust_bal', subsys=thrust_bal,
-                          promotes_inputs=['dXdt:TAS', 'accel_target'],
-                          promotes_outputs=['thrust'])
+        teg.add_subsystem(
+            name="thrust_bal",
+            subsys=thrust_bal,
+            promotes_inputs=["dXdt:TAS", "accel_target"],
+            promotes_outputs=["thrust"],
+        )
 
         teg.linear_solver = om.DirectSolver(assemble_jac=False)
 
         teg.nonlinear_solver = om.NewtonSolver()
-        teg.nonlinear_solver.options['solve_subsystems'] = True
-        teg.nonlinear_solver.options['max_sub_solves'] = 1
-        teg.nonlinear_solver.options['atol'] = 1e-4
+        teg.nonlinear_solver.options["solve_subsystems"] = True
+        teg.nonlinear_solver.options["max_sub_solves"] = 1
+        teg.nonlinear_solver.options["atol"] = 1e-4
 
         prob.setup()
         prob.set_solver_print(level=0)
 
-        teg.linear_solver.options['err_on_singular'] = False
+        teg.linear_solver.options["err_on_singular"] = False
         prob.run_model()
 
     def test_raise_error_on_nan(self):
@@ -407,21 +452,21 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob = om.Problem(allow_post_setup_reorder=False)
         model = prob.model
 
-        model.add_subsystem('p', om.IndepVarComp('x', 2.0))
-        model.add_subsystem('c1', om.ExecComp('y = 4.0*x'))
-        sub = model.add_subsystem('sub', om.Group())
-        sub.add_subsystem('c2', NanComp())
-        model.add_subsystem('c3', om.ExecComp('y = 4.0*x'))
-        model.add_subsystem('c4', NanComp2())
-        model.add_subsystem('c5', om.ExecComp('y = 3.0*x'))
-        model.add_subsystem('c6', om.ExecComp('y = 2.0*x'))
+        model.add_subsystem("p", om.IndepVarComp("x", 2.0))
+        model.add_subsystem("c1", om.ExecComp("y = 4.0*x"))
+        sub = model.add_subsystem("sub", om.Group())
+        sub.add_subsystem("c2", NanComp())
+        model.add_subsystem("c3", om.ExecComp("y = 4.0*x"))
+        model.add_subsystem("c4", NanComp2())
+        model.add_subsystem("c5", om.ExecComp("y = 3.0*x"))
+        model.add_subsystem("c6", om.ExecComp("y = 2.0*x"))
 
-        model.connect('p.x', 'c1.x')
-        model.connect('c1.y', 'sub.c2.x')
-        model.connect('sub.c2.y', 'c3.x')
-        model.connect('c3.y', 'c4.x')
-        model.connect('c4.y', 'c5.x')
-        model.connect('c4.y2', 'c6.x')
+        model.connect("p.x", "c1.x")
+        model.connect("c1.y", "sub.c2.x")
+        model.connect("sub.c2.y", "c3.x")
+        model.connect("c3.y", "c4.x")
+        model.connect("c4.y", "c5.x")
+        model.connect("c4.y2", "c6.x")
 
         model.linear_solver = om.DirectSolver(assemble_jac=False)
 
@@ -429,7 +474,7 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob.run_model()
 
         with self.assertRaises(RuntimeError) as cm:
-            prob.compute_totals(of=['c5.y'], wrt=['p.x'])
+            prob.compute_totals(of=["c5.y"], wrt=["p.x"])
 
         expected_msg = "NaN entries found in <model> <class Group> for rows associated with states/residuals ['sub.c2.y', 'c4.y']."
 
@@ -440,21 +485,21 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob = om.Problem(allow_post_setup_reorder=False)
         model = prob.model
 
-        model.add_subsystem('p', om.IndepVarComp('x', 2.0))
-        model.add_subsystem('c1', om.ExecComp('y = 4.0*x'))
-        sub = model.add_subsystem('sub', om.Group())
-        sub.add_subsystem('c2', NanComp())
-        model.add_subsystem('c3', om.ExecComp('y = 4.0*x'))
-        model.add_subsystem('c4', NanComp2())
-        model.add_subsystem('c5', om.ExecComp('y = 3.0*x'))
-        model.add_subsystem('c6', om.ExecComp('y = 2.0*x'))
+        model.add_subsystem("p", om.IndepVarComp("x", 2.0))
+        model.add_subsystem("c1", om.ExecComp("y = 4.0*x"))
+        sub = model.add_subsystem("sub", om.Group())
+        sub.add_subsystem("c2", NanComp())
+        model.add_subsystem("c3", om.ExecComp("y = 4.0*x"))
+        model.add_subsystem("c4", NanComp2())
+        model.add_subsystem("c5", om.ExecComp("y = 3.0*x"))
+        model.add_subsystem("c6", om.ExecComp("y = 2.0*x"))
 
-        model.connect('p.x', 'c1.x')
-        model.connect('c1.y', 'sub.c2.x')
-        model.connect('sub.c2.y', 'c3.x')
-        model.connect('c3.y', 'c4.x')
-        model.connect('c4.y', 'c5.x')
-        model.connect('c4.y2', 'c6.x')
+        model.connect("p.x", "c1.x")
+        model.connect("c1.y", "sub.c2.x")
+        model.connect("sub.c2.y", "c3.x")
+        model.connect("c3.y", "c4.x")
+        model.connect("c4.y", "c5.x")
+        model.connect("c4.y2", "c6.x")
 
         model.linear_solver = om.DirectSolver(assemble_jac=True)
 
@@ -462,7 +507,7 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob.run_model()
 
         with self.assertRaises(RuntimeError) as cm:
-            prob.compute_totals(of=['c5.y'], wrt=['p.x'])
+            prob.compute_totals(of=["c5.y"], wrt=["p.x"])
 
         expected_msg = "NaN entries found in <model> <class Group> for rows associated with states/residuals ['sub.c2.y', 'c4.y']."
 
@@ -470,24 +515,26 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
 
     def test_raise_error_on_nan_dense(self):
 
-        prob = om.Problem(model=om.Group(assembled_jac_type='dense'), allow_post_setup_reorder=False)
+        prob = om.Problem(
+            model=om.Group(assembled_jac_type="dense"), allow_post_setup_reorder=False
+        )
         model = prob.model
 
-        model.add_subsystem('p', om.IndepVarComp('x', 2.0))
-        model.add_subsystem('c1', om.ExecComp('y = 4.0*x'))
-        sub = model.add_subsystem('sub', om.Group())
-        sub.add_subsystem('c2', NanComp())
-        model.add_subsystem('c3', om.ExecComp('y = 4.0*x'))
-        model.add_subsystem('c4', NanComp2())
-        model.add_subsystem('c5', om.ExecComp('y = 3.0*x'))
-        model.add_subsystem('c6', om.ExecComp('y = 2.0*x'))
+        model.add_subsystem("p", om.IndepVarComp("x", 2.0))
+        model.add_subsystem("c1", om.ExecComp("y = 4.0*x"))
+        sub = model.add_subsystem("sub", om.Group())
+        sub.add_subsystem("c2", NanComp())
+        model.add_subsystem("c3", om.ExecComp("y = 4.0*x"))
+        model.add_subsystem("c4", NanComp2())
+        model.add_subsystem("c5", om.ExecComp("y = 3.0*x"))
+        model.add_subsystem("c6", om.ExecComp("y = 2.0*x"))
 
-        model.connect('p.x', 'c1.x')
-        model.connect('c1.y', 'sub.c2.x')
-        model.connect('sub.c2.y', 'c3.x')
-        model.connect('c3.y', 'c4.x')
-        model.connect('c4.y', 'c5.x')
-        model.connect('c4.y2', 'c6.x')
+        model.connect("p.x", "c1.x")
+        model.connect("c1.y", "sub.c2.x")
+        model.connect("sub.c2.y", "c3.x")
+        model.connect("c3.y", "c4.x")
+        model.connect("c4.y", "c5.x")
+        model.connect("c4.y2", "c6.x")
 
         model.linear_solver = om.DirectSolver(assemble_jac=True)
 
@@ -495,7 +542,7 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob.run_model()
 
         with self.assertRaises(RuntimeError) as cm:
-            prob.compute_totals(of=['c5.y'], wrt=['p.x'])
+            prob.compute_totals(of=["c5.y"], wrt=["p.x"])
 
         expected_msg = "NaN entries found in <model> <class Group> for rows associated with states/residuals ['sub.c2.y', 'c4.y']."
 
@@ -505,18 +552,18 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p', om.IndepVarComp('x', 2.0*np.ones((2, 2))))
-        model.add_subsystem('c1', om.ExecComp('y = 4.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c2', om.ExecComp('y = 4.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c3', om.ExecComp('y = 3.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c4', om.ExecComp('y = 2.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c5', NanComp())
+        model.add_subsystem("p", om.IndepVarComp("x", 2.0 * np.ones((2, 2))))
+        model.add_subsystem("c1", om.ExecComp("y = 4.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c2", om.ExecComp("y = 4.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c3", om.ExecComp("y = 3.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c4", om.ExecComp("y = 2.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c5", NanComp())
 
-        model.connect('p.x', 'c1.x')
-        model.connect('c1.y', 'c2.x')
-        model.connect('c2.y', 'c3.x')
-        model.connect('c3.y', 'c4.x')
-        model.connect('c4.y', 'c5.x', src_indices=[0], flat_src_indices=True)
+        model.connect("p.x", "c1.x")
+        model.connect("c1.y", "c2.x")
+        model.connect("c2.y", "c3.x")
+        model.connect("c3.y", "c4.x")
+        model.connect("c4.y", "c5.x", src_indices=[0], flat_src_indices=True)
 
         model.linear_solver = om.DirectSolver(assemble_jac=True)
 
@@ -524,7 +571,7 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob.run_model()
 
         with self.assertRaises(RuntimeError) as cm:
-            prob.compute_totals(of=['c5.y'], wrt=['p.x'])
+            prob.compute_totals(of=["c5.y"], wrt=["p.x"])
 
         expected_msg = "NaN entries found in <model> <class Group> for rows associated with states/residuals ['c5.y']."
 
@@ -534,18 +581,18 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p', om.IndepVarComp('x', 2.0*np.ones((2, 2))))
-        model.add_subsystem('c1', om.ExecComp('y = 4.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c2', om.ExecComp('y = 4.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c3', om.ExecComp('y = 3.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c4', om.ExecComp('y = 2.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c5', SingularComp())
+        model.add_subsystem("p", om.IndepVarComp("x", 2.0 * np.ones((2, 2))))
+        model.add_subsystem("c1", om.ExecComp("y = 4.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c2", om.ExecComp("y = 4.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c3", om.ExecComp("y = 3.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c4", om.ExecComp("y = 2.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c5", SingularComp())
 
-        model.connect('p.x', 'c1.x')
-        model.connect('c1.y', 'c2.x')
-        model.connect('c2.y', 'c3.x')
-        model.connect('c3.y', 'c4.x')
-        model.connect('c4.y', 'c5.x', src_indices=([0]), flat_src_indices=True)
+        model.connect("p.x", "c1.x")
+        model.connect("c1.y", "c2.x")
+        model.connect("c2.y", "c3.x")
+        model.connect("c3.y", "c4.x")
+        model.connect("c4.y", "c5.x", src_indices=([0]), flat_src_indices=True)
 
         model.linear_solver = om.DirectSolver(assemble_jac=True)
 
@@ -553,7 +600,7 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob.run_model()
 
         with self.assertRaises(RuntimeError) as cm:
-            prob.compute_totals(of=['c5.y'], wrt=['p.x'])
+            prob.compute_totals(of=["c5.y"], wrt=["p.x"])
 
         expected_msg = "Singular entry found in <model> <class Group> for row associated with state/residual 'c5.y' index 0."
 
@@ -563,27 +610,27 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p', om.IndepVarComp('x', 2.0*np.ones((2, 2))))
-        model.add_subsystem('c1', om.ExecComp('y = 4.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c2', om.ExecComp('y = 4.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c3', om.ExecComp('y = 3.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c4', om.ExecComp('y = 2.0*x', x=np.zeros((2, 2)), y=np.zeros((2, 2))))
-        model.add_subsystem('c5', SingularComp())
+        model.add_subsystem("p", om.IndepVarComp("x", 2.0 * np.ones((2, 2))))
+        model.add_subsystem("c1", om.ExecComp("y = 4.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c2", om.ExecComp("y = 4.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c3", om.ExecComp("y = 3.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c4", om.ExecComp("y = 2.0*x", x=np.zeros((2, 2)), y=np.zeros((2, 2))))
+        model.add_subsystem("c5", SingularComp())
 
-        model.connect('p.x', 'c1.x')
-        model.connect('c1.y', 'c2.x')
-        model.connect('c2.y', 'c3.x')
-        model.connect('c3.y', 'c4.x')
-        model.connect('c4.y', 'c5.x', src_indices=[0], flat_src_indices=True)
+        model.connect("p.x", "c1.x")
+        model.connect("c1.y", "c2.x")
+        model.connect("c2.y", "c3.x")
+        model.connect("c3.y", "c4.x")
+        model.connect("c4.y", "c5.x", src_indices=[0], flat_src_indices=True)
 
         model.linear_solver = om.DirectSolver(assemble_jac=True)
-        model.options['assembled_jac_type'] = 'dense'
+        model.options["assembled_jac_type"] = "dense"
 
         prob.setup()
         prob.run_model()
 
         with self.assertRaises(RuntimeError) as cm:
-            prob.compute_totals(of=['c5.y'], wrt=['p.x'])
+            prob.compute_totals(of=["c5.y"], wrt=["p.x"])
 
         expected_msg = "Singular entry found in <model> <class Group> for row associated with state/residual 'c5.y' index 0."
 
@@ -592,59 +639,58 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
     def test_error_msg_underdetermined_1(self):
 
         class DCgenerator(om.ImplicitComponent):
-
             def setup(self):
-                self.add_input('V_bus', val=1.0)
-                self.add_input('V_out', val=1.0)
+                self.add_input("V_bus", val=1.0)
+                self.add_input("V_out", val=1.0)
 
-                self.add_output('I_out', val=-2.0)
-                self.add_output('P_out', val=-2.0)
+                self.add_output("I_out", val=-2.0)
+                self.add_output("P_out", val=-2.0)
 
-                self.declare_partials('I_out', 'V_bus', val=1.0)
-                self.declare_partials('I_out', 'V_out', val=-1.0)
-                self.declare_partials('P_out', ['V_out', 'I_out'])
-                self.declare_partials('P_out', 'P_out', val=-1.0)
+                self.declare_partials("I_out", "V_bus", val=1.0)
+                self.declare_partials("I_out", "V_out", val=-1.0)
+                self.declare_partials("P_out", ["V_out", "I_out"])
+                self.declare_partials("P_out", "P_out", val=-1.0)
 
             def apply_nonlinear(self, inputs, outputs, resids):
-                resids['I_out'] = inputs['V_bus'] - inputs['V_out']
-                resids['P_out'] = inputs['V_out'] * outputs['I_out'] - outputs['P_out']
+                resids["I_out"] = inputs["V_bus"] - inputs["V_out"]
+                resids["P_out"] = inputs["V_out"] * outputs["I_out"] - outputs["P_out"]
 
             def linearize(self, inputs, outputs, J):
-                J['P_out', 'V_out'] = outputs['I_out']
-                J['P_out', 'I_out'] = inputs['V_out']
+                J["P_out", "V_out"] = outputs["I_out"]
+                J["P_out", "I_out"] = inputs["V_out"]
 
         class RectifierCalcs(om.ImplicitComponent):
-
             def setup(self):
-                self.add_input('P_out', val=1.0)
+                self.add_input("P_out", val=1.0)
 
-                self.add_output('P_in', val=1.0)
-                self.add_output('V_out', val=1.0)
-                self.add_output('Q_in', val=1.0)
+                self.add_output("P_in", val=1.0)
+                self.add_output("V_out", val=1.0)
+                self.add_output("Q_in", val=1.0)
 
-                self.declare_partials('P_in', 'P_out', val=1.0)
-                self.declare_partials('P_in', 'P_in', val=-1.0)
-                self.declare_partials('V_out', 'V_out', val=-1.0)
-                self.declare_partials('Q_in', 'P_in', val=1.0)
-                self.declare_partials('Q_in', 'Q_in', val=-1.0)
+                self.declare_partials("P_in", "P_out", val=1.0)
+                self.declare_partials("P_in", "P_in", val=-1.0)
+                self.declare_partials("V_out", "V_out", val=-1.0)
+                self.declare_partials("Q_in", "P_in", val=1.0)
+                self.declare_partials("Q_in", "Q_in", val=-1.0)
 
             def apply_nonlinear(self, inputs, outputs, resids):
-                resids['P_in'] = inputs['P_out'] - outputs['P_in']
-                resids['V_out'] = 1.0 - outputs['V_out']
-                resids['Q_in'] = outputs['P_in'] - outputs['Q_in']
+                resids["P_in"] = inputs["P_out"] - outputs["P_in"]
+                resids["V_out"] = 1.0 - outputs["V_out"]
+                resids["Q_in"] = outputs["P_in"] - outputs["Q_in"]
 
         class Rectifier(om.Group):
-
             def setup(self):
-                self.add_subsystem('gen', DCgenerator(), promotes=[('V_bus', 'Vm_dc'), 'P_out'])
+                self.add_subsystem("gen", DCgenerator(), promotes=[("V_bus", "Vm_dc"), "P_out"])
 
-                self.add_subsystem('calcs', RectifierCalcs(), promotes=['P_out', ('V_out', 'Vm_dc')])
+                self.add_subsystem(
+                    "calcs", RectifierCalcs(), promotes=["P_out", ("V_out", "Vm_dc")]
+                )
 
                 self.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
                 self.linear_solver = om.DirectSolver()
 
         prob = om.Problem(allow_post_setup_reorder=False)
-        prob.model.add_subsystem('sub', Rectifier())
+        prob.model.add_subsystem("sub", Rectifier())
 
         prob.setup()
         prob.set_solver_print(level=0)
@@ -661,104 +707,111 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
     def test_error_msg_underdetermined_2(self):
 
         class E1(om.ImplicitComponent):
-
             def setup(self):
-                self.add_input('a', 1.0)
-                self.add_input('aa', 1.0)
-                self.add_input('y', 1.0)
-                self.add_input('z', 1.0)
-                self.add_output('x', 1.0)
+                self.add_input("a", 1.0)
+                self.add_input("aa", 1.0)
+                self.add_input("y", 1.0)
+                self.add_input("z", 1.0)
+                self.add_output("x", 1.0)
 
-                self.declare_partials('x', 'x', val=1.0)
-                self.declare_partials('x', 'y', val=1.0)
-                self.declare_partials('x', 'z', val=1.0)
-                self.declare_partials('x', 'a', val=-1.0)
-                self.declare_partials('x', 'aa', val=-1.0)
+                self.declare_partials("x", "x", val=1.0)
+                self.declare_partials("x", "y", val=1.0)
+                self.declare_partials("x", "z", val=1.0)
+                self.declare_partials("x", "a", val=-1.0)
+                self.declare_partials("x", "aa", val=-1.0)
 
             def apply_nonlinear(self, inputs, outputs, residuals):
-                residuals['x'] = outputs['x'] + inputs['y'] + inputs['z'] - inputs['a'] - inputs['aa']
-
+                residuals["x"] = (
+                    outputs["x"] + inputs["y"] + inputs["z"] - inputs["a"] - inputs["aa"]
+                )
 
         class E2(om.ImplicitComponent):
-
             def setup(self):
-                self.add_input('x', 1.0)
-                self.add_output('y', 1.0)
+                self.add_input("x", 1.0)
+                self.add_output("y", 1.0)
 
-                self.declare_partials('y', 'x', val=2.063e-4)
-                self.declare_partials('y', 'y')
+                self.declare_partials("y", "x", val=2.063e-4)
+                self.declare_partials("y", "y")
 
             def apply_nonlinear(self, inputs, outputs, residuals):
-                residuals['y'] = 2.063e-4 * inputs['x'] - outputs['y'] ** 2
+                residuals["y"] = 2.063e-4 * inputs["x"] - outputs["y"] ** 2
 
             def linearize(self, inputs, outputs, jacobian):
-                jacobian['y', 'y'] = -2.0 * outputs['y']
-
+                jacobian["y", "y"] = -2.0 * outputs["y"]
 
         class E3(om.ImplicitComponent):
-
             def setup(self):
-                self.add_input('a', 1.0)
-                self.add_input('aa', 1.0)
-                self.add_input('x', 1.0)
-                self.add_input('y', 1.0)
-                self.add_output('z', 1.0)
+                self.add_input("a", 1.0)
+                self.add_input("aa", 1.0)
+                self.add_input("x", 1.0)
+                self.add_input("y", 1.0)
+                self.add_output("z", 1.0)
 
-                self.declare_partials('z', 'x', val=2.0)
-                self.declare_partials('z', 'y', val=1.0)
-                self.declare_partials('z', 'z', val=-4.0)
-                self.declare_partials('z', 'a', val=-1.0)
-                self.declare_partials('z', 'aa', val=-1.0)
+                self.declare_partials("z", "x", val=2.0)
+                self.declare_partials("z", "y", val=1.0)
+                self.declare_partials("z", "z", val=-4.0)
+                self.declare_partials("z", "a", val=-1.0)
+                self.declare_partials("z", "aa", val=-1.0)
 
             def apply_nonlinear(self, inputs, outputs, residuals):
-                residuals['z'] = 2.0 * inputs['x'] + inputs['y'] - 4.0 * outputs['z'] - inputs['a'] - inputs['aa']
-
+                residuals["z"] = (
+                    2.0 * inputs["x"]
+                    + inputs["y"]
+                    - 4.0 * outputs["z"]
+                    - inputs["a"]
+                    - inputs["aa"]
+                )
 
         class E3bad(om.ImplicitComponent):
-
             def setup(self):
-                self.add_input('a', 1.0)
-                self.add_input('aa', 1.0)
-                self.add_input('x', 1.0)
-                self.add_input('y', 1.0)
-                self.add_output('z', 1.0)
+                self.add_input("a", 1.0)
+                self.add_input("aa", 1.0)
+                self.add_input("x", 1.0)
+                self.add_input("y", 1.0)
+                self.add_output("z", 1.0)
 
-                self.declare_partials('z', 'x', val=1.0)
-                self.declare_partials('z', 'y', val=1.0)
-                self.declare_partials('z', 'z', val=1.0)
-                self.declare_partials('z', 'a', val=-1.0)
-                self.declare_partials('z', 'aa', val=-1.0)
+                self.declare_partials("z", "x", val=1.0)
+                self.declare_partials("z", "y", val=1.0)
+                self.declare_partials("z", "z", val=1.0)
+                self.declare_partials("z", "a", val=-1.0)
+                self.declare_partials("z", "aa", val=-1.0)
 
             def apply_nonlinear(self, inputs, outputs, residuals):
-                residuals['z'] = 2.0 * inputs['x'] + inputs['y'] - 4.0 * outputs['z'] - inputs['a'] - inputs['aa']
+                residuals["z"] = (
+                    2.0 * inputs["x"]
+                    + inputs["y"]
+                    - 4.0 * outputs["z"]
+                    - inputs["a"]
+                    - inputs["aa"]
+                )
 
         # Configuration 1
         p = om.Problem()
         model = p.model
 
         ivc = om.IndepVarComp()
-        ivc.add_output('aa', 1.0)
-        model.add_subsystem('p', ivc, promotes=['aa'])
+        ivc.add_output("aa", 1.0)
+        model.add_subsystem("p", ivc, promotes=["aa"])
 
-        sub1 = model.add_subsystem('sub1', om.Group())
-        sub2 = model.add_subsystem('sub2', om.Group())
-        sub3 = model.add_subsystem('sub3', om.Group())
+        sub1 = model.add_subsystem("sub1", om.Group())
+        sub2 = model.add_subsystem("sub2", om.Group())
+        sub3 = model.add_subsystem("sub3", om.Group())
 
-        sub1.add_subsystem('e1', E1(), promotes=['*'])
-        sub1.add_subsystem('e2', E2(), promotes=['*'])
-        sub1.add_subsystem('e3', E3(), promotes=['*'])
+        sub1.add_subsystem("e1", E1(), promotes=["*"])
+        sub1.add_subsystem("e2", E2(), promotes=["*"])
+        sub1.add_subsystem("e3", E3(), promotes=["*"])
 
-        sub2.add_subsystem('e1', E1(), promotes=['*'])
-        sub2.add_subsystem('e2', E2(), promotes=['*'])
-        sub2.add_subsystem('e3', E3bad(), promotes=['*'])
+        sub2.add_subsystem("e1", E1(), promotes=["*"])
+        sub2.add_subsystem("e2", E2(), promotes=["*"])
+        sub2.add_subsystem("e3", E3bad(), promotes=["*"])
 
-        sub3.add_subsystem('e1', E1(), promotes=['*'])
-        sub3.add_subsystem('e2', E2(), promotes=['*'])
-        sub3.add_subsystem('e3', E3(), promotes=['*'])
+        sub3.add_subsystem("e1", E1(), promotes=["*"])
+        sub3.add_subsystem("e2", E2(), promotes=["*"])
+        sub3.add_subsystem("e3", E3(), promotes=["*"])
 
-        model.connect('sub1.z', 'sub2.a')
-        model.connect('sub2.z', 'sub3.a')
-        model.connect('sub3.z', 'sub1.a')
+        model.connect("sub1.z", "sub2.a")
+        model.connect("sub2.z", "sub3.a")
+        model.connect("sub3.z", "sub1.a")
         model.linear_solver = om.DirectSolver()
         model.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
 
@@ -775,31 +828,31 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         # Configuration 1 Dense
         p = om.Problem()
         model = p.model
-        model.options['assembled_jac_type'] = 'dense'
+        model.options["assembled_jac_type"] = "dense"
 
         ivc = om.IndepVarComp()
-        ivc.add_output('aa', 1.0)
-        model.add_subsystem('p', ivc, promotes=['aa'])
+        ivc.add_output("aa", 1.0)
+        model.add_subsystem("p", ivc, promotes=["aa"])
 
-        sub1 = model.add_subsystem('sub1', om.Group())
-        sub2 = model.add_subsystem('sub2', om.Group())
-        sub3 = model.add_subsystem('sub3', om.Group())
+        sub1 = model.add_subsystem("sub1", om.Group())
+        sub2 = model.add_subsystem("sub2", om.Group())
+        sub3 = model.add_subsystem("sub3", om.Group())
 
-        sub1.add_subsystem('e1', E1(), promotes=['*'])
-        sub1.add_subsystem('e2', E2(), promotes=['*'])
-        sub1.add_subsystem('e3', E3(), promotes=['*'])
+        sub1.add_subsystem("e1", E1(), promotes=["*"])
+        sub1.add_subsystem("e2", E2(), promotes=["*"])
+        sub1.add_subsystem("e3", E3(), promotes=["*"])
 
-        sub2.add_subsystem('e1', E1(), promotes=['*'])
-        sub2.add_subsystem('e2', E2(), promotes=['*'])
-        sub2.add_subsystem('e3', E3bad(), promotes=['*'])
+        sub2.add_subsystem("e1", E1(), promotes=["*"])
+        sub2.add_subsystem("e2", E2(), promotes=["*"])
+        sub2.add_subsystem("e3", E3bad(), promotes=["*"])
 
-        sub3.add_subsystem('e1', E1(), promotes=['*'])
-        sub3.add_subsystem('e2', E2(), promotes=['*'])
-        sub3.add_subsystem('e3', E3(), promotes=['*'])
+        sub3.add_subsystem("e1", E1(), promotes=["*"])
+        sub3.add_subsystem("e2", E2(), promotes=["*"])
+        sub3.add_subsystem("e3", E3(), promotes=["*"])
 
-        model.connect('sub1.z', 'sub2.a')
-        model.connect('sub2.z', 'sub3.a')
-        model.connect('sub3.z', 'sub1.a')
+        model.connect("sub1.z", "sub2.a")
+        model.connect("sub2.z", "sub3.a")
+        model.connect("sub3.z", "sub1.a")
         model.linear_solver = om.DirectSolver()
         model.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
 
@@ -818,27 +871,27 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         model = p.model
 
         ivc = om.IndepVarComp()
-        ivc.add_output('aa', 1.0)
-        model.add_subsystem('p', ivc, promotes=['aa'])
+        ivc.add_output("aa", 1.0)
+        model.add_subsystem("p", ivc, promotes=["aa"])
 
-        sub1 = model.add_subsystem('sub1', om.Group())
-        sub2 = model.add_subsystem('sub2', om.Group())
-        sub3 = model.add_subsystem('sub3', om.Group())
+        sub1 = model.add_subsystem("sub1", om.Group())
+        sub2 = model.add_subsystem("sub2", om.Group())
+        sub3 = model.add_subsystem("sub3", om.Group())
 
-        sub1.add_subsystem('e1', E1(), promotes=['*'])
-        sub1.add_subsystem('e2', E2(), promotes=['*'])
-        sub1.add_subsystem('e3', E3(), promotes=['aa', 'x', 'y', 'z'])
+        sub1.add_subsystem("e1", E1(), promotes=["*"])
+        sub1.add_subsystem("e2", E2(), promotes=["*"])
+        sub1.add_subsystem("e3", E3(), promotes=["aa", "x", "y", "z"])
 
-        sub2.add_subsystem('e1', E1(), promotes=['*'])
-        sub2.add_subsystem('e2', E2(), promotes=['*'])
-        sub2.add_subsystem('e3', E3bad(), promotes=['aa', 'x', 'y', 'z'])
+        sub2.add_subsystem("e1", E1(), promotes=["*"])
+        sub2.add_subsystem("e2", E2(), promotes=["*"])
+        sub2.add_subsystem("e3", E3bad(), promotes=["aa", "x", "y", "z"])
 
-        sub3.add_subsystem('e1', E1(), promotes=['*'])
-        sub3.add_subsystem('e2', E2(), promotes=['*'])
-        sub3.add_subsystem('e3', E3(), promotes=['aa', 'x', 'y', 'z'])
+        sub3.add_subsystem("e1", E1(), promotes=["*"])
+        sub3.add_subsystem("e2", E2(), promotes=["*"])
+        sub3.add_subsystem("e3", E3(), promotes=["aa", "x", "y", "z"])
 
-        model.connect('sub1.z', 'sub2.a')
-        model.connect('sub2.z', 'sub3.a')
+        model.connect("sub1.z", "sub2.a")
+        model.connect("sub2.z", "sub3.a")
         model.linear_solver = om.DirectSolver()
         model.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
 
@@ -863,41 +916,42 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
     def test_error_msg_bad_svd(self):
 
         class BadComp(om.ImplicitComponent):
-
             def setup(self):
 
-                self.add_input('a', 3.0)
+                self.add_input("a", 3.0)
 
-                self.add_output('x', 1.0)
-                self.add_output('y', 1.0)
-                self.add_output('z', 1.0)
+                self.add_output("x", 1.0)
+                self.add_output("y", 1.0)
+                self.add_output("z", 1.0)
 
-                self.declare_partials('x', 'a', val=1.0)
-                self.declare_partials('x', 'a', val=1.0)
-                self.declare_partials('x', 'a', val=1.0)
+                self.declare_partials("x", "a", val=1.0)
+                self.declare_partials("x", "a", val=1.0)
+                self.declare_partials("x", "a", val=1.0)
 
-                self.declare_partials('x', 'x', val=-2.0)
-                self.declare_partials('x', 'y', val=-1.0e331)
-                self.declare_partials('x', 'z', val=-1.0e331)
-                self.declare_partials('y', 'x', val=-1.0)
-                self.declare_partials('y', 'y', val=-2.0)
-                self.declare_partials('y', 'z', val=-1.0e331)
-                self.declare_partials('z', 'x', val=-1.0e331)
-                self.declare_partials('z', 'y', val=-1.0)
-                self.declare_partials('z', 'z', val=-2.0)
+                self.declare_partials("x", "x", val=-2.0)
+                self.declare_partials("x", "y", val=-1.0e331)
+                self.declare_partials("x", "z", val=-1.0e331)
+                self.declare_partials("y", "x", val=-1.0)
+                self.declare_partials("y", "y", val=-2.0)
+                self.declare_partials("y", "z", val=-1.0e331)
+                self.declare_partials("z", "x", val=-1.0e331)
+                self.declare_partials("z", "y", val=-1.0)
+                self.declare_partials("z", "z", val=-2.0)
 
-            def apply_nonlinear(self, inputs, outputs, residuals, discrete_inputs=None, discrete_outputs=None):
-                a = inputs['a']
+            def apply_nonlinear(
+                self, inputs, outputs, residuals, discrete_inputs=None, discrete_outputs=None
+            ):
+                a = inputs["a"]
                 x, y, z = outputs.values()
 
-                residuals['x'] = a - 2.0 * x - y - z
-                residuals['y'] = a - x - 2.0 * y - z
-                residuals['z'] = a - x - y - 2.0 * z
+                residuals["x"] = a - 2.0 * x - y - z
+                residuals["y"] = a - x - 2.0 * y - z
+                residuals["z"] = a - x - y - 2.0 * z
 
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp', BadComp(), promotes=['*'])
+        model.add_subsystem("comp", BadComp(), promotes=["*"])
 
         model.linear_solver = om.DirectSolver()
 
@@ -906,61 +960,65 @@ class TestDirectSolver(LinearSolverTests.LinearSolverTestCase):
         prob.run_model()
 
         with self.assertRaises(RuntimeError) as cm:
-            prob.compute_totals(of=['x', 'y', 'z'], wrt=['a'])
+            prob.compute_totals(of=["x", "y", "z"], wrt=["a"])
 
-        expected = "Jacobian in '' is not full rank, but OpenMDAO was not " + \
-                   "able to determine which rows or columns."
+        expected = (
+            "Jacobian in '' is not full rank, but OpenMDAO was not "
+            + "able to determine which rows or columns."
+        )
 
         self.assertEqual(expected, str(cm.exception))
 
     def test_matvec_error_raised(self):
         prob = om.Problem()
         model = prob.model
-        model.add_subsystem('x_param', om.IndepVarComp('length', 3.0),
-                            promotes=['length'])
-        model.add_subsystem('mycomp', TestExplCompSimpleJacVec(),
-                            promotes=['length', 'width', 'area'])
+        model.add_subsystem("x_param", om.IndepVarComp("length", 3.0), promotes=["length"])
+        model.add_subsystem(
+            "mycomp", TestExplCompSimpleJacVec(), promotes=["length", "width", "area"]
+        )
 
         model.linear_solver = self.linear_solver_class()
         prob.set_solver_print(level=0)
 
-        prob.setup(check=False, mode='fwd')
+        prob.setup(check=False, mode="fwd")
 
-        prob['width'] = 2.0
+        prob["width"] = 2.0
         prob.run_model()
 
         with self.assertRaises(Exception) as ctx:
             prob.model.run_linearize()
-        self.assertEqual(ctx.exception.args[0], '<model> <class Group>: AssembledJacobian not supported for matrix-free subcomponent.')
+        self.assertEqual(
+            ctx.exception.args[0],
+            "<model> <class Group>: AssembledJacobian not supported for matrix-free subcomponent.",
+        )
+
 
 @unittest.skipUnless(MPI and PETScVector, "only run with MPI and PETSc.")
 class TestDirectSolverRemoteErrors(unittest.TestCase):
-
     N_PROCS = 2
 
     def test_distrib_direct(self):
         size = 3
         group = om.Group()
 
-        group.add_subsystem('P', om.IndepVarComp('x', np.arange(size)))
-        group.add_subsystem('C1', DistribComp(arr_size=size))
-        group.add_subsystem('C2', om.ExecComp(['z=3.0*y'],
-                                              y=np.zeros(size),
-                                              z=np.zeros(size)))
+        group.add_subsystem("P", om.IndepVarComp("x", np.arange(size)))
+        group.add_subsystem("C1", DistribComp(arr_size=size))
+        group.add_subsystem("C2", om.ExecComp(["z=3.0*y"], y=np.zeros(size), z=np.zeros(size)))
 
         prob = om.Problem()
         prob.model = group
         prob.model.linear_solver = om.DirectSolver()
-        prob.model.connect('P.x', 'C1.x')
-        prob.model.connect('C1.y', 'C2.y', src_indices=om.slicer[:])
+        prob.model.connect("P.x", "C1.x")
+        prob.model.connect("C1.y", "C2.y", src_indices=om.slicer[:])
 
-
-        prob.setup(check=False, mode='fwd')
+        prob.setup(check=False, mode="fwd")
         with self.assertRaises(Exception) as cm:
             prob.run_model()
 
-        msg = "DirectSolver linear solver in <model> <class Group> cannot be used in or above a ParallelGroup or a " + \
-            "distributed component."
+        msg = (
+            "DirectSolver linear solver in <model> <class Group> cannot be used in or above a ParallelGroup or a "
+            + "distributed component."
+        )
         self.assertEqual(str(cm.exception), msg)
 
     def test_distrib_direct_subbed(self):
@@ -968,38 +1026,38 @@ class TestDirectSolverRemoteErrors(unittest.TestCase):
         prob = om.Problem()
         group = prob.model = om.Group()
 
-        group.add_subsystem('P', om.IndepVarComp('x', np.arange(size)))
-        sub = group.add_subsystem('sub', om.Group())
+        group.add_subsystem("P", om.IndepVarComp("x", np.arange(size)))
+        sub = group.add_subsystem("sub", om.Group())
 
-        sub.add_subsystem('C1', DistribComp(arr_size=size))
-        sub.add_subsystem('C2', om.ExecComp(['z=3.0*y'],
-                                            y=np.zeros(size),
-                                            z=np.zeros(size)))
+        sub.add_subsystem("C1", DistribComp(arr_size=size))
+        sub.add_subsystem("C2", om.ExecComp(["z=3.0*y"], y=np.zeros(size), z=np.zeros(size)))
 
         prob.model.linear_solver = om.DirectSolver()
-        group.connect('P.x', 'sub.C1.x')
-        group.connect('sub.C1.y', 'sub.C2.y', src_indices=om.slicer[:])
+        group.connect("P.x", "sub.C1.x")
+        group.connect("sub.C1.y", "sub.C2.y", src_indices=om.slicer[:])
 
-        prob.setup(check=False, mode='fwd')
+        prob.setup(check=False, mode="fwd")
         with self.assertRaises(Exception) as cm:
             prob.run_model()
 
-        msg = "DirectSolver linear solver in <model> <class Group> cannot be used in or above a ParallelGroup or a " + \
-            "distributed component."
+        msg = (
+            "DirectSolver linear solver in <model> <class Group> cannot be used in or above a ParallelGroup or a "
+            + "distributed component."
+        )
         self.assertEqual(str(cm.exception), msg)
 
     def test_par_direct_subbed(self):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 1.0))
-        model.add_subsystem('p2', om.IndepVarComp('x', 1.0))
+        model.add_subsystem("p1", om.IndepVarComp("x", 1.0))
+        model.add_subsystem("p2", om.IndepVarComp("x", 1.0))
 
-        parallel = model.add_subsystem('parallel', om.ParallelGroup())
-        parallel.add_subsystem('c1', om.ExecComp(['y=-2.0*x']))
-        parallel.add_subsystem('c2', om.ExecComp(['y=5.0*x']))
+        parallel = model.add_subsystem("parallel", om.ParallelGroup())
+        parallel.add_subsystem("c1", om.ExecComp(["y=-2.0*x"]))
+        parallel.add_subsystem("c2", om.ExecComp(["y=5.0*x"]))
 
-        model.add_subsystem('c3', om.ExecComp(['y=3.0*x1+7.0*x2']))
+        model.add_subsystem("c3", om.ExecComp(["y=3.0*x1+7.0*x2"]))
 
         model.connect("parallel.c1.y", "c3.x1")
         model.connect("parallel.c2.y", "c3.x2")
@@ -1009,38 +1067,41 @@ class TestDirectSolverRemoteErrors(unittest.TestCase):
 
         model.linear_solver = om.DirectSolver()
 
-        prob.setup(check=False, mode='fwd')
+        prob.setup(check=False, mode="fwd")
         with self.assertRaises(Exception) as cm:
             prob.run_model()
 
-        msg = "DirectSolver linear solver in <model> <class Group> cannot be used in or above a ParallelGroup or a " + \
-            "distributed component."
+        msg = (
+            "DirectSolver linear solver in <model> <class Group> cannot be used in or above a ParallelGroup or a "
+            + "distributed component."
+        )
         self.assertEqual(str(cm.exception), msg)
 
     def test_par_direct(self):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('P', om.IndepVarComp('x', 1.0))
-        par = model.add_subsystem('par', om.ParallelGroup())
-        par.add_subsystem('C1', om.ExecComp(['y=2.0*x']))
-        par.add_subsystem('C2', om.ExecComp(['z=3.0*y']))
+        model.add_subsystem("P", om.IndepVarComp("x", 1.0))
+        par = model.add_subsystem("par", om.ParallelGroup())
+        par.add_subsystem("C1", om.ExecComp(["y=2.0*x"]))
+        par.add_subsystem("C2", om.ExecComp(["z=3.0*y"]))
 
         model.linear_solver = om.DirectSolver()
-        model.connect('P.x', 'par.C1.x')
-        model.connect('P.x', 'par.C2.y')
+        model.connect("P.x", "par.C1.x")
+        model.connect("P.x", "par.C2.y")
 
         prob.setup()
         with self.assertRaises(Exception) as cm:
             prob.run_model()
 
-        msg = "DirectSolver linear solver in <model> <class Group> cannot be used in or above a ParallelGroup or a " + \
-            "distributed component."
+        msg = (
+            "DirectSolver linear solver in <model> <class Group> cannot be used in or above a ParallelGroup or a "
+            + "distributed component."
+        )
         self.assertEqual(str(cm.exception), msg)
 
 
 class TestDirectSolverMPI(unittest.TestCase):
-
     N_PROCS = 2
 
     def test_serial_in_mpi(self):
@@ -1052,31 +1113,31 @@ class TestDirectSolverMPI(unittest.TestCase):
 
         g1 = model.g1
         g1.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
-        g1.nonlinear_solver.options['rtol'] = 1.0e-5
+        g1.nonlinear_solver.options["rtol"] = 1.0e-5
         g1.linear_solver = om.DirectSolver(assemble_jac=True)
-        g1.options['assembled_jac_type'] = 'dense'
+        g1.options["assembled_jac_type"] = "dense"
 
         g2 = model.g2
         g2.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
-        g2.nonlinear_solver.options['rtol'] = 1.0e-5
+        g2.nonlinear_solver.options["rtol"] = 1.0e-5
         g2.linear_solver = om.DirectSolver(assemble_jac=True)
-        g2.options['assembled_jac_type'] = 'dense'
+        g2.options["assembled_jac_type"] = "dense"
 
         model.nonlinear_solver = om.NewtonSolver()
         model.linear_solver = om.ScipyKrylov(assemble_jac=True)
-        model.options['assembled_jac_type'] = 'dense'
+        model.options["assembled_jac_type"] = "dense"
 
-        model.nonlinear_solver.options['solve_subsystems'] = True
+        model.nonlinear_solver.options["solve_subsystems"] = True
 
         prob.set_solver_print(level=0)
 
         prob.setup()
         prob.run_model()
 
-        assert_near_equal(prob['g1.y1'], 0.64, 1.0e-5)
-        assert_near_equal(prob['g1.y2'], 0.80, 1.0e-5)
-        assert_near_equal(prob['g2.y1'], 0.64, 1.0e-5)
-        assert_near_equal(prob['g2.y2'], 0.80, 1.0e-5)
+        assert_near_equal(prob["g1.y1"], 0.64, 1.0e-5)
+        assert_near_equal(prob["g1.y2"], 0.80, 1.0e-5)
+        assert_near_equal(prob["g2.y1"], 0.64, 1.0e-5)
+        assert_near_equal(prob["g2.y2"], 0.80, 1.0e-5)
 
 
 class SqrtState(om.ImplicitComponent):
@@ -1093,9 +1154,9 @@ class SqrtState(om.ImplicitComponent):
         """
         Declare inputs, outputs and partials.
         """
-        self.add_input('x', 3.0)
-        self.add_output('y', 2.0)
-        self.declare_partials('y', ['x', 'y'])
+        self.add_input("x", 3.0)
+        self.add_output("y", 2.0)
+        self.declare_partials("y", ["x", "y"])
 
     def apply_nonlinear(self, inputs, outputs, residuals):
         """
@@ -1110,7 +1171,7 @@ class SqrtState(om.ImplicitComponent):
         residuals : Vector
             Unscaled, dimensional residuals.
         """
-        residuals['y'] = outputs['y'] ** 2 - inputs['x']
+        residuals["y"] = outputs["y"] ** 2 - inputs["x"]
 
     def linearize(self, inputs, outputs, partials):
         """
@@ -1125,8 +1186,8 @@ class SqrtState(om.ImplicitComponent):
         partials : Jacobian
             Sub-jac components written to partials[output_name, input_name].
         """
-        partials['y', 'y'] = 2.0 * outputs['y']
-        partials['y', 'x'] = -1.0
+        partials["y", "y"] = 2.0 * outputs["y"]
+        partials["y", "x"] = -1.0
 
 
 class ScaledSqrtState(SqrtState):
@@ -1143,9 +1204,9 @@ class ScaledSqrtState(SqrtState):
         """
         Declare inputs, outputs and partials with non-unit scaling.
         """
-        self.add_input('x', 3.0)
-        self.add_output('y', 2.0, ref=100.0, res_ref=0.01)
-        self.declare_partials('y', ['x', 'y'])
+        self.add_input("x", 3.0)
+        self.add_output("y", 2.0, ref=100.0, res_ref=0.01)
+        self.declare_partials("y", ["x", "y"])
 
 
 class TestDirectSolverUnderApproximation(unittest.TestCase):
@@ -1159,57 +1220,57 @@ class TestDirectSolverUnderApproximation(unittest.TestCase):
 
     def _build(self, method, comp_class=None):
         p = om.Problem(reports=False)
-        g = p.model.add_subsystem('g', om.Group(), promotes=['*'])
-        g.add_subsystem('comp', (comp_class or SqrtState)(), promotes=['*'])
+        g = p.model.add_subsystem("g", om.Group(), promotes=["*"])
+        g.add_subsystem("comp", (comp_class or SqrtState)(), promotes=["*"])
         g.nonlinear_solver = om.NewtonSolver(solve_subsystems=False, iprint=-1)
         g.linear_solver = om.DirectSolver()
         g.approx_totals(method=method)
-        p.setup(force_alloc_complex=(method == 'cs'))
-        p.set_val('x', 3.0)
+        p.setup(force_alloc_complex=(method == "cs"))
+        p.set_val("x", 3.0)
         p.run_model()
         return p
 
     def test_approx_totals_fd_on_group_with_direct_solver(self):
-        p = self._build('fd')
-        assert_near_equal(p.get_val('y')[0], np.sqrt(3.0), 1e-10)
-        J = p.compute_totals(of=['y'], wrt=['x'], return_format='flat_dict')
-        assert_near_equal(J['y', 'x'][0][0], 1.0 / (2.0 * np.sqrt(3.0)), 1e-5)
+        p = self._build("fd")
+        assert_near_equal(p.get_val("y")[0], np.sqrt(3.0), 1e-10)
+        J = p.compute_totals(of=["y"], wrt=["x"], return_format="flat_dict")
+        assert_near_equal(J["y", "x"][0][0], 1.0 / (2.0 * np.sqrt(3.0)), 1e-5)
 
     def test_approx_totals_cs_on_group_with_direct_solver(self):
-        p = self._build('cs')
-        J = p.compute_totals(of=['y'], wrt=['x'], return_format='flat_dict')
-        assert_near_equal(J['y', 'x'][0][0], 1.0 / (2.0 * np.sqrt(3.0)), 1e-10)
+        p = self._build("cs")
+        J = p.compute_totals(of=["y"], wrt=["x"], return_format="flat_dict")
+        assert_near_equal(J["y", "x"][0][0], 1.0 / (2.0 * np.sqrt(3.0)), 1e-10)
 
     def test_approx_totals_with_scaling(self):
         # the assembled and matrix-free solve paths differ by the unscaled context, so a
         # scaled model is what tells them apart
-        for method in ('fd', 'cs'):
+        for method in ("fd", "cs"):
             with self.subTest(method=method):
                 p = self._build(method, ScaledSqrtState)
-                assert_near_equal(p.get_val('y')[0], np.sqrt(3.0), 1e-8)
-                J = p.compute_totals(of=['y'], wrt=['x'], return_format='flat_dict')
-                assert_near_equal(J['y', 'x'][0][0], 1.0 / (2.0 * np.sqrt(3.0)), 1e-5)
+                assert_near_equal(p.get_val("y")[0], np.sqrt(3.0), 1e-8)
+                J = p.compute_totals(of=["y"], wrt=["x"], return_format="flat_dict")
+                assert_near_equal(J["y", "x"][0][0], 1.0 / (2.0 * np.sqrt(3.0)), 1e-5)
 
     def test_scaled_model_without_approximation(self):
         # the same scaled model, solved analytically, must be unaffected
         p = om.Problem(reports=False)
-        g = p.model.add_subsystem('g', om.Group(), promotes=['*'])
-        g.add_subsystem('comp', ScaledSqrtState(), promotes=['*'])
+        g = p.model.add_subsystem("g", om.Group(), promotes=["*"])
+        g.add_subsystem("comp", ScaledSqrtState(), promotes=["*"])
         g.nonlinear_solver = om.NewtonSolver(solve_subsystems=False, iprint=-1)
         g.linear_solver = om.DirectSolver()
         p.setup()
-        p.set_val('x', 3.0)
+        p.set_val("x", 3.0)
         p.run_model()
-        J = p.compute_totals(of=['y'], wrt=['x'], return_format='flat_dict')
-        assert_near_equal(J['y', 'x'][0][0], 1.0 / (2.0 * np.sqrt(3.0)), 1e-10)
+        J = p.compute_totals(of=["y"], wrt=["x"], return_format="flat_dict")
+        assert_near_equal(J["y", "x"][0][0], 1.0 / (2.0 * np.sqrt(3.0)), 1e-10)
 
     def test_solve_without_factorization_gives_a_clear_error(self):
-        p = self._build('fd')
+        p = self._build("fd")
         solver = p.model.g.linear_solver
         solver._lu = solver._lup = None
         with self.assertRaises(RuntimeError) as cm:
-            solver.solve('fwd')
-        self.assertIn('no factorization', str(cm.exception))
+            solver.solve("fwd")
+        self.assertIn("no factorization", str(cm.exception))
 
 
 if __name__ == "__main__":

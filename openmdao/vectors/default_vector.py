@@ -1,4 +1,5 @@
 """Define the default Vector class."""
+
 import hashlib
 import numpy as np
 
@@ -84,7 +85,7 @@ class DefaultVector(Vector):
         for vinfo in views.values():
             vinfo.set_view(data)
 
-        if self._name == 'linear' and self._kind in ('input', 'output'):
+        if self._name == "linear" and self._kind in ("input", "output"):
             self._names = frozenset(views)
         else:
             self._names = views
@@ -103,8 +104,8 @@ class DefaultVector(Vector):
             Nonlinear vector if this is a linear vector.
         """
         kind = self._kind
-        islinear = self._name == 'linear'
-        isinput = kind == 'input'
+        islinear = self._name == "linear"
+        isinput = kind == "input"
         factors = system._scale_factors
 
         # If we define 'ref' on an output, then we will need to allocate a separate scaling ndarray
@@ -159,12 +160,12 @@ class DefaultVector(Vector):
             Nonlinear vector if this is a linear vector.
         """
         data = self._data
-        if self._name == 'nonlinear':
+        if self._name == "nonlinear":
             if do_adder:
                 self._scaling = (np.ones(data.size), np.zeros(data.size))
             else:
                 self._scaling = (np.ones(data.size), None)
-        elif self._name == 'linear':
+        elif self._name == "linear":
             if self._has_solver_ref:
                 # We only allocate an extra scaling vector when we have output scaling
                 # somewhere in the model.
@@ -273,7 +274,7 @@ class DefaultVector(Vector):
             This vector times val is added to self.
         """
         data = self.asarray()
-        data += (val * vec.asarray())
+        data += val * vec.asarray()
 
     def set_vec(self, vec):
         """
@@ -301,7 +302,7 @@ class DefaultVector(Vector):
         # will get properly reset, e.g. when the array is zeroed out.
         self._data[idxs] = val
 
-    def scale_to_norm(self, mode='fwd'):
+    def scale_to_norm(self, mode="fwd"):
         """
         Scale this vector to normalized form.
 
@@ -310,7 +311,7 @@ class DefaultVector(Vector):
         mode : str
             Derivative direction.
         """
-        if mode == 'rev':
+        if mode == "rev":
             self._scale_reverse(*self._scaling)
         else:
             if self._has_solver_ref:
@@ -318,7 +319,7 @@ class DefaultVector(Vector):
             else:
                 self._scale_forward(*self._scaling)
 
-    def scale_to_phys(self, mode='fwd'):
+    def scale_to_phys(self, mode="fwd"):
         """
         Scale this vector to physical form.
 
@@ -327,7 +328,7 @@ class DefaultVector(Vector):
         mode : str
             Derivative direction.
         """
-        if mode == 'rev':
+        if mode == "rev":
             self._scale_forward(*self._scaling)
         else:
             if self._has_solver_ref:
@@ -506,6 +507,6 @@ class DefaultVector(Vector):
             The hash string.
         """
         if self._data.size == 0:
-            return ''
+            return ""
         # we must use self._data here because the hashing alg requires array to be C-contiguous
         return array_hash(self._data, alg)

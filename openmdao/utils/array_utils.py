@@ -1,6 +1,7 @@
 """
 Utils for dealing with arrays.
 """
+
 import sys
 from itertools import product
 import hashlib
@@ -49,8 +50,9 @@ def get_global_dist_shape(dist_shapes):
     tuple or None
         The global shape of the distributed variable.
     """
-    dshapelists = [list(dshape) for dshape in dist_shapes
-                   if dshape is not None and shape_to_len(dshape) > 0]
+    dshapelists = [
+        list(dshape) for dshape in dist_shapes if dshape is not None and shape_to_len(dshape) > 0
+    ]
 
     # during some error conditions, there may be no shapes that are not None on any rank, so
     # we need to check for that
@@ -125,6 +127,7 @@ def scatter_dist_to_local(dist_val, comm, sizes):
         The local value on this process.
     """
     from openmdao.utils.mpi import MPI
+
     offsets = np.zeros(sizes.shape, dtype=INT_DTYPE)
     offsets[1:] = np.cumsum(sizes)[:-1]
     local = np.zeros(sizes[comm.rank])
@@ -217,7 +220,7 @@ def csr_array_viz(arr, val_map=None, stream=sys.stdout):
         raise RuntimeError("simple_array_viz only works for 2d arrays.")
 
     if val_map is None:
-        val_map = {1: 'x', 0: '.'}
+        val_map = {1: "x", 0: "."}
 
     final = arr.tocsr() if issparse(arr) else csr_matrix(arr, dtype=np.int8)
     final = final.astype(np.int8, copy=final.dtype is not np.int8)
@@ -228,8 +231,8 @@ def csr_array_viz(arr, val_map=None, stream=sys.stdout):
         rowinds = row.indices
         rowarr[:] = 0
         rowarr[rowinds] = row.data
-        stream.write(''.join(val_map[c] for c in rowarr))
-        stream.write(f'  {r}\n')
+        stream.write("".join(val_map[c] for c in rowarr))
+        stream.write(f"  {r}\n")
 
 
 def get_sparsity_diff_array(sparsity1, sparsity2):
@@ -252,11 +255,13 @@ def get_sparsity_diff_array(sparsity1, sparsity2):
         3: non-zero val in sparsity2
         4: non-zero val in both.
     """
-    assert not (sparsity1 is None and sparsity2 is None), \
-        'At least one sparsity pattern must be provided.'
-    if ((sparsity1 is not None and sparsity1.dtype != bool) or
-            (sparsity2 is not None and sparsity2.dtype != bool)):
-        raise ValueError('Sparsity patterns must be boolean.')
+    assert not (sparsity1 is None and sparsity2 is None), (
+        "At least one sparsity pattern must be provided."
+    )
+    if (sparsity1 is not None and sparsity1.dtype != bool) or (
+        sparsity2 is not None and sparsity2.dtype != bool
+    ):
+        raise ValueError("Sparsity patterns must be boolean.")
 
     if issparse(sparsity1):
         sp1 = sparsity1.tocsr().astype(np.int8)
@@ -272,7 +277,7 @@ def get_sparsity_diff_array(sparsity1, sparsity2):
     else:
         sp2 = csr_matrix(sparsity2, dtype=np.int8)
 
-    assert sp1.shape == sp2.shape, 'Sparsity patterns must have the same shape.'
+    assert sp1.shape == sp2.shape, "Sparsity patterns must have the same shape."
 
     # set so that we get unique values for their sum:
     sp1.data[:] = 1
@@ -302,7 +307,7 @@ def sparsity_diff_viz(arr1, arr2, val_map=None, stream=sys.stdout):
         True if they agree, False otherwise.
     """
     if val_map is None:
-        val_map = {0: '.', 1: '1', 3: '2', 4: 'x'}
+        val_map = {0: ".", 1: "1", 3: "2", 4: "x"}
     spdiff = get_sparsity_diff_array(arr1, arr2)
     csr_array_viz(spdiff, val_map=val_map, stream=stream)
 
@@ -344,23 +349,23 @@ def array_viz(arr, prob=None, of=None, wrt=None, stream=sys.stdout):
     else:
         row = 0
         for res in of:
-            for r in range(row, row + prob.driver._responses[res]['size']):
+            for r in range(row, row + prob.driver._responses[res]["size"]):
                 col = 0
                 for dv in wrt:
-                    for c in range(col, col + prob.driver._designvars[dv]['size']):
+                    for c in range(col, col + prob.driver._designvars[dv]["size"]):
                         if arr[r, c]:
-                            stream.write('x')
+                            stream.write("x")
                         else:
-                            stream.write('.')
+                            stream.write(".")
                     col = c + 1
-                stream.write(' %d  %s\n' % (r, res))
+                stream.write(" %d  %s\n" % (r, res))
             row = r + 1
 
         start = 0
         for name in wrt:
-            tab = ' ' * start
-            stream.write('%s|%s\n' % (tab, name))
-            start += prob.driver._designvars[name]['size']
+            tab = " " * start
+            stream.write("%s|%s\n" % (tab, name))
+            start += prob.driver._designvars[name]["size"]
 
 
 def array_connection_compatible(shape1, shape2):
@@ -400,12 +405,12 @@ def array_connection_compatible(shape1, shape2):
     nz2 = np.where(ashape2 > 1)[0]
 
     if len(nz1) > 0:
-        fundamental_shape1 = ashape1[np.min(nz1): np.max(nz1) + 1]
+        fundamental_shape1 = ashape1[np.min(nz1) : np.max(nz1) + 1]
     else:
         fundamental_shape1 = np.ones((1,))
 
     if len(nz2) > 0:
-        fundamental_shape2 = ashape2[np.min(nz2): np.max(nz2) + 1]
+        fundamental_shape2 = ashape2[np.min(nz2) : np.max(nz2) + 1]
     else:
         fundamental_shape2 = np.ones((1,))
 
@@ -734,10 +739,11 @@ def array_hash(arr, alg=hashlib.sha1):
     str
         The computed hash.
     """
-    if arr.dtype.kind in ('f', 'c', 'i', 'u', 'b'):
+    if arr.dtype.kind in ("f", "c", "i", "u", "b"):
         return alg(arr.view(np.uint8)).hexdigest()
-    raise ValueError("array_hash only works for numerical arrays, but called with array of dtype "
-                     f"{arr.dtype}.")
+    raise ValueError(
+        f"array_hash only works for numerical arrays, but called with array of dtype {arr.dtype}."
+    )
 
 
 _randgen = np.random.default_rng()
@@ -962,13 +968,13 @@ else:
         for aval, bval in zip(a, b):
             abs_err = aval - bval
 
-            if abs_err < 0.:
+            if abs_err < 0.0:
                 abs_err = -abs_err
 
             if abs_err > atol:
                 return False
 
-            if bval < 0.:
+            if bval < 0.0:
                 bval = -bval
 
             if abs_err > atol + rtol * bval:
@@ -996,7 +1002,7 @@ else:
             True if all elements of a are zero.
         """
         for i in range(len(a)):
-            if a[i] != 0.:
+            if a[i] != 0.0:
                 return False
         return True
 
@@ -1058,7 +1064,7 @@ def safe_norm(arr):
     float
         Norm of the array or 0 if the array is None or empty.
     """
-    return 0. if arr is None or arr.size == 0 else np.linalg.norm(arr)
+    return 0.0 if arr is None or arr.size == 0 else np.linalg.norm(arr)
 
 
 def get_tol_violation(x, ref, atol=0.0, rtol=1e-5):
@@ -1104,7 +1110,7 @@ def get_tol_violation(x, ref, atol=0.0, rtol=1e-5):
     else:
         rel_at_max = np.inf
 
-    return max_error, (max_error_x, max_error_ref), np.any(diff > 0.), abs_at_max, rel_at_max
+    return max_error, (max_error_x, max_error_ref), np.any(diff > 0.0), abs_at_max, rel_at_max
 
 
 _unsigned = (np.uint8, np.uint16, np.uint32, np.uint64)

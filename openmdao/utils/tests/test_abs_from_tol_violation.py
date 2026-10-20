@@ -4,7 +4,6 @@ from openmdao.core.system import _abs_from_tol_violation, _ErrorData
 
 
 class TestAbsFromTolViolation(unittest.TestCase):
-
     def test_empty_lists(self):
         # Test that empty inputs return an empty list.
         result = _abs_from_tol_violation([], [], atol=5, rtol=0.1)
@@ -29,8 +28,14 @@ class TestAbsFromTolViolation(unittest.TestCase):
         result = _abs_from_tol_violation([tv], [tv_val], atol=2, rtol=0.05)
         # Expected: only reverse computed: 150 + 2 + 0.05*50 = 150 + 2 + 2.5 = 154.5
         self.assertEqual(len(result), 1)
-        self.assertFalse(hasattr(result[0], 'forward') and result[0].forward is not None, "Forward should not be set")
-        self.assertFalse(hasattr(result[0], 'fwd_rev') and result[0].fwd_rev is not None, "fwd_rev should not be set")
+        self.assertFalse(
+            hasattr(result[0], "forward") and result[0].forward is not None,
+            "Forward should not be set",
+        )
+        self.assertFalse(
+            hasattr(result[0], "fwd_rev") and result[0].fwd_rev is not None,
+            "fwd_rev should not be set",
+        )
         self.assertAlmostEqual(result[0].reverse, 154.5)
 
     def test_multiple_entries(self):
@@ -51,13 +56,22 @@ class TestAbsFromTolViolation(unittest.TestCase):
         # Check first entry
         self.assertAlmostEqual(result[0].forward, 14)
         self.assertAlmostEqual(result[0].fwd_rev, 36)
-        self.assertFalse(hasattr(result[0], 'reverse') and result[0].reverse is not None, "Reverse should not be set for first entry")
+        self.assertFalse(
+            hasattr(result[0], "reverse") and result[0].reverse is not None,
+            "Reverse should not be set for first entry",
+        )
 
         # Check second entry
         self.assertAlmostEqual(result[1].reverse, 25)
-        self.assertFalse(hasattr(result[1], 'forward') and result[1].forward is not None, "Forward should not be set for second entry")
-        self.assertFalse(hasattr(result[1], 'fwd_rev') and result[1].fwd_rev is not None, "fwd_rev should not be set for second entry")
+        self.assertFalse(
+            hasattr(result[1], "forward") and result[1].forward is not None,
+            "Forward should not be set for second entry",
+        )
+        self.assertFalse(
+            hasattr(result[1], "fwd_rev") and result[1].fwd_rev is not None,
+            "fwd_rev should not be set for second entry",
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

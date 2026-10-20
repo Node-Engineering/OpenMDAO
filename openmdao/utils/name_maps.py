@@ -100,7 +100,7 @@ class NameResolver(object):
         The message information for the system.
     """
 
-    def __init__(self, pathname, msginfo=''):
+    def __init__(self, pathname, msginfo=""):
         """
         Initialize the name resolver.
 
@@ -112,14 +112,14 @@ class NameResolver(object):
             The message information for the system.
         """
         self._pathname = pathname
-        self._prefix = pathname + '.' if pathname else ''
+        self._prefix = pathname + "." if pathname else ""
         self._pathlen = len(pathname) + 1 if pathname else 0
-        self._abs2prom = {'input': {}, 'output': {}}
-        self._abs2prom_in = self._abs2prom['input']
-        self._abs2prom_out = self._abs2prom['output']
-        self._prom2abs = {'input': {}, 'output': {}}
-        self._prom2abs_in = self._prom2abs['input']
-        self._prom2abs_out = self._prom2abs['output']
+        self._abs2prom = {"input": {}, "output": {}}
+        self._abs2prom_in = self._abs2prom["input"]
+        self._abs2prom_out = self._abs2prom["output"]
+        self._prom2abs = {"input": {}, "output": {}}
+        self._prom2abs_in = self._prom2abs["input"]
+        self._prom2abs_out = self._prom2abs["output"]
         self._prom_no_multi_abs = True
         self._conns = None
         self.msginfo = msginfo if msginfo else pathname
@@ -128,12 +128,13 @@ class NameResolver(object):
         """
         Reset the _prom2abs dictionary.
         """
-        self._prom2abs = {'input': {}, 'output': {}}
-        self._prom2abs_in = self._prom2abs['input']
-        self._prom2abs_out = self._prom2abs['output']
+        self._prom2abs = {"input": {}, "output": {}}
+        self._prom2abs_in = self._prom2abs["input"]
+        self._prom2abs_out = self._prom2abs["output"]
 
-    def add_mapping(self, absname, promname, iotype, local=True, continuous=True,
-                    distributed=False):
+    def add_mapping(
+        self, absname, promname, iotype, local=True, continuous=True, distributed=False
+    ):
         """
         Add a mapping between an absolute name and a promoted name.
 
@@ -179,10 +180,13 @@ class NameResolver(object):
             True if the name resolver contains the given name, False otherwise.
         """
         if iotype is None:
-            return self.contains(name, 'output') or self.contains(name, 'input')
+            return self.contains(name, "output") or self.contains(name, "input")
 
-        return name in self._prom2abs[iotype] or name in self._abs2prom[iotype] or \
-            self._prefix + name in self._abs2prom[iotype]
+        return (
+            name in self._prom2abs[iotype]
+            or name in self._abs2prom[iotype]
+            or self._prefix + name in self._abs2prom[iotype]
+        )
 
     def _auto_ivc_update(self, auto_ivc_resolver, auto2tgt):
         """
@@ -198,14 +202,14 @@ class NameResolver(object):
         old_abs2prom_out = self._abs2prom_out
         old_prom2abs_out = self._prom2abs_out
 
-        self._abs2prom = {'input': self._abs2prom_in, 'output': {}}
-        self._prom2abs = {'input': self._prom2abs_in, 'output': {}}
+        self._abs2prom = {"input": self._abs2prom_in, "output": {}}
+        self._prom2abs = {"input": self._prom2abs_in, "output": {}}
 
-        self._abs2prom_out = self._abs2prom['output']
-        self._prom2abs_out = self._prom2abs['output']
+        self._abs2prom_out = self._abs2prom["output"]
+        self._prom2abs_out = self._prom2abs["output"]
 
         # set promoted name of auto_ivc outputs to the promoted name of the input they connect to
-        for absname, flags in auto_ivc_resolver.flags_iter('output'):
+        for absname, flags in auto_ivc_resolver.flags_iter("output"):
             pname = self._abs2prom_in[auto2tgt[absname][0]][0]
             self._abs2prom_out[absname] = (pname, flags)
             # don't add target prom name to our prom2abs because it causes undesired matches. Just
@@ -230,12 +234,12 @@ class NameResolver(object):
         locabs = self._abs2prom
 
         # reset our abs2prom so all ranks will have the same order
-        self._abs2prom = {'input': {}, 'output': {}}
-        self._abs2prom_in = self._abs2prom['input']
-        self._abs2prom_out = self._abs2prom['output']
+        self._abs2prom = {"input": {}, "output": {}}
+        self._abs2prom_in = self._abs2prom["input"]
+        self._abs2prom_out = self._abs2prom["output"]
 
         for rank, other in enumerate(others):
-            for io in ('input', 'output'):
+            for io in ("input", "output"):
                 loc_abs2prom = locabs[io]
                 my_abs2prom = self._abs2prom[io]
                 if rank == myrank:
@@ -256,7 +260,7 @@ class NameResolver(object):
         """
         Populate the _prom2abs dictionary based on the _abs2prom dictionary.
         """
-        self._prom2abs = {'input': {}, 'output': {}}
+        self._prom2abs = {"input": {}, "output": {}}
         for iotype, promdict in self._prom2abs.items():
             for absname, (promname, _) in self._abs2prom[iotype].items():
                 if promname in promdict:
@@ -265,14 +269,16 @@ class NameResolver(object):
                 else:
                     promdict[promname] = [absname]
 
-        self._prom2abs_in = self._prom2abs['input']
-        self._prom2abs_out = self._prom2abs['output']
+        self._prom2abs_in = self._prom2abs["input"]
+        self._prom2abs_out = self._prom2abs["output"]
 
     def _check_dup_prom_outs(self):
         for promname, abslist in self._prom2abs_out.items():
             if len(abslist) > 1:
-                raise ValueError(f"{self.msginfo}: Output name '{promname}' refers to "
-                                 f"multiple outputs: {sorted(abslist)}.")
+                raise ValueError(
+                    f"{self.msginfo}: Output name '{promname}' refers to "
+                    f"multiple outputs: {sorted(abslist)}."
+                )
 
     def num_proms(self, iotype=None):
         """
@@ -310,7 +316,7 @@ class NameResolver(object):
             The number of absolute names of the specified iotype.
         """
         if iotype is None:
-            return self.num_abs('input', local) + self.num_abs('output', local)
+            return self.num_abs("input", local) + self.num_abs("output", local)
 
         if local is None:
             return len(self._abs2prom[iotype])
@@ -434,13 +440,18 @@ class NameResolver(object):
             The iotype of the absolute name or None if the absolute name is not found.
         """
         if absname in self._abs2prom_out:
-            return 'output'
+            return "output"
         if absname in self._abs2prom_in:
-            return 'input'
+            return "input"
         if report_error:
             raise KeyError(
-                self._add_guesses(absname, f"{self.msginfo}: Variable name '{absname}' not found.",
-                                  include_prom=False, include_abs=True))
+                self._add_guesses(
+                    absname,
+                    f"{self.msginfo}: Variable name '{absname}' not found.",
+                    include_prom=False,
+                    include_abs=True,
+                )
+            )
 
     def get_prom_iotype(self, promname, report_error=False):
         """
@@ -462,13 +473,15 @@ class NameResolver(object):
             The iotype of the promoted name or None if the promoted name is not found.
         """
         if promname in self._prom2abs_out:
-            return 'output'
+            return "output"
         if promname in self._prom2abs_in:
-            return 'input'
+            return "input"
         if report_error:
             raise KeyError(
-                self._add_guesses(promname,
-                                  f"{self.msginfo}: Variable name '{promname}' not found."))
+                self._add_guesses(
+                    promname, f"{self.msginfo}: Variable name '{promname}' not found."
+                )
+            )
 
     def get_iotype(self, name, report_error=False):
         """
@@ -487,20 +500,20 @@ class NameResolver(object):
             The iotype of the variable.
         """
         if name in self._abs2prom_out:
-            return 'output'
+            return "output"
         if name in self._abs2prom_in:
-            return 'input'
+            return "input"
 
         if name in self._prom2abs_out:
-            return 'output'
+            return "output"
         if name in self._prom2abs_in:
-            return 'input'
+            return "input"
 
         if report_error:
             raise KeyError(
-                self._add_guesses(name,
-                                  f"{self.msginfo}: Variable name '{name}' not found."),
-                                  include_abs=True)
+                self._add_guesses(name, f"{self.msginfo}: Variable name '{name}' not found."),
+                include_abs=True,
+            )
 
     def prom2abs_iter(self, iotype, local=None, continuous=None, distributed=None):
         """
@@ -528,15 +541,16 @@ class NameResolver(object):
             Absolute names corresponding to the promoted name.
         """
         if iotype is None:
-            yield from self.prom2abs_iter('input', local, continuous, distributed)
-            yield from self.prom2abs_iter('output', local, continuous, distributed)
+            yield from self.prom2abs_iter("input", local, continuous, distributed)
+            yield from self.prom2abs_iter("output", local, continuous, distributed)
         else:
             if local is None and continuous is None and distributed is None:
                 yield from self._prom2abs[iotype].items()
             else:
                 a2p = self._abs2prom[iotype]
-                mask, expected = _get_flags(local=local, continuous=continuous,
-                                            distributed=distributed)
+                mask, expected = _get_flags(
+                    local=local, continuous=continuous, distributed=distributed
+                )
                 for prom, absnames in self._prom2abs[iotype].items():
                     absnames = [n for n in absnames if a2p[n][1] & mask == expected]
                     if absnames:
@@ -568,15 +582,16 @@ class NameResolver(object):
             Promoted name.
         """
         if iotype is None:
-            yield from self.abs2prom_iter('input', local, continuous, distributed)
-            yield from self.abs2prom_iter('output', local, continuous, distributed)
+            yield from self.abs2prom_iter("input", local, continuous, distributed)
+            yield from self.abs2prom_iter("output", local, continuous, distributed)
         else:
             if local is None and continuous is None and distributed is None:
                 for absname, (promname, _) in self._abs2prom[iotype].items():
                     yield absname, promname
             else:
-                mask, expected = _get_flags(local=local, continuous=continuous,
-                                            distributed=distributed)
+                mask, expected = _get_flags(
+                    local=local, continuous=continuous, distributed=distributed
+                )
                 for absname, (promname, flags) in self._abs2prom[iotype].items():
                     if flags & mask == expected:
                         yield absname, promname
@@ -605,13 +620,12 @@ class NameResolver(object):
             Promoted name.
         """
         if iotype is None:
-            yield from self.prom_iter('input', local, continuous, distributed)
-            yield from self.prom_iter('output', local, continuous, distributed)
+            yield from self.prom_iter("input", local, continuous, distributed)
+            yield from self.prom_iter("output", local, continuous, distributed)
         elif local is None and continuous is None and distributed is None:
             yield from self._prom2abs[iotype]
         else:
-            mask, expected = _get_flags(local=local, continuous=continuous,
-                                        distributed=distributed)
+            mask, expected = _get_flags(local=local, continuous=continuous, distributed=distributed)
             a2p = self._abs2prom[iotype]
             for promname, absnames in self._prom2abs[iotype].items():
                 for absname in absnames:
@@ -644,14 +658,15 @@ class NameResolver(object):
             Absolute name.
         """
         if iotype is None:
-            yield from self.abs_iter('input', local, continuous, distributed)
-            yield from self.abs_iter('output', local, continuous, distributed)
+            yield from self.abs_iter("input", local, continuous, distributed)
+            yield from self.abs_iter("output", local, continuous, distributed)
         else:
             if local is None and continuous is None and distributed is None:
                 yield from self._abs2prom[iotype]
             else:
-                mask, expected = _get_flags(local=local, continuous=continuous,
-                                            distributed=distributed)
+                mask, expected = _get_flags(
+                    local=local, continuous=continuous, distributed=distributed
+                )
                 for absname, (_, flags) in self._abs2prom[iotype].items():
                     if flags & mask == expected:
                         yield absname
@@ -694,8 +709,8 @@ class NameResolver(object):
             Flags for the variable.
         """
         if iotype is None:
-            yield from self.flags_iter('input')
-            yield from self.flags_iter('output')
+            yield from self.flags_iter("input")
+            yield from self.flags_iter("output")
         else:
             for absname, (_, flags) in self._abs2prom[iotype].items():
                 yield absname, flags
@@ -723,17 +738,19 @@ class NameResolver(object):
             The source corresponding to the name.
         """
         if self._conns is None:
-            raise RuntimeError(f"{self.msginfo}: Can't find source for '{name}' because "
-                               "connections are not yet known.")
+            raise RuntimeError(
+                f"{self.msginfo}: Can't find source for '{name}' because "
+                "connections are not yet known."
+            )
 
         if name in self._abs2prom_in:
-            if iotype is None or iotype == 'input':
+            if iotype is None or iotype == "input":
                 try:
                     return self._conns[name]
                 except KeyError:
                     pass
         elif name in self._abs2prom_out:
-            if iotype is None or iotype == 'output':
+            if iotype is None or iotype == "output":
                 return name
         else:  # promoted
             absnames = self.absnames(name, iotype, report_error=False)
@@ -742,18 +759,20 @@ class NameResolver(object):
 
                 # absolute input?
                 if absname in self._conns:
-                    if iotype is None or iotype == 'input':
+                    if iotype is None or iotype == "input":
                         return self._conns[absname]
 
                 if absname in self._abs2prom_out:
-                    if iotype is None or iotype == 'output':
+                    if iotype is None or iotype == "output":
                         return absname
 
         if report_error:
-            io = '' if iotype is None else f'{iotype} '
-            raise RuntimeError(self._add_guesses(name,
-                                                 f"{self.msginfo}: Can't find source for {io}"
-                                                 f"'{name}'.", include_abs=True))
+            io = "" if iotype is None else f"{iotype} "
+            raise RuntimeError(
+                self._add_guesses(
+                    name, f"{self.msginfo}: Can't find source for {io}'{name}'.", include_abs=True
+                )
+            )
 
     def abs2rel(self, absname, iotype=None, check=False):
         """
@@ -775,7 +794,7 @@ class NameResolver(object):
             the absolute name is not found.
         """
         if not check or self.is_abs(absname, iotype):
-            return absname[self._pathlen:]
+            return absname[self._pathlen :]
 
     def rel2abs(self, relname, iotype=None, check=False):
         """
@@ -846,9 +865,13 @@ class NameResolver(object):
             return self._abs2prom[iotype][absname][0]
         except KeyError:
             raise KeyError(
-                self._add_guesses(absname,
-                                  f"{self.msginfo}: Variable name '{absname}' not found.",
-                                  include_prom=False, include_abs=True))
+                self._add_guesses(
+                    absname,
+                    f"{self.msginfo}: Variable name '{absname}' not found.",
+                    include_prom=False,
+                    include_abs=True,
+                )
+            )
 
     def absnames(self, promname, iotype=None, report_error=True):
         """
@@ -880,18 +903,21 @@ class NameResolver(object):
 
                 if report_error:
                     raise KeyError(
-                        self._add_guesses(promname,
-                                          f"{self.msginfo}: Variable '{promname}' "
-                                          "not found."))
+                        self._add_guesses(
+                            promname, f"{self.msginfo}: Variable '{promname}' not found."
+                        )
+                    )
                 return
 
         try:
             return self._prom2abs[iotype][promname]
         except KeyError:
             if report_error:
-                raise KeyError(self._add_guesses(promname,
-                                                 f"{self.msginfo}: {iotype} variable "
-                                                 f"'{promname}' not found."))
+                raise KeyError(
+                    self._add_guesses(
+                        promname, f"{self.msginfo}: {iotype} variable '{promname}' not found."
+                    )
+                )
 
     def prom2abs(self, promname, iotype=None):
         """
@@ -924,25 +950,31 @@ class NameResolver(object):
 
             if self._conns is None:
                 # we can't refer to the source since we don't know the connections yet
-                raise RuntimeError(f"{self.msginfo}: The promoted name {promname} is invalid "
-                                   f"because it refers to multiple inputs: [{' ,'.join(lst)}]. "
-                                   "Access the value from the connected output variable instead.")
+                raise RuntimeError(
+                    f"{self.msginfo}: The promoted name {promname} is invalid "
+                    f"because it refers to multiple inputs: [{' ,'.join(lst)}]. "
+                    "Access the value from the connected output variable instead."
+                )
 
             # report to the user which connected output to access
             src_name = self.source(lst[0])
             try:
                 # find the promoted source name if we can (may not be in the scope of our System)
-                src_name = self._abs2prom['output'][src_name][0]
+                src_name = self._abs2prom["output"][src_name][0]
             except KeyError:
                 pass
-            raise RuntimeError(f"{self.msginfo}: The promoted name {promname} is invalid because it"
-                               f" refers to multiple inputs: [{' ,'.join(lst)}]. Access the value "
-                               f"from the connected output variable {src_name} instead.")
+            raise RuntimeError(
+                f"{self.msginfo}: The promoted name {promname} is invalid because it"
+                f" refers to multiple inputs: [{' ,'.join(lst)}]. Access the value "
+                f"from the connected output variable {src_name} instead."
+            )
 
         except KeyError:
-            raise KeyError(self._add_guesses(promname,
-                                             f"{self.msginfo}: Variable name '{promname}' "
-                                             "not found."))
+            raise KeyError(
+                self._add_guesses(
+                    promname, f"{self.msginfo}: Variable name '{promname}' not found."
+                )
+            )
 
     def any2abs(self, name, iotype=None, default=None):
         """
@@ -996,15 +1028,15 @@ class NameResolver(object):
         (str, str) or None
             The absolute key or None if the key is not found.
         """
-        of = self.any2abs(key[0], 'output')
+        of = self.any2abs(key[0], "output")
         if of is None:
             return
 
         # try the input first in order to mimic the old behavior where an exception
         # is raised if the input is ambiguous.
-        wrt = self.any2abs(key[1], 'input')
+        wrt = self.any2abs(key[1], "input")
         if wrt is None:
-            wrt = self.any2abs(key[1], 'output')
+            wrt = self.any2abs(key[1], "output")
             if wrt is None:
                 return
 
@@ -1082,8 +1114,9 @@ class NameResolver(object):
             return absname
 
         if report_error:
-            raise KeyError(self._add_guesses(name,
-                                             f"{self.msginfo}: Variable name '{name}' not found."))
+            raise KeyError(
+                self._add_guesses(name, f"{self.msginfo}: Variable name '{name}' not found.")
+            )
 
     def prom2prom(self, promname, other, iotype=None):
         """
@@ -1132,7 +1165,7 @@ class NameResolver(object):
         set of str
             The implicit connections.
         """
-        return self._prom2abs['output'].keys() & self._prom2abs['input'].keys()
+        return self._prom2abs["output"].keys() & self._prom2abs["input"].keys()
 
     def _add_guesses(self, name, msg, n=3, cutoff=0.15, include_prom=True, include_abs=False):
         """
@@ -1165,7 +1198,7 @@ class NameResolver(object):
         return msg
 
 
-def rel_key2abs_key(obj, rel_key, delim='.'):
+def rel_key2abs_key(obj, rel_key, delim="."):
     """
     Map relative variable name pair to absolute variable name pair.
 
@@ -1235,7 +1268,7 @@ def abs_key_iter(system, rel_ofs, rel_wrts):
         Absolute 'wrt' name.
     """
     if system.pathname:
-        prefix = system.pathname + '.'
+        prefix = system.pathname + "."
         abs_wrts = [prefix + r for r in rel_wrts]
         for rel_of in rel_ofs:
             abs_of = prefix + rel_of

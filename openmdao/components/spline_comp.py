@@ -1,4 +1,5 @@
 """Define the SplineComp class."""
+
 import numpy as np
 
 from openmdao.components.interp_util.interp import InterpND
@@ -46,23 +47,45 @@ class SplineComp(ExplicitComponent):
         """
         super()._declare_options()
 
-        self.options.declare('vec_size', types=int, default=1,
-                             desc='Number of points to evaluate at once.')
-        self.options.declare('method', values=SPLINE_METHODS, default='akima',
-                             desc='Spline interpolation method to use for all outputs.')
-        self.options.declare('x_interp_val', types=(list, np.ndarray),
-                             desc='List/array of x interpolated point values.')
-        self.options.declare('x_cp_val', default=None, types=(list, np.ndarray), allow_none=True,
-                             desc='List/array of x control point values, must be monotonically '
-                             'increasing. Optional alternative to num_cp. Not applicable for '
-                             'bsplines. ')
-        self.options.declare('num_cp', default=None, types=(int, ), allow_none=True,
-                             desc='Number of spline control points. Optional alternative to '
-                             'x_cp_val. Required for bsplines. If None, num_cp will be a linspace '
-                             'from 0 to 1.')
-        self.options.declare('interp_options', types=dict, default={},
-                             desc='Dict contains the name and value of options specific to the '
-                             'chosen interpolation method.')
+        self.options.declare(
+            "vec_size", types=int, default=1, desc="Number of points to evaluate at once."
+        )
+        self.options.declare(
+            "method",
+            values=SPLINE_METHODS,
+            default="akima",
+            desc="Spline interpolation method to use for all outputs.",
+        )
+        self.options.declare(
+            "x_interp_val",
+            types=(list, np.ndarray),
+            desc="List/array of x interpolated point values.",
+        )
+        self.options.declare(
+            "x_cp_val",
+            default=None,
+            types=(list, np.ndarray),
+            allow_none=True,
+            desc="List/array of x control point values, must be monotonically "
+            "increasing. Optional alternative to num_cp. Not applicable for "
+            "bsplines. ",
+        )
+        self.options.declare(
+            "num_cp",
+            default=None,
+            types=(int,),
+            allow_none=True,
+            desc="Number of spline control points. Optional alternative to "
+            "x_cp_val. Required for bsplines. If None, num_cp will be a linspace "
+            "from 0 to 1.",
+        )
+        self.options.declare(
+            "interp_options",
+            types=dict,
+            default={},
+            desc="Dict contains the name and value of options specific to the "
+            "chosen interpolation method.",
+        )
 
     def add_spline(self, y_cp_name, y_interp_name, y_cp_val=None, y_units=None):
         """
@@ -85,14 +108,13 @@ class SplineComp(ExplicitComponent):
         """
         Perform some final setup and checks.
         """
-        interp_method = self.options['method']
+        interp_method = self.options["method"]
 
-        x_cp_val = self.options['x_cp_val']
-        n_cp = self.options['num_cp']
+        x_cp_val = self.options["x_cp_val"]
+        n_cp = self.options["num_cp"]
 
         if x_cp_val is not None:
-
-            if interp_method == 'bsplines':
+            if interp_method == "bsplines":
                 msg = "{}: 'x_cp_val' is not a valid option when using method 'bsplines'. "
                 msg += "Set 'num_cp' instead."
                 raise ValueError(msg.format(self.msginfo))
@@ -113,14 +135,13 @@ class SplineComp(ExplicitComponent):
 
         self._n_cp = n_cp
         opts = {}
-        if 'interp_options' in self.options:
-            opts = self.options['interp_options']
+        if "interp_options" in self.options:
+            opts = self.options["interp_options"]
 
-        vec_size = self.options['vec_size']
-        n_interp = len(self.options['x_interp_val'])
+        vec_size = self.options["vec_size"]
+        n_interp = len(self.options["x_interp_val"])
 
         for y_cp_name, y_interp_name, y_cp_val, y_units in self._spline_cache:
-
             self.add_output(y_interp_name, np.ones((vec_size, n_interp)), units=y_units)
 
             if y_cp_val is None:
@@ -135,8 +156,9 @@ class SplineComp(ExplicitComponent):
 
             row = np.repeat(np.arange(n_interp), n_cp)
             col = np.tile(np.arange(n_cp), n_interp)
-            rows = np.tile(row, vec_size) + \
-                np.repeat(n_interp * np.arange(vec_size), n_interp * n_cp)
+            rows = np.tile(row, vec_size) + np.repeat(
+                n_interp * np.arange(vec_size), n_interp * n_cp
+            )
             cols = np.tile(col, vec_size) + np.repeat(n_cp * np.arange(vec_size), n_interp * n_cp)
 
             self.declare_partials(y_interp_name, y_cp_name, rows=rows, cols=cols)
@@ -144,14 +166,18 @@ class SplineComp(ExplicitComponent):
             # Separate data for each vec_size, but we only need to do sizing, so just pass
             # in the first.  Most interps aren't vectorized.
             cp_val = y_cp_val[0, :]
-            self.interps[y_interp_name] = InterpND(points=(grid, ), values=cp_val,
-                                                   method=interp_method,
-                                                   x_interp=self.options['x_interp_val'],
-                                                   extrapolate=True, **opts)
+            self.interps[y_interp_name] = InterpND(
+                points=(grid,),
+                values=cp_val,
+                method=interp_method,
+                x_interp=self.options["x_interp_val"],
+                extrapolate=True,
+                **opts,
+            )
 
         # The scipy methods do not support complex step.
-        if self.options['method'].startswith('scipy'):
-            self.set_check_partial_options('*', method='fd')
+        if self.options["method"].startswith("scipy"):
+            self.set_check_partial_options("*", method="fd")
 
     def compute(self, inputs, outputs):
         """
@@ -168,7 +194,7 @@ class SplineComp(ExplicitComponent):
             values = inputs[self.interp_to_cp[out_name]]
             interp._compute_d_dvalues = True
             interp._compute_d_dx = False
-            interp.x_interp = self.options['x_interp_val']
+            interp.x_interp = self.options["x_interp_val"]
 
             try:
                 outputs[out_name] = interp._evaluate_spline(values)

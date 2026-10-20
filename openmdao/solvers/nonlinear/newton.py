@@ -25,7 +25,7 @@ class NewtonSolver(NonlinearSolver):
         Line search algorithm. Default is None for no line search.
     """
 
-    SOLVER = 'NL: Newton'
+    SOLVER = "NL: Newton"
 
     def __init__(self, **kwargs):
         """
@@ -42,21 +42,33 @@ class NewtonSolver(NonlinearSolver):
         """
         super()._declare_options()
 
-        self.options.declare('solve_subsystems', types=bool,
-                             desc='Set to True to turn on sub-solvers (Hybrid Newton).')
-        self.options.declare('max_sub_solves', types=int, default=10,
-                             desc='Maximum number of subsystem solves.')
-        self.options.declare('cs_reconverge', types=bool, default=True,
-                             desc='When True, when this driver solves under a complex step, nudge '
-                             'the Solution vector by a small amount so that it reconverges.')
-        self.options.declare('reraise_child_analysiserror', types=bool, default=False,
-                             desc='When the option is true, a solver will reraise any '
-                             'AnalysisError that arises during subsolve; when false, it will '
-                             'continue solving.')
+        self.options.declare(
+            "solve_subsystems",
+            types=bool,
+            desc="Set to True to turn on sub-solvers (Hybrid Newton).",
+        )
+        self.options.declare(
+            "max_sub_solves", types=int, default=10, desc="Maximum number of subsystem solves."
+        )
+        self.options.declare(
+            "cs_reconverge",
+            types=bool,
+            default=True,
+            desc="When True, when this driver solves under a complex step, nudge "
+            "the Solution vector by a small amount so that it reconverges.",
+        )
+        self.options.declare(
+            "reraise_child_analysiserror",
+            types=bool,
+            default=False,
+            desc="When the option is true, a solver will reraise any "
+            "AnalysisError that arises during subsolve; when false, it will "
+            "continue solving.",
+        )
 
-        self.supports['linesearch'] = True
-        self.supports['gradients'] = True
-        self.supports['implicit_components'] = True
+        self.supports["linesearch"] = True
+        self.supports["gradients"] = True
+        self.supports["implicit_components"] = True
 
     def _setup_solvers(self, system, depth):
         """
@@ -73,8 +85,8 @@ class NewtonSolver(NonlinearSolver):
 
         self._disallow_discrete_outputs()
 
-        if not isinstance(self.options._dict['solve_subsystems']['val'], bool):
-            msg = '{}: solve_subsystems must be set by the user.'
+        if not isinstance(self.options._dict["solve_subsystems"]["val"], bool):
+            msg = "{}: solve_subsystems must be set by the user."
             raise ValueError(msg.format(self.msginfo))
 
         if self.linear_solver is not None:
@@ -93,7 +105,7 @@ class NewtonSolver(NonlinearSolver):
             for tup in self.linear_solver._assembled_jac_solver_iter():
                 yield tup
 
-    def _set_solver_print(self, level=2, type_='all', debug_print=None):
+    def _set_solver_print(self, level=2, type_="all", debug_print=None):
         """
         Control printing for solvers and subsolvers in the model.
 
@@ -111,7 +123,7 @@ class NewtonSolver(NonlinearSolver):
         """
         super()._set_solver_print(level=level, type_=type_, debug_print=debug_print)
 
-        if self.linear_solver is not None and type_ != 'NL':
+        if self.linear_solver is not None and type_ != "NL":
             self.linear_solver._set_solver_print(level=level, type_=type_)
 
         if self.linesearch is not None:
@@ -121,7 +133,7 @@ class NewtonSolver(NonlinearSolver):
         """
         Run the apply_nonlinear method on the system.
         """
-        self._recording_iter.push(('_run_apply', 0))
+        self._recording_iter.push(("_run_apply", 0))
 
         system = self._system()
 
@@ -146,8 +158,11 @@ class NewtonSolver(NonlinearSolver):
         bool
             Flag for indicating child linerization
         """
-        return (self.options['solve_subsystems'] and not self._system().under_complex_step
-                and self._iter_count <= self.options['max_sub_solves'])
+        return (
+            self.options["solve_subsystems"]
+            and not self._system().under_complex_step
+            and self._iter_count <= self.options["max_sub_solves"]
+        )
 
     def _linearize(self):
         """
@@ -171,21 +186,19 @@ class NewtonSolver(NonlinearSolver):
             error at the first iteration.
         """
         system = self._system()
-        solve_subsystems = self.options['solve_subsystems'] and not system.under_complex_step
+        solve_subsystems = self.options["solve_subsystems"] and not system.under_complex_step
 
-        if self.options['debug_print']:
-            self._err_cache['inputs'] = system._inputs._copy_vars()
-            self._err_cache['outputs'] = system._outputs._copy_vars()
+        if self.options["debug_print"]:
+            self._err_cache["inputs"] = system._inputs._copy_vars()
+            self._err_cache["outputs"] = system._outputs._copy_vars()
 
         # Execute guess_nonlinear if specified and
         # we have not restarted from a saved point
         if not self._restarted and system._has_guess:
             system._guess_nonlinear()
 
-        with Recording('Newton_subsolve', 0, self) as rec:
-
-            if solve_subsystems and self._iter_count <= self.options['max_sub_solves']:
-
+        with Recording("Newton_subsolve", 0, self) as rec:
+            if solve_subsystems and self._iter_count <= self.options["max_sub_solves"]:
                 self._solver_info.append_solver()
 
                 # should call the subsystems solve before computing the first residual
@@ -208,8 +221,11 @@ class NewtonSolver(NonlinearSolver):
         """
         system = self._system()
         self._solver_info.append_subsolver()
-        do_subsolve = self.options['solve_subsystems'] and not system.under_complex_step and \
-            (self._iter_count < self.options['max_sub_solves'])
+        do_subsolve = (
+            self.options["solve_subsystems"]
+            and not system.under_complex_step
+            and (self._iter_count < self.options["max_sub_solves"])
+        )
         do_sub_ln = self.linear_solver._linearize_children()
 
         # Disable local fd
@@ -223,7 +239,7 @@ class NewtonSolver(NonlinearSolver):
 
             self._linearize()
 
-            self.linear_solver.solve('fwd')
+            self.linear_solver.solve("fwd")
 
             if self.linesearch and not system.under_complex_step:
                 self.linesearch._do_subsolve = do_subsolve
@@ -235,7 +251,7 @@ class NewtonSolver(NonlinearSolver):
 
             # Hybrid newton support.
             if do_subsolve:
-                with Recording('Newton_subsolve', 0, self):
+                with Recording("Newton_subsolve", 0, self):
                     self._solver_info.append_solver()
                     self._gs_iter()
                     self._solver_info.pop()

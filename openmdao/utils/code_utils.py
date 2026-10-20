@@ -37,7 +37,7 @@ def _get_long_name(node):
             break
         else:  # it's more than just a simple dotted name
             return None
-    return '.'.join(parts[::-1])
+    return ".".join(parts[::-1])
 
 
 class _SelfCallCollector(ast.NodeVisitor):
@@ -56,16 +56,21 @@ class _SelfCallCollector(ast.NodeVisitor):
         fncname = _get_long_name(node.func)
         class_ = self.class_
         if fncname is not None:
-            if fncname.startswith('self.') and len(fncname.split('.')) == 2:
-                shortfnc = fncname.split('.')[1]
+            if fncname.startswith("self.") and len(fncname.split(".")) == 2:
+                shortfnc = fncname.split(".")[1]
                 if shortfnc not in self.self_calls[class_]:
                     self.self_calls[class_].append(shortfnc)
                 for arg in node.args:
                     self.visit(arg)
             # check for Class.func(inst) form for base class method call
-            elif (len(fncname.split('.')) == 2 and fncname.split('.')[0] in self.mro_names and
-                  node.args and isinstance(node.args[0], ast.Name) and node.args[0].id == 'self'):
-                cname, func = fncname.split('.')
+            elif (
+                len(fncname.split(".")) == 2
+                and fncname.split(".")[0] in self.mro_names
+                and node.args
+                and isinstance(node.args[0], ast.Name)
+                and node.args[0].id == "self"
+            ):
+                cname, func = fncname.split(".")
                 for c in self.mro:
                     if c.__name__ == cname:
                         sub_mro = inspect.getmro(c)
@@ -87,15 +92,16 @@ class _SelfCallCollector(ast.NodeVisitor):
             callnode = node.func.value
             n = _get_long_name(callnode.func)
             # if this is a 'super' call, get the base of the specified class
-            if n == 'super':  # this only works for a single call level
+            if n == "super":  # this only works for a single call level
                 if len(callnode.args) == 0:
                     sup_0 = self.mro[0].__name__
                     visit_super = True
                 else:
                     sup_1 = _get_long_name(callnode.args[1])
                     sup_0 = _get_long_name(callnode.args[0])
-                    visit_super = (sup_1 == 'self' and
-                                   sup_0 is not None and len(sup_0.split('.')) == 1)
+                    visit_super = (
+                        sup_1 == "self" and sup_0 is not None and len(sup_0.split(".")) == 1
+                    )
 
                 if visit_super:
                     for i, c in enumerate(self.mro[:-1]):
@@ -128,7 +134,7 @@ def _find_owning_class(mro, func_name):
 
     for c in mro:
         if func_name in c.__dict__:
-            return '.'.join((c.__name__, func_name)), c
+            return ".".join((c.__name__, func_name)), c
 
     return None, None
 
@@ -141,11 +147,11 @@ def _get_nested_calls(starting_class, class_, func_name, parent, graph, seen):
     src = inspect.getsource(func)
     dedented_src = textwrap.dedent(src)
 
-    node = ast.parse(dedented_src, mode='exec')
+    node = ast.parse(dedented_src, mode="exec")
     visitor = _SelfCallCollector(starting_class)
     visitor.visit(node)
 
-    seen.add('.'.join((class_.__name__, func_name)))
+    seen.add(".".join((class_.__name__, func_name)))
 
     # now find the actual owning class for each call
     for klass, funcset in visitor.self_calls.items():
@@ -176,6 +182,7 @@ def get_nested_calls(class_, method_name, stream=sys.stdout):
     networkx.DiGraph
         A graph containing edges from methods to their sub-methods.
     """
+
     # moved this class def in here to keep the numpy doc scraper from barfing due to
     # stuff in nx.DiGraph.
     class OrderedDiGraph(nx.DiGraph):
@@ -206,7 +213,7 @@ def get_nested_calls(class_, method_name, stream=sys.stdout):
             depth, children = stack[-1]
             try:
                 n = next(children)
-                stream.write("%s%s\n" % ('  ' * depth, n))
+                stream.write("%s%s\n" % ("  " * depth, n))
                 if n not in seen:
                     stack.append((depth + 1, iter(graph[n])))
                     seen.add(n)
@@ -220,25 +227,36 @@ def _calltree_setup_parser(parser):
     """
     Set up the command line options for the 'openmdao call_tree' command line tool.
     """
-    parser.add_argument('method_path', nargs=1,
-                        help='Full module path to desired class method, e.g., '
-                        '"openmdao.components.exec_comp.ExecComp.setup".')
-    parser.add_argument('-o', '--outfile', action='store', dest='outfile',
-                        default='stdout', help='Output file.  Defaults to stdout.')
+    parser.add_argument(
+        "method_path",
+        nargs=1,
+        help="Full module path to desired class method, e.g., "
+        '"openmdao.components.exec_comp.ExecComp.setup".',
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        action="store",
+        dest="outfile",
+        default="stdout",
+        help="Output file.  Defaults to stdout.",
+    )
 
 
 def _calltree_exec(options, user_args):
     """
     Process command line args and call get_nested_calls on the specified class method.
     """
-    parts = options.method_path[0].split('.')
+    parts = options.method_path[0].split(".")
     if len(parts) < 3:
-        raise RuntimeError("You must supply the full module path to the function, "
-                           "for example:  openmdao.api.Group._setup.")
+        raise RuntimeError(
+            "You must supply the full module path to the function, "
+            "for example:  openmdao.api.Group._setup."
+        )
 
     class_name = parts[-2]
     func_name = parts[-1]
-    modpath = '.'.join(parts[:-2])
+    modpath = ".".join(parts[:-2])
 
     old_syspath = sys.path[:]
     sys.path.append(os.getcwd())
@@ -247,10 +265,10 @@ def _calltree_exec(options, user_args):
         mod = importlib.import_module(modpath)
         klass = getattr(mod, class_name)
 
-        stream_map = {'stdout': sys.stdout, 'stderr': sys.stderr}
+        stream_map = {"stdout": sys.stdout, "stderr": sys.stderr}
         stream = stream_map.get(options.outfile)
         if stream is None:
-            stream = open(options.outfile, 'w')
+            stream = open(options.outfile, "w")
 
         get_nested_calls(klass, func_name, stream)
     finally:
@@ -283,7 +301,7 @@ class _AttrCollector(ast.NodeVisitor):
         return self.class_dict
 
     def visit_ClassDef(self, node):
-        full_name = '.'.join(self.class_stack[:] + [node.name])
+        full_name = ".".join(self.class_stack[:] + [node.name])
         self.class_stack.append(full_name)
         self.class_dict[full_name] = set()
         for stmt in node.body:
@@ -304,7 +322,7 @@ class _AttrCollector(ast.NodeVisitor):
             for dec in node.decorator_list:
                 self.decnames = []
                 self.visit(dec)
-                if len(self.decnames) == 1 and self.decnames[0] == 'property':
+                if len(self.decnames) == 1 and self.decnames[0] == "property":
                     self.class_dict[self.class_stack[-1]].add(node.name)
 
         self.decnames = None
@@ -314,7 +332,7 @@ class _AttrCollector(ast.NodeVisitor):
             for t in _target_iter(node.targets):
                 self.names = []
                 self.visit(t)
-                if len(self.names) > 1 and self.names[0] == 'self':
+                if len(self.names) > 1 and self.names[0] == "self":
                     self.class_dict[self.class_stack[-1]].add(self.names[1])
 
             self.names = None
@@ -324,7 +342,7 @@ class _AttrCollector(ast.NodeVisitor):
         if self.class_stack:
             self.names = []
             self.visit(node.target)
-            if len(self.names) > 1 and self.names[0] == 'self':
+            if len(self.names) > 1 and self.names[0] == "self":
                 self.class_dict[self.class_stack[-1]].add(self.names[1])
 
             self.names = None
@@ -360,9 +378,9 @@ def get_class_attributes(fname, class_dict=None):
     if class_dict is None:
         class_dict = {}
 
-    with open(fname, 'r', encoding='utf-8') as f:
+    with open(fname, "r", encoding="utf-8") as f:
         source = f.read()
-        node = ast.parse(source, mode='exec')
+        node = ast.parse(source, mode="exec")
         visitor = _AttrCollector(class_dict)
         visitor.visit(node)
         return visitor.get_attributes()
@@ -395,16 +413,19 @@ def _get_return_names(outs):
     length = len(names)
     for lst in outs[1:]:
         if len(lst) != length:
-            raise RuntimeError("Function has multiple return statements with differing numbers "
-                               "of return values.")
+            raise RuntimeError(
+                "Function has multiple return statements with differing numbers of return values."
+            )
 
         for i, (name, newname) in enumerate(zip(names, lst)):
             if name is None:
                 names[i] = newname
             elif newname is not None and name != newname:
-                raise RuntimeError("Function has multiple return statements with different "
-                                   f"return value names of {sorted((name, newname))} for "
-                                   f"return value {i}.")
+                raise RuntimeError(
+                    "Function has multiple return statements with different "
+                    f"return value names of {sorted((name, newname))} for "
+                    f"return value {i}."
+                )
     return names
 
 
@@ -424,6 +445,7 @@ def get_return_names(func):
     list
         The names of the variables returned by the given function.
     """
+
     class _FuncRetNameCollector(ast.NodeVisitor):
         """
         An ast.NodeVisitor that records return value names.
@@ -439,7 +461,7 @@ def get_return_names(func):
             super().__init__()
             self._ret_infos = []
             self.fstack = []
-            self.visit(ast.parse(textwrap.dedent(inspect.getsource(func)), mode='exec'))
+            self.visit(ast.parse(textwrap.dedent(inspect.getsource(func)), mode="exec"))
 
         def get_return_names(self):
             """
@@ -525,7 +547,7 @@ class _FuncGrapher(ast.NodeVisitor):
 
         # add all input args to the graph
         for arg in node.args.args:
-            if arg.arg != 'self':
+            if arg.arg != "self":
                 self.graph.add_node(arg.arg)
 
         self.fstack.append(node)
@@ -545,7 +567,7 @@ class _FuncGrapher(ast.NodeVisitor):
     def visit_Attribute(self, node):
         name = _get_long_name(node.value)
         if name is not None:
-            base = name.partition('.')[0]
+            base = name.partition(".")[0]
             if base in self.graph:
                 self.names.append(base)
 
@@ -594,7 +616,7 @@ def get_func_graph(func, outnames=None, display=False, res_names=None):
         A graph containing edges from inputs to outputs.  Returns None if the function graph
         couldn't be determined.
     """
-    node = ast.parse(textwrap.dedent(inspect.getsource(func)), mode='exec')
+    node = ast.parse(textwrap.dedent(inspect.getsource(func)), mode="exec")
     visitor = _FuncGrapher(node)
 
     retnames = _get_return_names(visitor.outs)
@@ -603,8 +625,10 @@ def get_func_graph(func, outnames=None, display=False, res_names=None):
     # check vs outnames
     if outnames is not None:
         if len(retnames) != len(outnames):
-            raise RuntimeError("Number of return values in function does not match number of "
-                               f"expected return names. ({outnames}) != ({retnames})")
+            raise RuntimeError(
+                "Number of return values in function does not match number of "
+                f"expected return names. ({outnames}) != ({retnames})"
+            )
         for i, (ret, name) in enumerate(zip(retnames, outnames)):
             if ret is not None and ret != name:
                 # Check if it matches an allowed residual name
@@ -616,33 +640,38 @@ def get_func_graph(func, outnames=None, display=False, res_names=None):
                         allowed_res_name = res_names[i]
                 if allowed_res_name is not None:
                     if ret != allowed_res_name:
-                        raise RuntimeError(f"Return value name '{ret}' in function does not match "
-                                           f"expected residual name '{allowed_res_name}'.")
-                elif ret == f'res_{name}':
+                        raise RuntimeError(
+                            f"Return value name '{ret}' in function does not match "
+                            f"expected residual name '{allowed_res_name}'."
+                        )
+                elif ret == f"res_{name}":
                     pass
                 else:
-                    raise RuntimeError(f"Return value name '{ret}' in function does not match "
-                                       f"expected name '{name}'.")
+                    raise RuntimeError(
+                        f"Return value name '{ret}' in function does not match "
+                        f"expected name '{name}'."
+                    )
     else:
         outnames = []
         for ret in retnames:
             if ret is None or ret in inputs:
-                outnames.append(f'out{len(outnames)}')
+                outnames.append(f"out{len(outnames)}")
             else:
                 outnames.append(ret)
 
-    mapping = {f'@out{i}': name for i, name in enumerate(outnames)}
+    mapping = {f"@out{i}": name for i, name in enumerate(outnames)}
     visitor.graph = nx.relabel_nodes(visitor.graph, mapping)
     to_remove = [e for e in visitor.graph.edges() if e[0] == e[1]]
     visitor.graph.remove_edges_from(to_remove)
     # make sure all outputs exist as nodes in graph, even if they have no incoming edges
     visitor.graph.add_nodes_from(outnames)
-    visitor.graph.graph['inputs'] = inputs
-    visitor.graph.graph['outputs'] = outnames
+    visitor.graph.graph["inputs"] = inputs
+    visitor.graph.graph["outputs"] = outnames
 
     if display:
         # show the function graph visually
         from openmdao.visualization.graph_viewer import write_graph, _to_pydot_graph
+
         write_graph(_to_pydot_graph(visitor.graph), display=True)
 
     return visitor.graph
@@ -681,24 +710,26 @@ def get_function_deps(func, outputs=None, display=False, res_names=None):
                 return
     except Exception as err:
         # assume full dependency
-        issue_warning(f"Can't determine function graph for function '{func.__name__}' "
-                      f"so assuming all outputs depend on all inputs.  Error was: {err}")
+        issue_warning(
+            f"Can't determine function graph for function '{func.__name__}' "
+            f"so assuming all outputs depend on all inputs.  Error was: {err}"
+        )
         if outputs is None:
-            yield '*', '*'
+            yield "*", "*"
         else:
             for inp in inspect.signature(func).parameters:
                 for out in outputs:
                     yield out, inp
         return
 
-    outs = graph.graph['outputs']
+    outs = graph.graph["outputs"]
     successors = graph.successors
 
-    implicit = set(graph.graph['inputs']).intersection(graph.graph['outputs'])
+    implicit = set(graph.graph["inputs"]).intersection(graph.graph["outputs"])
     for imp in implicit:
         yield imp, imp
 
-    for start in graph.graph['inputs']:
+    for start in graph.graph["inputs"]:
         visited = set([start])
         stack = [(start, successors(start))]
         while stack:
@@ -781,7 +812,7 @@ def find_block_start(srccode, block_name, block_start_tok):
         A tuple of the form (line number, column number, block start line) or (None, None, None) if
         the block was not found.
     """
-    tokiter = tokenize(io.BytesIO(srccode.encode('utf-8')).readline)
+    tokiter = tokenize(io.BytesIO(srccode.encode("utf-8")).readline)
     for tok in tokiter:
         toktype, tokval, start, _, _ = tok
 
@@ -817,8 +848,13 @@ def remove_src_blocks(srccode, names, block_start_tok):
     """
     if not names:
         return srccode
-    return untokenize(block_filter(tokenize(io.BytesIO(srccode.encode('utf-8')).readline),
-                                   set(names), block_start_tok=block_start_tok)).decode()
+    return untokenize(
+        block_filter(
+            tokenize(io.BytesIO(srccode.encode("utf-8")).readline),
+            set(names),
+            block_start_tok=block_start_tok,
+        )
+    ).decode()
 
 
 def replace_src_block(srccode, block_name, new_block, block_start_tok):
@@ -853,13 +889,18 @@ def replace_src_block(srccode, block_name, new_block, block_start_tok):
             # insert new block
             for subline in new_block.splitlines():
                 print(subline, file=stream)
-            print('', file=stream)
+            print("", file=stream)
         print(line, file=stream)
 
     newsrc = stream.getvalue()
     # now remove the old block
-    return untokenize(block_filter(tokenize(io.BytesIO(newsrc.encode('utf-8')).readline),
-                                   {block_name}, block_start_tok=block_start_tok)).decode()
+    return untokenize(
+        block_filter(
+            tokenize(io.BytesIO(newsrc.encode("utf-8")).readline),
+            {block_name},
+            block_start_tok=block_start_tok,
+        )
+    ).decode()
 
 
 def is_lambda(f):
@@ -938,7 +979,7 @@ class LambdaPickleWrapper(object):
             The state of this object.
         """
         state = self.__dict__.copy()
-        state['_func'] = self._getsrc()
+        state["_func"] = self._getsrc()
         return state
 
     def __setstate__(self, state):
@@ -951,15 +992,17 @@ class LambdaPickleWrapper(object):
             The state of this object.
         """
         self.__dict__.update(state)
-        self._func = eval(state['_func'])  # nosec
+        self._func = eval(state["_func"])  # nosec
 
     def _getsrc(self):
         if self._src is None:
             self._src = _LambdaSrcFinder(self._func).src
             if self._src is None:
-                raise RuntimeError("The fix for pickling lambda functions only works for python "
-                                   "3.9 and above. Try updating to a newer python version or "
-                                   "replacing the lambda with a regular function.")
+                raise RuntimeError(
+                    "The fix for pickling lambda functions only works for python "
+                    "3.9 and above. Try updating to a newer python version or "
+                    "replacing the lambda with a regular function."
+                )
         return self._src
 
 
@@ -973,14 +1016,15 @@ class _LambdaSrcFinder(ast.NodeVisitor):
         self.src = None
         # note that inspect.getsource gives the source for the line that contains the lambda
         # function, so we have to isolate the lambda function itself
-        self.visit(ast.parse(textwrap.dedent(inspect.getsource(func)), filename='<string>'))
+        self.visit(ast.parse(textwrap.dedent(inspect.getsource(func)), filename="<string>"))
 
     def visit_Lambda(self, node):
         if self.src is not None:
             # it's possible to have multiple lambdas defined on the same line, so raise an error
             # if we find more than one.
-            raise RuntimeError("Only one lambda function is allowed per line when using "
-                               "_LambdaSrcFinder.")
+            raise RuntimeError(
+                "Only one lambda function is allowed per line when using _LambdaSrcFinder."
+            )
         try:
             self.src = ast.unparse(node)
         except AttributeError:
@@ -988,6 +1032,7 @@ class _LambdaSrcFinder(ast.NodeVisitor):
             self.src = None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import pprint
+
     pprint.pprint(get_class_attributes(__file__))

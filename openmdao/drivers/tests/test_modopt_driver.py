@@ -23,9 +23,10 @@ from openmdao.utils.mpi import MPI
 try:
     import modopt as mo
     from openmdao.drivers.modopt_driver import modOptDriver
+
     MODOPT_INSTALLED = True
     # Try to use SLSQP as default test optimizer
-    OPTIMIZER = 'SLSQP'
+    OPTIMIZER = "SLSQP"
 except ImportError:
     MODOPT_INSTALLED = False
     OPTIMIZER = None
@@ -40,6 +41,7 @@ def require_modopt_optimizer(optimizer_name):
     optimizer_name : str
         Name of the modOpt optimizer to check for.
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self):
@@ -51,25 +53,27 @@ def require_modopt_optimizer(optimizer_name):
             if not require_modopt_optimizer._initialized:
                 # SNOPT requires a license and separate installation
                 try:
-                    optimizer = getattr(mo, 'SNOPT')
+                    optimizer = getattr(mo, "SNOPT")
                     optimizer(mo.ProblemLite(x0=np.array([0.0])), turn_off_outputs=True)
-                    require_modopt_optimizer._available_optimizers.add('SNOPT')
+                    require_modopt_optimizer._available_optimizers.add("SNOPT")
                 except ImportError:
                     pass
 
                 # IPOPT requires cyipopt and casadi
                 try:
                     import casadi  # noqa: F401
-                    optimizer = getattr(mo, 'IPOPT')
+
+                    optimizer = getattr(mo, "IPOPT")
                     optimizer(mo.ProblemLite(x0=np.array([0.0])), turn_off_outputs=True)
-                    require_modopt_optimizer._available_optimizers.add('IPOPT')
+                    require_modopt_optimizer._available_optimizers.add("IPOPT")
                 except ImportError:
                     pass
 
                 # PySLSQP requires the pyslsqp package
                 try:
                     from pyslsqp import optimize as _  # noqa: F401
-                    require_modopt_optimizer._available_optimizers.add('PySLSQP')
+
+                    require_modopt_optimizer._available_optimizers.add("PySLSQP")
                 except ImportError:
                     pass
 
@@ -77,14 +81,16 @@ def require_modopt_optimizer(optimizer_name):
                 try:
                     import highspy  # noqa: F401
                     import qpsolvers  # noqa: F401
-                    require_modopt_optimizer._available_optimizers.add('OpenSQP')
+
+                    require_modopt_optimizer._available_optimizers.add("OpenSQP")
                 except ImportError:
                     pass
 
                 # COBYQA seems to not be available with the default install on some systems
                 try:
                     from cobyqa import minimize as _
-                    require_modopt_optimizer._available_optimizers.add('COBYQA')
+
+                    require_modopt_optimizer._available_optimizers.add("COBYQA")
                 except ImportError:
                     pass
 
@@ -94,12 +100,20 @@ def require_modopt_optimizer(optimizer_name):
                 raise unittest.SkipTest(f"{optimizer_name} requires additional installation")
 
             return func(self)
+
         return wrapper
+
     return decorator
+
 
 require_modopt_optimizer._initialized = False
 require_modopt_optimizer._available_optimizers = {
-    'SLSQP', 'COBYLA', 'BFGS', 'LBFGSB', 'TrustConstr', 'NelderMead',
+    "SLSQP",
+    "COBYLA",
+    "BFGS",
+    "LBFGSB",
+    "TrustConstr",
+    "NelderMead",
 }
 
 
@@ -115,10 +129,10 @@ class ParaboloidAE(om.ExplicitComponent):
         self.fail_hard = False
 
     def setup(self):
-        self.add_input('x', val=0.0)
-        self.add_input('y', val=0.0)
+        self.add_input("x", val=0.0)
+        self.add_input("y", val=0.0)
 
-        self.add_output('f_xy', val=0.0)
+        self.add_output("f_xy", val=0.0)
 
         self.eval_iter_count = 0
         self.eval_fail_at = 3
@@ -126,7 +140,7 @@ class ParaboloidAE(om.ExplicitComponent):
         self.grad_iter_count = 0
         self.grad_fail_at = 100
 
-        self.declare_partials('*', '*')
+        self.declare_partials("*", "*")
 
     def compute(self, inputs, outputs):
         """f(x,y) = (x-3)^2 + xy + (y+4)^2 - 3.
@@ -137,14 +151,14 @@ class ParaboloidAE(om.ExplicitComponent):
             self.eval_iter_count = 0
 
             if self.fail_hard:
-                raise RuntimeError('This should error.')
+                raise RuntimeError("This should error.")
             else:
-                raise om.AnalysisError('Try again.')
+                raise om.AnalysisError("Try again.")
 
-        x = inputs['x']
-        y = inputs['y']
+        x = inputs["x"]
+        y = inputs["y"]
 
-        outputs['f_xy'] = (x-3.0)**2 + x*y + (y+4.0)**2 - 3.0
+        outputs["f_xy"] = (x - 3.0) ** 2 + x * y + (y + 4.0) ** 2 - 3.0
         self.eval_iter_count += 1
 
     def compute_partials(self, inputs, partials):
@@ -154,15 +168,15 @@ class ParaboloidAE(om.ExplicitComponent):
             self.grad_iter_count = 0
 
             if self.fail_hard:
-                raise RuntimeError('This should error.')
+                raise RuntimeError("This should error.")
             else:
-                raise om.AnalysisError('Try again.')
+                raise om.AnalysisError("Try again.")
 
-        x = inputs['x']
-        y = inputs['y']
+        x = inputs["x"]
+        y = inputs["y"]
 
-        partials['f_xy', 'x'] = 2.0*x - 6.0 + y
-        partials['f_xy', 'y'] = 2.0*y + 8.0 + x
+        partials["f_xy", "x"] = 2.0 * x - 6.0 + y
+        partials["f_xy", "y"] = 2.0 * y + 8.0 + x
         self.grad_iter_count += 1
 
 
@@ -208,20 +222,20 @@ class DataSave(om.ExplicitComponent):
     """Saves run points so that we can verify that initial point is run."""
 
     def setup(self):
-        self.add_input('x', val=0.0)
-        self.add_output('y', val=0.0)
+        self.add_input("x", val=0.0)
+        self.add_output("y", val=0.0)
 
         self.visited_points = []
-        self.declare_partials('*', '*')
+        self.declare_partials("*", "*")
 
     def compute(self, inputs, outputs):
-        x = inputs['x']
+        x = inputs["x"]
         self.visited_points.append(copy.copy(x))
-        outputs['y'] = (x-3.0)**2
+        outputs["y"] = (x - 3.0) ** 2
 
     def compute_partials(self, inputs, partials):
-        x = inputs['x']
-        partials['y', 'x'] = 2.0*x - 6.0
+        x = inputs["x"]
+        partials["y", "x"] = 2.0 * x - 6.0
 
 
 @unittest.skipUnless(not MODOPT_INSTALLED, "only run if modOpt is NOT installed.")
@@ -241,8 +255,9 @@ class TestNotInstalled(unittest.TestCase):
         with self.assertRaises(RuntimeError) as ctx:
             modOptDriver()
 
-        self.assertEqual(str(ctx.exception),
-                         'modOptDriver is not available, modOpt is not installed.')
+        self.assertEqual(
+            str(ctx.exception), "modOptDriver is not available, modOpt is not installed."
+        )
 
 
 # TODO: Currently don't support running with MPI! But when we get it working, we need
@@ -266,23 +281,24 @@ class TestMPIScatter(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
 
         with self.assertRaises(RuntimeError) as ctx:
             prob.setup()
             prob.run_driver()
 
-        self.assertEqual(str(ctx.exception),
-                         'modOptDriver currently does not support running under MPI.')
+        self.assertEqual(
+            str(ctx.exception), "modOptDriver currently does not support running under MPI."
+        )
 
     # @unittest.skipUnless(MODOPT_INSTALLED, "modOpt is not installed")
     # def test_design_vars_on_all_procs_modopt(self):
@@ -315,6 +331,7 @@ class TestMPIScatter(unittest.TestCase):
     #     proc_vals = prob.comm.allgather([prob['x'], prob['y'], prob['c'], prob['f_xy']])
     #     np.testing.assert_array_almost_equal(proc_vals[0], proc_vals[1])
     #     prob.comm.Barrier()
+
 
 #     @unittest.skipUnless(MODOPT_INSTALLED, "modOpt is not installed")
 #     def test_opt_distcomp(self):
@@ -379,25 +396,25 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
 
         prob.setup()
         prob.run_driver()
 
-        assert_near_equal(prob['x'], 6.66666667, 1e-6)
-        assert_near_equal(prob['y'], -7.3333333, 1e-6)
+        assert_near_equal(prob["x"], 6.66666667, 1e-6)
+        assert_near_equal(prob["y"], -7.3333333, 1e-6)
 
     def test_simple_paraboloid_upper(self):
         """
@@ -410,27 +427,27 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', upper=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", upper=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check constraint is satisfied
-        self.assertLessEqual(prob['c'], 0.0 + 1e-4)
+        self.assertLessEqual(prob["c"], 0.0 + 1e-4)
 
     def test_simple_paraboloid_lower(self):
         """
@@ -443,21 +460,21 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=-15.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=-15.0)
 
         prob.setup()
         prob.run_driver()
@@ -467,7 +484,7 @@ class TestModOptDriver(unittest.TestCase):
         self.assertEqual(prob.driver._mo_prob.nl_con_bounds["c"]["upper"], None)
 
         # Check constraint is satisfied
-        self.assertGreaterEqual(prob['c'], -15.0 - 1e-4)
+        self.assertGreaterEqual(prob["c"], -15.0 - 1e-4)
 
     def test_simple_paraboloid_equality(self):
         """
@@ -479,27 +496,27 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', equals=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", equals=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check constraint is satisfied
-        assert_near_equal(prob['c'], 0.0, 1e-6)
+        assert_near_equal(prob["c"], 0.0, 1e-6)
 
     def test_simple_paraboloid_double_sided_low(self):
         """
@@ -511,28 +528,28 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=-15.0, upper=100.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=-15.0, upper=100.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check constraint is satisfied
-        self.assertGreaterEqual(prob['c'], -15.0 - 1e-4)
-        self.assertLessEqual(prob['c'], 100.0 + 1e-4)
+        self.assertGreaterEqual(prob["c"], -15.0 - 1e-4)
+        self.assertLessEqual(prob["c"], 100.0 + 1e-4)
 
     def test_simple_paraboloid_double_sided_high(self):
         """
@@ -544,28 +561,28 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=-50.0, upper=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=-50.0, upper=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check constraint is satisfied
-        self.assertGreaterEqual(prob['c'], -50.0 - 1e-4)
-        self.assertLessEqual(prob['c'], 0.0 + 1e-4)
+        self.assertGreaterEqual(prob["c"], -50.0 - 1e-4)
+        self.assertLessEqual(prob["c"], 0.0 + 1e-4)
 
     def test_simple_constraint_indices(self):
         """
@@ -577,28 +594,32 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('widths', np.zeros((2, 2))), promotes=['*'])
-        model.add_subsystem('comp', TestExplCompArrayDense(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = areas - 20.0', c=np.zeros((2, 2)), areas=np.zeros((2, 2))),
-                            promotes=['*'])
-        model.add_subsystem('obj', om.ExecComp('o = areas[0, 0]', areas=np.zeros((2, 2))),
-                            promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("widths", np.zeros((2, 2))), promotes=["*"])
+        model.add_subsystem("comp", TestExplCompArrayDense(), promotes=["*"])
+        model.add_subsystem(
+            "con",
+            om.ExecComp("c = areas - 20.0", c=np.zeros((2, 2)), areas=np.zeros((2, 2))),
+            promotes=["*"],
+        )
+        model.add_subsystem(
+            "obj", om.ExecComp("o = areas[0, 0]", areas=np.zeros((2, 2))), promotes=["*"]
+        )
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('widths', lower=-50.0*np.ones((2, 2)), upper=50.0*np.ones((2, 2)))
-        model.add_objective('o')
-        model.add_constraint('c', indices=1, equals=0.0, flat_indices=True)
+        model.add_design_var("widths", lower=-50.0 * np.ones((2, 2)), upper=50.0 * np.ones((2, 2)))
+        model.add_objective("o")
+        model.add_constraint("c", indices=1, equals=0.0, flat_indices=True)
 
         prob.setup()
         prob.run_driver()
 
         # Constraint should be satisfied
-        self.assertLessEqual(prob['c'][0][1], 0.0 + 1e-4)
+        self.assertLessEqual(prob["c"][0][1], 0.0 + 1e-4)
 
     def test_simple_paraboloid_lower_linear(self):
         """
@@ -611,27 +632,27 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=0.0, linear=True)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=0.0, linear=True)
 
         prob.setup()
         prob.run_driver()
 
         # Check constraint is satisfied
-        constraint_val = prob['x'] + prob['y']
+        constraint_val = prob["x"] + prob["y"]
         self.assertGreaterEqual(constraint_val, 0.0 - 1e-4)
 
     def test_simple_paraboloid_equality_linear(self):
@@ -644,27 +665,27 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', equals=0.0, linear=True)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", equals=0.0, linear=True)
 
         prob.setup()
         prob.run_driver()
 
         # Check constraint is satisfied
-        assert_near_equal(prob['x'] + prob['y'], 0.0, 1e-6)
+        assert_near_equal(prob["x"] + prob["y"], 0.0, 1e-6)
 
     def test_mixed_linear_nonlinear_constraints(self):
         """
@@ -677,32 +698,32 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con1', om.ExecComp('c1 = x + y'), promotes=['*'])
-        model.add_subsystem('con2', om.ExecComp('c2 = -x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con1", om.ExecComp("c1 = x + y"), promotes=["*"])
+        model.add_subsystem("con2", om.ExecComp("c2 = -x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
         # Add a linear constraint
-        model.add_constraint('c1', lower=-50.0, linear=True)
+        model.add_constraint("c1", lower=-50.0, linear=True)
         # Add a nonlinear constraint
-        model.add_constraint('c2', lower=-15.0)
+        model.add_constraint("c2", lower=-15.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check both constraints are satisfied
-        self.assertGreaterEqual(prob['c1'], -50.0 - 1e-4)
-        self.assertGreaterEqual(prob['c2'], -15.0 - 1e-4)
+        self.assertGreaterEqual(prob["c1"], -50.0 - 1e-4)
+        self.assertGreaterEqual(prob["c2"], -15.0 - 1e-4)
 
     def test_scaled_desvars_fwd(self):
         """
@@ -715,34 +736,30 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 3.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', -4.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 3.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", -4.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0, scaler=0.1)
-        model.add_design_var('y', lower=-50.0, upper=50.0, scaler=0.1)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=0.0, upper=10.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0, scaler=0.1)
+        model.add_design_var("y", lower=-50.0, upper=50.0, scaler=0.1)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=0.0, upper=10.0)
 
-        prob.setup(mode='fwd')
+        prob.setup(mode="fwd")
         prob.run_driver()
 
         # Solution should still be correct despite scaling at point the scaled
         # and unscaled points
-        assert_near_equal(prob['x'], 7.0, 1e-4)
-        assert_near_equal(prob['y'], -7.0, 1e-4)
-        assert_near_equal(
-            prob.driver._mo_prob.x.get_data(),
-            np.array([0.7, -0.7]),
-            1e-4
-        )
+        assert_near_equal(prob["x"], 7.0, 1e-4)
+        assert_near_equal(prob["y"], -7.0, 1e-4)
+        assert_near_equal(prob.driver._mo_prob.x.get_data(), np.array([0.7, -0.7]), 1e-4)
 
     def test_scaled_desvars_rev(self):
         """
@@ -754,34 +771,30 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 3.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', -4.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 3.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", -4.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0, scaler=0.1)
-        model.add_design_var('y', lower=-50.0, upper=50.0, scaler=0.1)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=0.0, upper=10.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0, scaler=0.1)
+        model.add_design_var("y", lower=-50.0, upper=50.0, scaler=0.1)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=0.0, upper=10.0)
 
-        prob.setup(mode='rev')
+        prob.setup(mode="rev")
         prob.run_driver()
 
         # Solution should still be correct despite scaling at point the scaled
         # and unscaled points
-        assert_near_equal(prob['x'], 7.0, 1e-4)
-        assert_near_equal(prob['y'], -7.0, 1e-4)
-        assert_near_equal(
-            prob.driver._mo_prob.x.get_data(),
-            np.array([0.7, -0.7]),
-            1e-4
-        )
+        assert_near_equal(prob["x"], 7.0, 1e-4)
+        assert_near_equal(prob["y"], -7.0, 1e-4)
+        assert_near_equal(prob.driver._mo_prob.x.get_data(), np.array([0.7, -0.7]), 1e-4)
 
     def test_scaled_constraint_fwd(self):
         """
@@ -794,27 +807,27 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 3.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', -4.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 3.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", -4.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=0.0, upper=10.0, scaler=0.1)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=0.0, upper=10.0, scaler=0.1)
 
-        prob.setup(mode='fwd')
+        prob.setup(mode="fwd")
         prob.run_driver()
 
         # Constraint should be satisfied at both the scaled and unscaled points
-        assert_near_equal(prob['c'], 0.0, 1e-4)
+        assert_near_equal(prob["c"], 0.0, 1e-4)
         assert_near_equal(prob.driver._mo_prob.con.get_data(), 0.0, 1e-4)
 
     def test_scaled_constraint_rev(self):
@@ -827,27 +840,27 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 3.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', -4.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 3.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", -4.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=0.0, upper=10.0, scaler=0.1)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=0.0, upper=10.0, scaler=0.1)
 
-        prob.setup(mode='rev')
+        prob.setup(mode="rev")
         prob.run_driver()
 
         # Constraint should be satisfied at both the scaled and unscaled points
-        assert_near_equal(prob['c'], 0.0, 1e-4)
+        assert_near_equal(prob["c"], 0.0, 1e-4)
         assert_near_equal(prob.driver._mo_prob.con.get_data(), 0.0, 1e-4)
 
     def test_scaled_objective_fwd(self):
@@ -860,28 +873,28 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 3.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', -4.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 3.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", -4.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy', scaler=0.1)
-        model.add_constraint('c', lower=0.0, upper=10.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy", scaler=0.1)
+        model.add_constraint("c", lower=0.0, upper=10.0)
 
-        prob.setup(mode='fwd')
+        prob.setup(mode="fwd")
         prob.run_driver()
 
         # Solution should be correct at both the scaled and unscaled points
-        assert_near_equal(prob['f_xy'], -27.0, 1e-4)
-        assert_near_equal(prob.driver._mo_prob.obj['f_xy'], -2.7, 1e-4)
+        assert_near_equal(prob["f_xy"], -27.0, 1e-4)
+        assert_near_equal(prob.driver._mo_prob.obj["f_xy"], -2.7, 1e-4)
 
     def test_scaled_objective_rev(self):
         """
@@ -893,28 +906,28 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 3.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', -4.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 3.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", -4.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy', scaler=0.1)
-        model.add_constraint('c', lower=0.0, upper=10.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy", scaler=0.1)
+        model.add_constraint("c", lower=0.0, upper=10.0)
 
-        prob.setup(mode='rev')
+        prob.setup(mode="rev")
         prob.run_driver()
 
         # Solution should be correct at both the scaled and unscaled points
-        assert_near_equal(prob['f_xy'], -27.0, 1e-4)
-        assert_near_equal(prob.driver._mo_prob.obj['f_xy'], -2.7, 1e-4)
+        assert_near_equal(prob["f_xy"], -27.0, 1e-4)
+        assert_near_equal(prob.driver._mo_prob.obj["f_xy"], -2.7, 1e-4)
 
     def test_missing_objective(self):
         """
@@ -926,17 +939,17 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
         # Note: No objective defined
 
         prob.setup()
@@ -944,7 +957,7 @@ class TestModOptDriver(unittest.TestCase):
         with self.assertRaises(RuntimeError) as ctx:
             prob.run_driver()
 
-        self.assertIn('objective', str(ctx.exception).lower())
+        self.assertIn("objective", str(ctx.exception).lower())
 
     def test_multiple_objectives_error(self):
         """
@@ -956,19 +969,19 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_objective('x')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_objective("x")
 
         prob.setup()
 
@@ -976,7 +989,7 @@ class TestModOptDriver(unittest.TestCase):
         with self.assertRaises(RuntimeError) as ctx:
             prob.run_driver()
 
-        self.assertIn('does not support multiple objectives', str(ctx.exception).lower())
+        self.assertIn("does not support multiple objectives", str(ctx.exception).lower())
 
     def test_invalid_desvar_values(self):
         """
@@ -988,25 +1001,25 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
 
         prob.setup()
 
         # Set invalid values
-        prob.set_val('x', np.nan)
-        prob.set_val('y', 50.0)
+        prob.set_val("x", np.nan)
+        prob.set_val("y", 50.0)
 
         # Should handle gracefully
         prob.run_driver()
@@ -1021,19 +1034,19 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        comp = model.add_subsystem('comp', ParaboloidAE(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        comp = model.add_subsystem("comp", ParaboloidAE(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
 
         # Force to fail
         comp.fail_hard = True
@@ -1053,21 +1066,21 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        comp = model.add_subsystem('comp', ParaboloidAE(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = - x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        comp = model.add_subsystem("comp", ParaboloidAE(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = - x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', upper=-15.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", upper=-15.0)
 
         # Force to fail
         comp.fail_hard = True
@@ -1090,31 +1103,34 @@ class TestModOptDriver(unittest.TestCase):
         the constraint jacobian.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('parab',
-                                 om.ExecComp(['f_xy = (x-3.0)**2 + x*y + (y+4.0)**2 - 3.0',
-                                              'z = 12.0'],),
-                                 promotes_inputs=['x', 'y'])
+        prob.model.add_subsystem(
+            "parab",
+            om.ExecComp(
+                ["f_xy = (x-3.0)**2 + x*y + (y+4.0)**2 - 3.0", "z = 12.0"],
+            ),
+            promotes_inputs=["x", "y"],
+        )
 
-        prob.model.add_subsystem('const', om.ExecComp('g = x + y'), promotes_inputs=['x', 'y'])
+        prob.model.add_subsystem("const", om.ExecComp("g = x + y"), promotes_inputs=["x", "y"])
 
-        prob.model.set_input_defaults('x', 3.0)
-        prob.model.set_input_defaults('y', -4.0)
+        prob.model.set_input_defaults("x", 3.0)
+        prob.model.set_input_defaults("y", -4.0)
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['singular_jac_behavior'] = 'error'
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["singular_jac_behavior"] = "error"
+        prob.driver.options["turn_off_outputs"] = True
 
-        prob.model.add_design_var('x', lower=-50, upper=50)
-        prob.model.add_design_var('y', lower=-50, upper=50)
-        prob.model.add_objective('parab.f_xy')
+        prob.model.add_design_var("x", lower=-50, upper=50)
+        prob.model.add_design_var("y", lower=-50, upper=50)
+        prob.model.add_objective("parab.f_xy")
 
-        prob.model.add_constraint('const.g', lower=0, upper=10.)
+        prob.model.add_constraint("const.g", lower=0, upper=10.0)
 
         # This constraint produces a zero row.
-        prob.model.add_constraint('parab.z', equals=12.)
+        prob.model.add_constraint("parab.z", equals=12.0)
 
         prob.setup()
 
@@ -1123,9 +1139,9 @@ class TestModOptDriver(unittest.TestCase):
 
         self.assertEqual(
             str(msg.exception),
-            'Constraints or objectives [parab.z] cannot be impacted by the '
-            'design variables of the problem because no partials were defined '
-            'for them in their parent component(s).'
+            "Constraints or objectives [parab.z] cannot be impacted by the "
+            "design variables of the problem because no partials were defined "
+            "for them in their parent component(s).",
         )
 
     def test_singular_jac_warn(self):
@@ -1137,35 +1153,38 @@ class TestModOptDriver(unittest.TestCase):
         continues.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('parab',
-                                 om.ExecComp(['f_xy = (x-3.0)**2 + x*y + (y+4.0)**2 - 3.0',
-                                              'z = 12.0'],),
-                                 promotes_inputs=['x', 'y'])
+        prob.model.add_subsystem(
+            "parab",
+            om.ExecComp(
+                ["f_xy = (x-3.0)**2 + x*y + (y+4.0)**2 - 3.0", "z = 12.0"],
+            ),
+            promotes_inputs=["x", "y"],
+        )
 
-        prob.model.add_subsystem('const', om.ExecComp('g = x + y'), promotes_inputs=['x', 'y'])
+        prob.model.add_subsystem("const", om.ExecComp("g = x + y"), promotes_inputs=["x", "y"])
 
-        prob.model.set_input_defaults('x', 3.0)
-        prob.model.set_input_defaults('y', -4.0)
+        prob.model.set_input_defaults("x", 3.0)
+        prob.model.set_input_defaults("y", -4.0)
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
         # Default behavior is 'warn'
 
-        prob.model.add_design_var('x', lower=-50, upper=50)
-        prob.model.add_design_var('y', lower=-50, upper=50)
-        prob.model.add_objective('parab.z')
+        prob.model.add_design_var("x", lower=-50, upper=50)
+        prob.model.add_design_var("y", lower=-50, upper=50)
+        prob.model.add_objective("parab.z")
 
-        prob.model.add_constraint('const.g', lower=0, upper=10.)
+        prob.model.add_constraint("const.g", lower=0, upper=10.0)
 
         prob.setup()
 
         msg = (
-            'Constraints or objectives [parab.z] cannot be impacted by the '
-            'design variables of the problem because no partials were defined '
-            'for them in their parent component(s).'
+            "Constraints or objectives [parab.z] cannot be impacted by the "
+            "design variables of the problem because no partials were defined "
+            "for them in their parent component(s)."
         )
         with assert_warning(UserWarning, msg):
             prob.run_driver()
@@ -1178,35 +1197,38 @@ class TestModOptDriver(unittest.TestCase):
         performed and optimization proceeds normally.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('parab',
-                                 om.ExecComp(['f_xy = (x-3.0)**2 + x*y + (y+4.0)**2 - 3.0',
-                                              'z = 12.0'],),
-                                 promotes_inputs=['x', 'y'])
+        prob.model.add_subsystem(
+            "parab",
+            om.ExecComp(
+                ["f_xy = (x-3.0)**2 + x*y + (y+4.0)**2 - 3.0", "z = 12.0"],
+            ),
+            promotes_inputs=["x", "y"],
+        )
 
-        prob.model.add_subsystem('const', om.ExecComp('g = x + y'), promotes_inputs=['x', 'y'])
+        prob.model.add_subsystem("const", om.ExecComp("g = x + y"), promotes_inputs=["x", "y"])
 
-        prob.model.set_input_defaults('x', 3.0)
-        prob.model.set_input_defaults('y', -4.0)
+        prob.model.set_input_defaults("x", 3.0)
+        prob.model.set_input_defaults("y", -4.0)
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['singular_jac_behavior'] = 'ignore'
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["singular_jac_behavior"] = "ignore"
+        prob.driver.options["turn_off_outputs"] = True
 
-        prob.model.add_design_var('x', lower=-50, upper=50)
-        prob.model.add_design_var('y', lower=-50, upper=50)
-        prob.model.add_objective('parab.z')
+        prob.model.add_design_var("x", lower=-50, upper=50)
+        prob.model.add_design_var("y", lower=-50, upper=50)
+        prob.model.add_objective("parab.z")
 
-        prob.model.add_constraint('const.g', lower=0, upper=10.)
+        prob.model.add_constraint("const.g", lower=0, upper=10.0)
 
         prob.setup()
 
         # Will not raise an exception.
         prob.run_driver()
 
-    @require_modopt_optimizer('SLSQP')
+    @require_modopt_optimizer("SLSQP")
     def test_slsqp_basic(self):
         """
         Test SLSQP optimizer with basic constrained optimization.
@@ -1217,30 +1239,30 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', equals=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", equals=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check expected responses are met
-        assert_near_equal(prob['f_xy'], -27.0, 1e-4)
-        assert_near_equal(prob['c'], 0.0, 1e-4)
+        assert_near_equal(prob["f_xy"], -27.0, 1e-4)
+        assert_near_equal(prob["c"], 0.0, 1e-4)
 
-    @require_modopt_optimizer('PySLSQP')
+    @require_modopt_optimizer("PySLSQP")
     def test_pyslsqp_basic(self):
         """
         Test PySLSQP optimizer with basic constrained optimization.
@@ -1251,30 +1273,30 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='PySLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="PySLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', equals=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", equals=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check expected responses are met
-        assert_near_equal(prob['f_xy'], -27.0, 1e-4)
-        assert_near_equal(prob['c'], 0.0, 1e-4)
+        assert_near_equal(prob["f_xy"], -27.0, 1e-4)
+        assert_near_equal(prob["c"], 0.0, 1e-4)
 
-    @require_modopt_optimizer('BFGS')
+    @require_modopt_optimizer("BFGS")
     def test_bfgs_unconstrained(self):
         """
         Test BFGS optimizer for unconstrained optimization.
@@ -1285,28 +1307,28 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='BFGS')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="BFGS")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
         # BFGS does not support constraints
 
         prob.setup()
         prob.run_driver()
 
-        assert_near_equal(prob['x'], 6.66666667, 1e-5)
-        assert_near_equal(prob['y'], -7.3333333, 1e-5)
+        assert_near_equal(prob["x"], 6.66666667, 1e-5)
+        assert_near_equal(prob["y"], -7.3333333, 1e-5)
 
-    @require_modopt_optimizer('LBFGSB')
+    @require_modopt_optimizer("LBFGSB")
     def test_lbfgsb_bounds(self):
         """
         Test L-BFGS-B optimizer with bound constraints.
@@ -1317,27 +1339,27 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='LBFGSB')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="LBFGSB")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
 
         prob.setup()
         prob.run_driver()
 
-        assert_near_equal(prob['x'], 6.66666667, 1e-5)
-        assert_near_equal(prob['y'], -7.3333333, 1e-5)
+        assert_near_equal(prob["x"], 6.66666667, 1e-5)
+        assert_near_equal(prob["y"], -7.3333333, 1e-5)
 
-    @require_modopt_optimizer('COBYLA')
+    @require_modopt_optimizer("COBYLA")
     def test_cobyla_gradient_free(self):
         """
         Test COBYLA gradient-free optimizer.
@@ -1348,30 +1370,30 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='COBYLA')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="COBYLA")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check expected responses are met
-        assert_near_equal(prob['f_xy'], -27.0, 1e-3)
-        assert_near_equal(prob['c'], 0.0, 1e-3)
+        assert_near_equal(prob["f_xy"], -27.0, 1e-3)
+        assert_near_equal(prob["c"], 0.0, 1e-3)
 
-    @require_modopt_optimizer('COBYQA')
+    @require_modopt_optimizer("COBYQA")
     def test_cobyqa_gradient_free(self):
         """
         Test COBYQA gradient-free optimizer.
@@ -1382,30 +1404,30 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='COBYQA')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="COBYQA")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', equals=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", equals=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check expected responses are met
-        assert_near_equal(prob['f_xy'], -27.0, 1e-3)
-        assert_near_equal(prob['c'], 0.0, 1e-3)
+        assert_near_equal(prob["f_xy"], -27.0, 1e-3)
+        assert_near_equal(prob["c"], 0.0, 1e-3)
 
-    @require_modopt_optimizer('NelderMead')
+    @require_modopt_optimizer("NelderMead")
     def test_neldermead_unconstrained(self):
         """
         Test Nelder-Mead optimizer for unconstrained optimization.
@@ -1416,28 +1438,28 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='NelderMead')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="NelderMead")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
 
         prob.setup()
         prob.run_driver()
 
-        assert_near_equal(prob['f_xy'], -27.3333333, 1e-4)
-        assert_near_equal(prob['x'], 6.66666667, 1e-4)
-        assert_near_equal(prob['y'], -7.3333333, 1e-4)
+        assert_near_equal(prob["f_xy"], -27.3333333, 1e-4)
+        assert_near_equal(prob["x"], 6.66666667, 1e-4)
+        assert_near_equal(prob["y"], -7.3333333, 1e-4)
 
-    @require_modopt_optimizer('OpenSQP')
+    @require_modopt_optimizer("OpenSQP")
     def test_opensqp_basic(self):
         """
         Test OpenSQP optimizer with general constraints.
@@ -1448,30 +1470,30 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='OpenSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="OpenSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', equals=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", equals=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check expected responses are met
-        assert_near_equal(prob['f_xy'], -27.0, 1e-4)
-        assert_near_equal(prob['c'], 0.0, 1e-4)
+        assert_near_equal(prob["f_xy"], -27.0, 1e-4)
+        assert_near_equal(prob["c"], 0.0, 1e-4)
 
-    @require_modopt_optimizer('SNOPT')
+    @require_modopt_optimizer("SNOPT")
     def test_snopt_basic(self):
         """
         Test SNOPT optimizer with general constraints.
@@ -1479,28 +1501,28 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SNOPT')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SNOPT")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', equals=0.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", equals=0.0)
 
         prob.setup()
         prob.run_driver()
 
         # Check expected responses are met
-        assert_near_equal(prob['f_xy'], -27.0, 1e-4)
-        assert_near_equal(prob['c'], 0.0, 1e-4)
+        assert_near_equal(prob["f_xy"], -27.0, 1e-4)
+        assert_near_equal(prob["c"], 0.0, 1e-4)
 
     def test_driver_sparsity(self):
         """
@@ -1512,75 +1534,65 @@ class TestModOptDriver(unittest.TestCase):
         """
         prob = om.Problem()
         prob.set_solver_print(level=0)
-        prob.driver = driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
         driver.declare_coloring()
         model = prob.model
 
         shape = (1, 5)
-        ivc = model.add_subsystem('ivc', om.IndepVarComp())
-        ivc.add_output('x', np.ones(shape))
-        ivc.add_output('y', np.ones(shape))
+        ivc = model.add_subsystem("ivc", om.IndepVarComp())
+        ivc.add_output("x", np.ones(shape))
+        ivc.add_output("y", np.ones(shape))
 
         model.add_subsystem(
-            'obj',
+            "obj",
             om.ExecComp(
-                'obj = sum(x + y)',
-                obj=1.,
+                "obj = sum(x + y)",
+                obj=1.0,
                 x=np.ones(shape),
                 y=np.ones(shape),
-            )
+            ),
         )
-        model.add_subsystem(
-            'con',
-            om.ExecComp(
-                'w = x',
-                x=np.ones(shape),
-                w=np.ones(shape)
-            )
-        )
+        model.add_subsystem("con", om.ExecComp("w = x", x=np.ones(shape), w=np.ones(shape)))
 
-        model.connect('ivc.x', 'obj.x')
-        model.connect('ivc.x', 'con.x')
-        model.connect('ivc.y', 'obj.y')
+        model.connect("ivc.x", "obj.x")
+        model.connect("ivc.x", "con.x")
+        model.connect("ivc.y", "obj.y")
 
-        model.add_design_var('ivc.x', lower=0.0, upper=1.0)
-        model.add_design_var('ivc.y', lower=0.0, upper=1.0)
+        model.add_design_var("ivc.x", lower=0.0, upper=1.0)
+        model.add_design_var("ivc.y", lower=0.0, upper=1.0)
 
-        model.add_objective('obj.obj')
-        model.add_constraint('con.w', lower=0.0)
+        model.add_objective("obj.obj")
+        model.add_constraint("con.w", lower=0.0)
 
         prob.setup()
         prob.run_model()
         prob.run_driver()
 
         sparsity_truth = {
-            'con.w': {
-                'ivc.x': {
-                    'coo': [np.array([0, 1, 2, 3, 4]),
-                            np.array([0, 1, 2, 3, 4]),
-                            np.array([0., 0., 0., 0., 0.])],
-                    'shape': (5, 5)
+            "con.w": {
+                "ivc.x": {
+                    "coo": [
+                        np.array([0, 1, 2, 3, 4]),
+                        np.array([0, 1, 2, 3, 4]),
+                        np.array([0.0, 0.0, 0.0, 0.0, 0.0]),
+                    ],
+                    "shape": (5, 5),
                 },
-                'ivc.y': {
-                    'coo': [np.array([]), np.array([]), np.array([])],
-                    'shape': (5, 5)
-                }
+                "ivc.y": {"coo": [np.array([]), np.array([]), np.array([])], "shape": (5, 5)},
             }
         }
 
         # Check _con_subjacs, but it's a nested dict so check it in parts
         subjacs = prob.driver._con_subjacs
-        self.assertListEqual(list(sparsity_truth.keys()), ['con.w'])
-        self.assertListEqual(list(sparsity_truth['con.w'].keys()), ['ivc.x', 'ivc.y'])
+        self.assertListEqual(list(sparsity_truth.keys()), ["con.w"])
+        self.assertListEqual(list(sparsity_truth["con.w"].keys()), ["ivc.x", "ivc.y"])
         np.testing.assert_equal(
-            sparsity_truth['con.w']['ivc.x']['coo'],
-            subjacs['con.w']['ivc.x']['coo']
+            sparsity_truth["con.w"]["ivc.x"]["coo"], subjacs["con.w"]["ivc.x"]["coo"]
         )
         np.testing.assert_equal(
-            sparsity_truth['con.w']['ivc.y']['coo'],
-            subjacs['con.w']['ivc.y']['coo']
+            sparsity_truth["con.w"]["ivc.y"]["coo"], subjacs["con.w"]["ivc.y"]["coo"]
         )
 
     def test_no_print_option(self):
@@ -1592,19 +1604,19 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
 
         prob.setup()
 
@@ -1629,28 +1641,29 @@ class TestModOptDriver(unittest.TestCase):
         feasible architecture).
         """
         prob = om.Problem()
-        model = prob.model = SellarDerivativesGrouped(nonlinear_solver=om.NonlinearBlockGS,
-                                                      linear_solver=om.ScipyKrylov)
+        model = prob.model = SellarDerivativesGrouped(
+            nonlinear_solver=om.NonlinearBlockGS, linear_solver=om.ScipyKrylov
+        )
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('z', lower=np.array([-10.0, 0.0]), upper=np.array([10.0, 10.0]))
-        model.add_design_var('x', lower=0.0, upper=10.0)
-        model.add_objective('obj')
-        model.add_constraint('con1', upper=0.0)
-        model.add_constraint('con2', upper=0.0)
+        model.add_design_var("z", lower=np.array([-10.0, 0.0]), upper=np.array([10.0, 10.0]))
+        model.add_design_var("x", lower=0.0, upper=10.0)
+        model.add_objective("obj")
+        model.add_constraint("con1", upper=0.0)
+        model.add_constraint("con2", upper=0.0)
 
-        prob.setup(check=False, mode='rev')
+        prob.setup(check=False, mode="rev")
         prob.run_driver()
 
         # Check that constraints are satisfied
-        assert_near_equal(prob['z'][0], 1.9776, 1e-3)
-        assert_near_equal(prob['z'][1], 0.0, 1e-3)
-        assert_near_equal(prob['x'], 0.0, 4e-3)
+        assert_near_equal(prob["z"][0], 1.9776, 1e-3)
+        assert_near_equal(prob["z"][1], 0.0, 1e-3)
+        assert_near_equal(prob["x"], 0.0, 4e-3)
 
     def test_driver_supports(self):
         """
@@ -1662,16 +1675,16 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["turn_off_outputs"] = True
 
         # Check that supports dict is read-only
         with self.assertRaises(KeyError):
-            prob.driver.supports['equality_constraints'] = False
+            prob.driver.supports["equality_constraints"] = False
 
     def test_inf_bounds_issue_3772(self):
         """
@@ -1684,58 +1697,62 @@ class TestModOptDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
-        prob.driver = modOptDriver(optimizer='SLSQP')
-        prob.driver.options['disp'] = False
-        prob.driver.options['turn_off_outputs'] = True
+        prob.driver = modOptDriver(optimizer="SLSQP")
+        prob.driver.options["disp"] = False
+        prob.driver.options["turn_off_outputs"] = True
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=-15.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=-15.0)
 
         prob.setup()
         prob.run_driver()
 
-        self.assertTrue(prob.driver.result.success, 'Optimization did not converge')
-        self.assertGreaterEqual(prob['c'], -15.0 - 1e-4)
+        self.assertTrue(prob.driver.result.success, "Optimization did not converge")
+        self.assertGreaterEqual(prob["c"], -15.0 - 1e-4)
 
         # Verify that modopt received None or np.inf (not 1e30) as the upper bound
         # for the one-sided lower constraint (issue #3772)
-        upper = prob.driver._mo_prob.nl_con_bounds['c']['upper']
-        self.assertTrue(upper is None or np.all(np.isposinf(np.atleast_1d(upper))),
-                        f'Expected None or np.inf upper bound for one-sided constraint, got {upper}')
+        upper = prob.driver._mo_prob.nl_con_bounds["c"]["upper"]
+        self.assertTrue(
+            upper is None or np.all(np.isposinf(np.atleast_1d(upper))),
+            f"Expected None or np.inf upper bound for one-sided constraint, got {upper}",
+        )
 
         # Also verify None or -np.inf lower bound on an upper-only constraint
         prob2 = om.Problem()
         model2 = prob2.model
-        model2.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model2.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model2.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model2.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model2.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model2.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model2.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model2.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
         prob2.set_solver_print(level=0)
-        prob2.driver = modOptDriver(optimizer='SLSQP')
-        prob2.driver.options['disp'] = False
-        prob2.driver.options['turn_off_outputs'] = True
-        model2.add_design_var('x', lower=-50.0, upper=50.0)
-        model2.add_design_var('y', lower=-50.0, upper=50.0)
-        model2.add_objective('f_xy')
-        model2.add_constraint('c', upper=0.0)
+        prob2.driver = modOptDriver(optimizer="SLSQP")
+        prob2.driver.options["disp"] = False
+        prob2.driver.options["turn_off_outputs"] = True
+        model2.add_design_var("x", lower=-50.0, upper=50.0)
+        model2.add_design_var("y", lower=-50.0, upper=50.0)
+        model2.add_objective("f_xy")
+        model2.add_constraint("c", upper=0.0)
         prob2.setup()
         prob2.run_driver()
 
-        lower = prob2.driver._mo_prob.nl_con_bounds['c']['lower']
-        self.assertTrue(lower is None or np.all(np.isneginf(np.atleast_1d(lower))),
-                        f'Expected None or -np.inf lower bound for one-sided constraint, got {lower}')
+        lower = prob2.driver._mo_prob.nl_con_bounds["c"]["lower"]
+        self.assertTrue(
+            lower is None or np.all(np.isneginf(np.atleast_1d(lower))),
+            f"Expected None or -np.inf lower bound for one-sided constraint, got {lower}",
+        )
 
 
-@unittest.skipUnless(MODOPT_INSTALLED, 'modOpt is not installed')
+@unittest.skipUnless(MODOPT_INSTALLED, "modOpt is not installed")
 @use_tempdirs
 class TestModOptOutputFiles(unittest.TestCase):
     """Tests for optimizer output file directory routing."""
@@ -1756,17 +1773,17 @@ class TestModOptOutputFiles(unittest.TestCase):
         """
         prob = om.Problem()
         model = prob.model
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = - x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = - x + y"), promotes=["*"])
         prob.set_solver_print(level=0)
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', upper=-15.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", upper=-15.0)
         prob.driver = modOptDriver(optimizer=optimizer)
-        prob.driver.options['disp'] = False
+        prob.driver.options["disp"] = False
         prob.setup()
         return prob
 
@@ -1785,8 +1802,9 @@ class TestModOptOutputFiles(unittest.TestCase):
         prob.run_driver()
         output_dir = prob.get_outputs_dir()
         for fname in output_files:
-            self.assertTrue(len(list(output_dir.rglob(fname))) > 0,
-                            f'{fname} not found under {output_dir}')
+            self.assertTrue(
+                len(list(output_dir.rglob(fname))) > 0, f"{fname} not found under {output_dir}"
+            )
 
     def run_and_test_user_set_output_dir(self, optimizer, output_files):
         """
@@ -1799,61 +1817,62 @@ class TestModOptOutputFiles(unittest.TestCase):
         output_files : list of str
             Expected output file names to check for.
         """
-        user_dir = pathlib.Path(f'user_outputs_{optimizer}')
+        user_dir = pathlib.Path(f"user_outputs_{optimizer}")
         user_dir.mkdir(exist_ok=True)
 
         prob = self._create_paraboloid_prob(optimizer)
-        prob.driver.options['output_dir'] = str(user_dir)
+        prob.driver.options["output_dir"] = str(user_dir)
         prob.run_driver()
 
         for fname in output_files:
-            self.assertTrue(len(list(user_dir.rglob(fname))) > 0,
-                            f'{fname} not found under {user_dir}')
+            self.assertTrue(
+                len(list(user_dir.rglob(fname))) > 0, f"{fname} not found under {user_dir}"
+            )
 
     def test_default_output_dir_SLSQP(self):
         """Test default output directory routing for SLSQP."""
-        self.run_and_test_default_output_dir('SLSQP', ['modopt_results.out'])
+        self.run_and_test_default_output_dir("SLSQP", ["modopt_results.out"])
 
     def test_user_set_output_dir_SLSQP(self):
         """Test user-specified output directory routing for SLSQP."""
-        self.run_and_test_user_set_output_dir('SLSQP', ['modopt_results.out'])
+        self.run_and_test_user_set_output_dir("SLSQP", ["modopt_results.out"])
 
-    @require_modopt_optimizer('PySLSQP')
+    @require_modopt_optimizer("PySLSQP")
     def test_default_output_dir_PySLSQP(self):
         """Test default output directory routing for PySLSQP."""
-        self.run_and_test_default_output_dir('PySLSQP',
-                                             ['modopt_results.out', 'slsqp_summary.out'])
+        self.run_and_test_default_output_dir("PySLSQP", ["modopt_results.out", "slsqp_summary.out"])
 
-    @require_modopt_optimizer('PySLSQP')
+    @require_modopt_optimizer("PySLSQP")
     def test_user_set_output_dir_PySLSQP(self):
         """Test user-specified output directory routing for PySLSQP."""
-        self.run_and_test_user_set_output_dir('PySLSQP',
-                                              ['modopt_results.out', 'slsqp_summary.out'])
+        self.run_and_test_user_set_output_dir(
+            "PySLSQP", ["modopt_results.out", "slsqp_summary.out"]
+        )
 
-    @require_modopt_optimizer('IPOPT')
+    @require_modopt_optimizer("IPOPT")
     def test_default_output_dir_IPOPT(self):
         """Test default output directory routing for IPOPT."""
-        self.run_and_test_default_output_dir('IPOPT',
-                                             ['modopt_results.out', 'ipopt_output.txt'])
+        self.run_and_test_default_output_dir("IPOPT", ["modopt_results.out", "ipopt_output.txt"])
 
-    @require_modopt_optimizer('IPOPT')
+    @require_modopt_optimizer("IPOPT")
     def test_user_set_output_dir_IPOPT(self):
         """Test user-specified output directory routing for IPOPT."""
-        self.run_and_test_user_set_output_dir('IPOPT',
-                                              ['modopt_results.out', 'ipopt_output.txt'])
+        self.run_and_test_user_set_output_dir("IPOPT", ["modopt_results.out", "ipopt_output.txt"])
 
-    @require_modopt_optimizer('SNOPT')
+    @require_modopt_optimizer("SNOPT")
     def test_default_output_dir_SNOPT(self):
         """Test default output directory routing for SNOPT."""
         self.run_and_test_default_output_dir(
-            'SNOPT', ['modopt_results.out', 'SNOPT_print.out', 'SNOPT_summary.out'])
+            "SNOPT", ["modopt_results.out", "SNOPT_print.out", "SNOPT_summary.out"]
+        )
 
-    @require_modopt_optimizer('SNOPT')
+    @require_modopt_optimizer("SNOPT")
     def test_user_set_output_dir_SNOPT(self):
         """Test user-specified output directory routing for SNOPT."""
         self.run_and_test_user_set_output_dir(
-            'SNOPT', ['modopt_results.out', 'SNOPT_print.out', 'SNOPT_summary.out'])
+            "SNOPT", ["modopt_results.out", "SNOPT_print.out", "SNOPT_summary.out"]
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -18,9 +18,11 @@ except ImportError:
 
 try:
     import cma  # noqa: F401
+
     # Verify cma is compatible with the installed NumPy version.
     # cma < 3.4 uses np.array(..., copy=False) which raises ValueError on NumPy >= 2.0.
     from cma.transformations import BoxConstraintsLinQuadTransformation
+
     BoxConstraintsLinQuadTransformation([[0.0, 1.0]])
     CMA_INSTALLED = True
 except Exception:
@@ -31,12 +33,13 @@ except Exception:
 try:
     import pymoo  # noqa: F401
     from openmdao.drivers.pymoo_driver import pymooDriver
+
     PYMOO_INSTALLED = True
 except ImportError:
     PYMOO_INSTALLED = False
 
 
-@unittest.skipUnless(not PYMOO_INSTALLED, 'only run if pymoo is NOT installed.')
+@unittest.skipUnless(not PYMOO_INSTALLED, "only run if pymoo is NOT installed.")
 @use_tempdirs
 class TestNotInstalled(unittest.TestCase):
     """Test behavior when pymoo is not available."""
@@ -53,11 +56,11 @@ class TestNotInstalled(unittest.TestCase):
         with self.assertRaises(RuntimeError) as ctx:
             pymooDriver()
 
-        self.assertIn('pymoo', str(ctx.exception))
+        self.assertIn("pymoo", str(ctx.exception))
 
 
-@unittest.skipUnless(MPI, 'MPI is required.')
-@unittest.skipUnless(PYMOO_INSTALLED, 'pymoo is not installed.')
+@unittest.skipUnless(MPI, "MPI is required.")
+@unittest.skipUnless(PYMOO_INSTALLED, "pymoo is not installed.")
 @use_tempdirs
 class TestMPIIsolatedParallelism(unittest.TestCase):
     """
@@ -81,19 +84,18 @@ class TestMPIIsolatedParallelism(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp', Branin(),
-                            promotes_inputs=[('x0', 'xI'), ('x1', 'xC')])
+        model.add_subsystem("comp", Branin(), promotes_inputs=[("x0", "xI"), ("x1", "xC")])
 
-        model.add_design_var('xI', lower=-5.0, upper=10.0)
-        model.add_design_var('xC', lower=0.0, upper=15.0)
-        model.add_objective('comp.f')
+        model.add_design_var("xI", lower=-5.0, upper=10.0)
+        model.add_design_var("xC", lower=0.0, upper=15.0)
+        model.add_objective("comp.f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 25  # odd: unequal split across 2 groups
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 200)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 25  # odd: unequal split across 2 groups
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 200)
 
         prob.setup()
         prob.run_driver()
@@ -104,15 +106,16 @@ class TestMPIIsolatedParallelism(unittest.TestCase):
 
         # iter_counts differ because each rank evaluated a different subset.
         all_iters = prob.comm.allgather(prob.driver.iter_count)
-        self.assertGreater(max(all_iters), min(all_iters),
-                           f'expected unequal iter_counts, got {all_iters}')
+        self.assertGreater(
+            max(all_iters), min(all_iters), f"expected unequal iter_counts, got {all_iters}"
+        )
 
-        all_f = prob.comm.allgather(prob.get_val('comp.f').item())
+        all_f = prob.comm.allgather(prob.get_val("comp.f").item())
         for f_val in all_f:
             assert_near_equal(f_val, all_f[0], tolerance=1e-10)
         assert_near_equal(all_f[0], 0.397887, tolerance=0.1)
 
-    @unittest.skipUnless(PETScVector, 'PETSc is required.')
+    @unittest.skipUnless(PETScVector, "PETSc is required.")
     def test_procs_per_model_parallel_group(self):
         """
         Test model parallelism with procs_per_model=2 (n_groups=1).
@@ -123,33 +126,33 @@ class TestMPIIsolatedParallelism(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('xC', 7.5))
-        model.add_subsystem('p2', om.IndepVarComp('xI', 0.0))
-        par = model.add_subsystem('par', om.ParallelGroup())
+        model.add_subsystem("p1", om.IndepVarComp("xC", 7.5))
+        model.add_subsystem("p2", om.IndepVarComp("xI", 0.0))
+        par = model.add_subsystem("par", om.ParallelGroup())
 
-        par.add_subsystem('comp1', Branin())
-        par.add_subsystem('comp2', Branin())
+        par.add_subsystem("comp1", Branin())
+        par.add_subsystem("comp2", Branin())
 
-        model.connect('p2.xI', 'par.comp1.x0')
-        model.connect('p1.xC', 'par.comp1.x1')
-        model.connect('p2.xI', 'par.comp2.x0')
-        model.connect('p1.xC', 'par.comp2.x1')
+        model.connect("p2.xI", "par.comp1.x0")
+        model.connect("p1.xC", "par.comp1.x1")
+        model.connect("p2.xI", "par.comp2.x0")
+        model.connect("p1.xC", "par.comp2.x1")
 
-        model.add_subsystem('comp', om.ExecComp('f = f1 + f2'))
-        model.connect('par.comp1.f', 'comp.f1')
-        model.connect('par.comp2.f', 'comp.f2')
+        model.add_subsystem("comp", om.ExecComp("f = f1 + f2"))
+        model.connect("par.comp1.f", "comp.f1")
+        model.connect("par.comp2.f", "comp.f2")
 
-        model.add_design_var('p2.xI', lower=-5.0, upper=10.0)
-        model.add_design_var('p1.xC', lower=0.0, upper=15.0)
-        model.add_objective('comp.f')
+        model.add_design_var("p2.xI", lower=-5.0, upper=10.0)
+        model.add_design_var("p1.xC", lower=0.0, upper=15.0)
+        model.add_objective("comp.f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['procs_per_model'] = 2
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 25
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 200)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["procs_per_model"] = 2
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 25
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 200)
 
         prob.setup()
         prob.run_driver()
@@ -159,32 +162,31 @@ class TestMPIIsolatedParallelism(unittest.TestCase):
         self.assertEqual(prob.model.comm.size, 2)
 
         all_iters = prob.comm.allgather(prob.driver.iter_count)
-        self.assertEqual(all_iters[0], all_iters[1],
-                         f'expected equal iter_counts, got {all_iters}')
+        self.assertEqual(all_iters[0], all_iters[1], f"expected equal iter_counts, got {all_iters}")
 
-        assert_near_equal(prob.get_val('comp.f'), 2 * 0.397887, tolerance=0.1)
+        assert_near_equal(prob.get_val("comp.f"), 2 * 0.397887, tolerance=0.1)
 
     def test_procs_per_model_greater_than_nprocs_raises(self):
         """Test that procs_per_model greater than the total MPI rank count raises RuntimeError."""
         prob = om.Problem()
-        prob.model.add_subsystem('comp', om.ExecComp('f = x**2'), promotes=['*'])
-        prob.model.add_design_var('x', lower=-5.0, upper=5.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = x**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-5.0, upper=5.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['procs_per_model'] = 3  # greater than N_PROCS=2
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["procs_per_model"] = 3  # greater than N_PROCS=2
+        prob.driver.options["disp"] = False
 
         with self.assertRaises(RuntimeError) as ctx:
             prob.setup()
 
-        self.assertIn('procs_per_model', str(ctx.exception))
-        self.assertIn('3', str(ctx.exception))
+        self.assertIn("procs_per_model", str(ctx.exception))
+        self.assertIn("3", str(ctx.exception))
 
 
-@unittest.skipUnless(MPI and PETScVector, 'MPI and PETSc are required.')
-@unittest.skipUnless(PYMOO_INSTALLED, 'pymoo is not installed.')
+@unittest.skipUnless(MPI and PETScVector, "MPI and PETSc are required.")
+@unittest.skipUnless(PYMOO_INSTALLED, "pymoo is not installed.")
 @use_tempdirs
 class TestMPICombinedParallelism(unittest.TestCase):
     """
@@ -207,33 +209,33 @@ class TestMPICombinedParallelism(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('xC', 7.5))
-        model.add_subsystem('p2', om.IndepVarComp('xI', 0.0))
-        par = model.add_subsystem('par', om.ParallelGroup())
+        model.add_subsystem("p1", om.IndepVarComp("xC", 7.5))
+        model.add_subsystem("p2", om.IndepVarComp("xI", 0.0))
+        par = model.add_subsystem("par", om.ParallelGroup())
 
-        par.add_subsystem('comp1', Branin())
-        par.add_subsystem('comp2', Branin())
+        par.add_subsystem("comp1", Branin())
+        par.add_subsystem("comp2", Branin())
 
-        model.connect('p2.xI', 'par.comp1.x0')
-        model.connect('p1.xC', 'par.comp1.x1')
-        model.connect('p2.xI', 'par.comp2.x0')
-        model.connect('p1.xC', 'par.comp2.x1')
+        model.connect("p2.xI", "par.comp1.x0")
+        model.connect("p1.xC", "par.comp1.x1")
+        model.connect("p2.xI", "par.comp2.x0")
+        model.connect("p1.xC", "par.comp2.x1")
 
-        model.add_subsystem('comp', om.ExecComp('f = f1 + f2'))
-        model.connect('par.comp1.f', 'comp.f1')
-        model.connect('par.comp2.f', 'comp.f2')
+        model.add_subsystem("comp", om.ExecComp("f = f1 + f2"))
+        model.connect("par.comp1.f", "comp.f1")
+        model.connect("par.comp2.f", "comp.f2")
 
-        model.add_design_var('p2.xI', lower=-5.0, upper=10.0)
-        model.add_design_var('p1.xC', lower=0.0, upper=15.0)
-        model.add_objective('comp.f')
+        model.add_design_var("p2.xI", lower=-5.0, upper=10.0)
+        model.add_design_var("p1.xC", lower=0.0, upper=15.0)
+        model.add_objective("comp.f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['procs_per_model'] = 2
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 25  # odd: unequal split across 2 groups
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 100)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["procs_per_model"] = 2
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 25  # odd: unequal split across 2 groups
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 100)
 
         prob.setup()
         prob.run_driver()
@@ -244,14 +246,23 @@ class TestMPICombinedParallelism(unittest.TestCase):
 
         # color = rank % 2: group 0 = ranks 0,2; group 1 = ranks 1,3
         all_iters = prob.comm.allgather(prob.driver.iter_count)
-        self.assertEqual(all_iters[0], all_iters[2],
-                         f'expected equal iter_counts within group 0, got {all_iters}')
-        self.assertEqual(all_iters[1], all_iters[3],
-                         f'expected equal iter_counts within group 1, got {all_iters}')
-        self.assertNotEqual(all_iters[0], all_iters[1],
-                            f'expected unequal iter_counts across groups, got {all_iters}')
+        self.assertEqual(
+            all_iters[0],
+            all_iters[2],
+            f"expected equal iter_counts within group 0, got {all_iters}",
+        )
+        self.assertEqual(
+            all_iters[1],
+            all_iters[3],
+            f"expected equal iter_counts within group 1, got {all_iters}",
+        )
+        self.assertNotEqual(
+            all_iters[0],
+            all_iters[1],
+            f"expected unequal iter_counts across groups, got {all_iters}",
+        )
 
-        all_f = prob.comm.allgather(prob.get_val('comp.f').item())
+        all_f = prob.comm.allgather(prob.get_val("comp.f").item())
         for f_val in all_f:
             assert_near_equal(f_val, all_f[0], tolerance=1e-10)
         assert_near_equal(all_f[0], 2 * 0.397887, tolerance=0.1)
@@ -260,21 +271,21 @@ class TestMPICombinedParallelism(unittest.TestCase):
         """Test that N_PROCS not evenly divisible by procs_per_model raises RuntimeError."""
         prob = om.Problem()
         model = prob.model
-        model.add_subsystem('par', om.ParallelGroup())
+        model.add_subsystem("par", om.ParallelGroup())
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['procs_per_model'] = 3
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["procs_per_model"] = 3
+        prob.driver.options["disp"] = False
 
         with self.assertRaises(RuntimeError) as ctx:
             prob.setup()
 
-        self.assertIn('procs_per_model', str(ctx.exception))
-        self.assertIn('3', str(ctx.exception))
+        self.assertIn("procs_per_model", str(ctx.exception))
+        self.assertIn("3", str(ctx.exception))
 
 
-@unittest.skipUnless(PYMOO_INSTALLED, 'pymoo is not installed.')
+@unittest.skipUnless(PYMOO_INSTALLED, "pymoo is not installed.")
 @use_tempdirs
 class TestPymooDriver(unittest.TestCase):
     """Tests for the pymooDriver."""
@@ -287,23 +298,22 @@ class TestPymooDriver(unittest.TestCase):
         Verifies that GA finds a solution near the true optimum.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('comp', om.ExecComp('f = (x-3.0)**2'),
-                                 promotes=['*'])
-        prob.model.add_design_var('x', lower=-10.0, upper=10.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-10.0, upper=10.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 20
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 200)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 20
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 200)
 
         prob.setup()
         prob.run_driver()
 
-        assert_near_equal(prob.get_val('x'), 3.0, tolerance=0.05)
-        assert_near_equal(prob.get_val('f'), 0.0, tolerance=0.01)
+        assert_near_equal(prob.get_val("x"), 3.0, tolerance=0.05)
+        assert_near_equal(prob.get_val("f"), 0.0, tolerance=0.01)
 
     def test_upper_bound_constraint(self):
         """
@@ -316,31 +326,31 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = -x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = -x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 500)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 500)
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', upper=-15.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", upper=-15.0)
 
         prob.setup()
         prob.run_driver()
 
-        self.assertLessEqual(prob.get_val('c'), -15.0 + 0.5)
-        assert_near_equal(prob.get_val('x'), 7.16667, tolerance=0.05)
-        assert_near_equal(prob.get_val('y'), -7.833334, tolerance=0.05)
+        self.assertLessEqual(prob.get_val("c"), -15.0 + 0.5)
+        assert_near_equal(prob.get_val("x"), 7.16667, tolerance=0.05)
+        assert_near_equal(prob.get_val("y"), -7.833334, tolerance=0.05)
 
     def test_lower_bound_constraint(self):
         """
@@ -353,31 +363,31 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x - y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x - y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 500)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 500)
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', lower=15.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", lower=15.0)
 
         prob.setup()
         prob.run_driver()
 
-        self.assertGreaterEqual(prob.get_val('c'), 15.0 - 0.5)
-        assert_near_equal(prob.get_val('x'), 7.16667, tolerance=0.05)
-        assert_near_equal(prob.get_val('y'), -7.833334, tolerance=0.05)
+        self.assertGreaterEqual(prob.get_val("c"), 15.0 - 0.5)
+        assert_near_equal(prob.get_val("x"), 7.16667, tolerance=0.05)
+        assert_near_equal(prob.get_val("y"), -7.833334, tolerance=0.05)
 
     def test_two_sided_constraint(self):
         """
@@ -390,29 +400,27 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp('f = (x-3.0)**2 + (y-2.0)**2'),
-                            promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2 + (y-2.0)**2"), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 30
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 300)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 30
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 300)
 
-        model.add_design_var('x', lower=0.0, upper=6.0)
-        model.add_design_var('y', lower=0.0, upper=6.0)
-        model.add_objective('f')
-        model.add_constraint('c', lower=4.0, upper=6.0)
+        model.add_design_var("x", lower=0.0, upper=6.0)
+        model.add_design_var("y", lower=0.0, upper=6.0)
+        model.add_objective("f")
+        model.add_constraint("c", lower=4.0, upper=6.0)
 
         prob.setup()
         prob.run_driver()
 
-        c = prob.get_val('c')
+        c = prob.get_val("c")
         self.assertGreaterEqual(c, 4.0 - 0.5)
         self.assertLessEqual(c, 6.0 + 0.5)
 
@@ -427,30 +435,28 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp('f = (x-5.0)**2 + (y-5.0)**2'),
-                            promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = x + y'), promotes=['*'])
+        model.add_subsystem("comp", om.ExecComp("f = (x-5.0)**2 + (y-5.0)**2"), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 400)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 400)
 
-        model.add_design_var('x', lower=0.0, upper=10.0)
-        model.add_design_var('y', lower=0.0, upper=10.0)
-        model.add_objective('f')
-        model.add_constraint('c', equals=8.0)
+        model.add_design_var("x", lower=0.0, upper=10.0)
+        model.add_design_var("y", lower=0.0, upper=10.0)
+        model.add_objective("f")
+        model.add_constraint("c", equals=8.0)
 
         prob.setup()
         prob.run_driver()
 
         # pymoo uses cv_eq tolerance (default 1e-4) when checking feasibility.
-        assert_near_equal(prob.get_val('c'), 8.0, tolerance=0.1)
+        assert_near_equal(prob.get_val("c"), 8.0, tolerance=0.1)
 
     def test_moo_problem_dimensions(self):
         """
@@ -461,23 +467,23 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp(['f = x**2 + y**2', 'c1 = x', 'c2 = y']),
-                            promotes=['*'])
+        model.add_subsystem(
+            "comp", om.ExecComp(["f = x**2 + y**2", "c1 = x", "c2 = y"]), promotes=["*"]
+        )
 
         prob.set_solver_print(level=0)
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 5
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 1)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 5
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 1)
 
-        model.add_design_var('x', lower=-10.0, upper=10.0)
-        model.add_design_var('y', lower=-10.0, upper=10.0)
-        model.add_objective('f')
-        model.add_constraint('c1', upper=3.0)
-        model.add_constraint('c2', equals=1.0)
+        model.add_design_var("x", lower=-10.0, upper=10.0)
+        model.add_design_var("y", lower=-10.0, upper=10.0)
+        model.add_objective("f")
+        model.add_constraint("c1", upper=3.0)
+        model.add_constraint("c2", equals=1.0)
 
         prob.setup()
         prob.run_driver()
@@ -496,21 +502,19 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp(['f = x**2', 'c = x']),
-                            promotes=['*'])
+        model.add_subsystem("comp", om.ExecComp(["f = x**2", "c = x"]), promotes=["*"])
 
         prob.set_solver_print(level=0)
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 5
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 1)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 5
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 1)
 
-        model.add_design_var('x', lower=-10.0, upper=10.0)
-        model.add_objective('f')
-        model.add_constraint('c', lower=1.0, upper=3.0)
+        model.add_design_var("x", lower=-10.0, upper=10.0)
+        model.add_objective("f")
+        model.add_constraint("c", lower=1.0, upper=3.0)
 
         prob.setup()
         prob.run_driver()
@@ -532,30 +536,31 @@ class TestPymooDriver(unittest.TestCase):
         model = prob.model
 
         # Unconstrained optimum at x=8, y=6; constraints force x<=3 and y>=-1.
-        model.add_subsystem('comp',
-                            om.ExecComp(['f = (x-8.0)**2 + (y-6.0)**2',
-                                         'c1 = x', 'c2 = y']),
-                            promotes=['*'])
+        model.add_subsystem(
+            "comp", om.ExecComp(["f = (x-8.0)**2 + (y-6.0)**2", "c1 = x", "c2 = y"]), promotes=["*"]
+        )
 
         prob.set_solver_print(level=0)
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 30
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 200)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 30
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 200)
 
-        model.add_design_var('x', lower=-10.0, upper=10.0)
-        model.add_design_var('y', lower=-10.0, upper=10.0)
-        model.add_objective('f')
-        model.add_constraint('c1', upper=3.0)   # active: pushes x from 8 to 3
-        model.add_constraint('c2', lower=-1.0)  # inactive at optimum (y~6 >> -1)
+        model.add_design_var("x", lower=-10.0, upper=10.0)
+        model.add_design_var("y", lower=-10.0, upper=10.0)
+        model.add_objective("f")
+        model.add_constraint("c1", upper=3.0)  # active: pushes x from 8 to 3
+        model.add_constraint("c2", lower=-1.0)  # inactive at optimum (y~6 >> -1)
 
         prob.setup()
         prob.run_driver()
 
-        self.assertTrue(np.all(prob.driver.pymoo_results.G <= 0),
-                        f'Expected all G <= 0 at optimum, got {prob.driver.pymoo_results.G}')
+        self.assertTrue(
+            np.all(prob.driver.pymoo_results.G <= 0),
+            f"Expected all G <= 0 at optimum, got {prob.driver.pymoo_results.G}",
+        )
 
     def test_multi_objective_nsga2(self):
         """
@@ -569,36 +574,36 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp(['f1 = (x+5.0)**2', 'f2 = (x-5.0)**2']),
-                            promotes=['*'])
+        model.add_subsystem(
+            "comp", om.ExecComp(["f1 = (x+5.0)**2", "f2 = (x-5.0)**2"]), promotes=["*"]
+        )
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'NSGA2'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 100)
+        prob.driver.options["optimizer"] = "NSGA2"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 100)
 
-        model.add_design_var('x', lower=-10.0, upper=10.0)
-        model.add_objective('f1')
-        model.add_objective('f2')
+        model.add_design_var("x", lower=-10.0, upper=10.0)
+        model.add_objective("f1")
+        model.add_objective("f2")
 
         prob.setup()
         prob.run_driver()
 
-        self.assertIsNotNone(prob.driver.pareto['X'])
-        self.assertIsNotNone(prob.driver.pareto['F'])
+        self.assertIsNotNone(prob.driver.pareto["X"])
+        self.assertIsNotNone(prob.driver.pareto["F"])
 
         # One design variable, two objectives.
-        self.assertEqual(len(prob.driver.pareto['X']), 1)
-        self.assertEqual(len(prob.driver.pareto['F']), 2)
-        self.assertIn('x', prob.driver.pareto['X'])
-        self.assertIn('f1', prob.driver.pareto['F'])
-        self.assertIn('f2', prob.driver.pareto['F'])
-        self.assertGreater(len(prob.driver.pareto['X']['x']), 0)
+        self.assertEqual(len(prob.driver.pareto["X"]), 1)
+        self.assertEqual(len(prob.driver.pareto["F"]), 2)
+        self.assertIn("x", prob.driver.pareto["X"])
+        self.assertIn("f1", prob.driver.pareto["F"])
+        self.assertIn("f2", prob.driver.pareto["F"])
+        self.assertGreater(len(prob.driver.pareto["X"]["x"]), 0)
 
     def test_multi_objective_pareto_feasibility(self):
         """
@@ -610,27 +615,27 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp(['f1 = (x+5.0)**2', 'f2 = (x-5.0)**2']),
-                            promotes=['*'])
+        model.add_subsystem(
+            "comp", om.ExecComp(["f1 = (x+5.0)**2", "f2 = (x-5.0)**2"]), promotes=["*"]
+        )
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'NSGA2'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 100)
+        prob.driver.options["optimizer"] = "NSGA2"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 100)
 
-        model.add_design_var('x', lower=-10.0, upper=10.0)
-        model.add_objective('f1')
-        model.add_objective('f2')
+        model.add_design_var("x", lower=-10.0, upper=10.0)
+        model.add_objective("f1")
+        model.add_objective("f2")
 
         prob.setup()
         prob.run_driver()
 
-        x_pareto = prob.driver.pareto['X']['x']
+        x_pareto = prob.driver.pareto["X"]["x"]
         self.assertTrue(np.all(x_pareto >= -5.1))
         self.assertTrue(np.all(x_pareto <= 5.1))
 
@@ -646,30 +651,28 @@ class TestPymooDriver(unittest.TestCase):
         model = prob.model
 
         model.add_subsystem(
-            'comp',
-            om.ExecComp(['f1 = (x+5.0)**2', 'f2 = (x-5.0)**2', 'c = x']),
-            promotes=['*']
+            "comp", om.ExecComp(["f1 = (x+5.0)**2", "f2 = (x-5.0)**2", "c = x"]), promotes=["*"]
         )
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'NSGA2'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 100)
+        prob.driver.options["optimizer"] = "NSGA2"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 100)
 
-        model.add_design_var('x', lower=-10.0, upper=10.0)
-        model.add_objective('f1')
-        model.add_objective('f2')
-        model.add_constraint('c', upper=3.0)
+        model.add_design_var("x", lower=-10.0, upper=10.0)
+        model.add_objective("f1")
+        model.add_objective("f2")
+        model.add_constraint("c", upper=3.0)
 
         prob.setup()
         prob.run_driver()
 
-        self.assertIsNotNone(prob.driver.pareto['X'])
-        x_pareto = prob.driver.pareto['X']['x']
+        self.assertIsNotNone(prob.driver.pareto["X"])
+        x_pareto = prob.driver.pareto["X"]["x"]
         self.assertTrue(np.all(x_pareto <= 3.1))
 
     def test_mixed_integer_branin(self):
@@ -684,27 +687,26 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.set_input_defaults('xC', 7.5)
-        model.set_input_defaults('xI', 0.0)
+        model.set_input_defaults("xC", 7.5)
+        model.set_input_defaults("xI", 0.0)
 
-        model.add_subsystem('comp', Branin(),
-                            promotes_inputs=[('x0', 'xI'), ('x1', 'xC')])
+        model.add_subsystem("comp", Branin(), promotes_inputs=[("x0", "xI"), ("x1", "xC")])
 
-        model.add_design_var('xI', lower=-5.0, upper=10.0)
-        model.add_design_var('xC', lower=0.0, upper=15.0)
-        model.add_objective('comp.f')
+        model.add_design_var("xI", lower=-5.0, upper=10.0)
+        model.add_design_var("xC", lower=0.0, upper=15.0)
+        model.add_objective("comp.f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'MixedVariableGA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 25
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 200)
+        prob.driver.options["optimizer"] = "MixedVariableGA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 25
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 200)
 
         prob.setup()
         prob.run_driver()
 
-        assert_near_equal(prob.get_val('comp.f'), 0.397887, tolerance=0.05)
+        assert_near_equal(prob.get_val("comp.f"), 0.397887, tolerance=0.05)
 
     def test_mixed_integer_branin_discrete(self):
         """
@@ -718,30 +720,30 @@ class TestPymooDriver(unittest.TestCase):
         model = prob.model
 
         indep = om.IndepVarComp()
-        indep.add_discrete_output('xI', val=0)
-        indep.add_output('xC', val=7.5)
-        model.add_subsystem('p', indep)
-        model.add_subsystem('comp', BraninDiscrete())
-        model.connect('p.xI', 'comp.x0')
-        model.connect('p.xC', 'comp.x1')
+        indep.add_discrete_output("xI", val=0)
+        indep.add_output("xC", val=7.5)
+        model.add_subsystem("p", indep)
+        model.add_subsystem("comp", BraninDiscrete())
+        model.connect("p.xI", "comp.x0")
+        model.connect("p.xC", "comp.x1")
 
-        model.add_design_var('p.xI', lower=-5, upper=10)
-        model.add_design_var('p.xC', lower=0.0, upper=15.0)
-        model.add_objective('comp.f')
+        model.add_design_var("p.xI", lower=-5, upper=10)
+        model.add_design_var("p.xC", lower=0.0, upper=15.0)
+        model.add_objective("comp.f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'MixedVariableGA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 25
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 200)
+        prob.driver.options["optimizer"] = "MixedVariableGA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 25
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 200)
 
         prob.setup()
         prob.run_driver()
 
-        assert_near_equal(prob.get_val('comp.f'), 0.49399549, tolerance=0.1)
-        self.assertIn(prob.get_val('p.xI'), [3, -3])
-        self.assertIsInstance(prob.get_val('p.xI'), int)
+        assert_near_equal(prob.get_val("comp.f"), 0.49399549, tolerance=0.1)
+        self.assertIn(prob.get_val("p.xI"), [3, -3])
+        self.assertIsInstance(prob.get_val("p.xI"), int)
 
     def test_missing_objective_raises(self):
         """
@@ -753,11 +755,11 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp', om.ExecComp('f = x**2'), promotes=['*'])
-        model.add_design_var('x', lower=-50.0, upper=50.0)
+        model.add_subsystem("comp", om.ExecComp("f = x**2"), promotes=["*"])
+        model.add_design_var("x", lower=-50.0, upper=50.0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['disp'] = False
+        prob.driver.options["disp"] = False
 
         prob.setup()
 
@@ -775,18 +777,18 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp', om.ExecComp('f = x**2'), promotes=['*'])
-        model.add_objective('f')
+        model.add_subsystem("comp", om.ExecComp("f = x**2"), promotes=["*"])
+        model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['disp'] = False
+        prob.driver.options["disp"] = False
 
         prob.setup()
 
         with self.assertRaises(RuntimeError) as ctx:
             prob.run_driver()
 
-        self.assertIn('design variable', str(ctx.exception).lower())
+        self.assertIn("design variable", str(ctx.exception).lower())
 
     def test_single_obj_algorithm_with_multiple_objectives_raises(self):
         """
@@ -799,25 +801,23 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp(['f1 = x**2', 'f2 = (x-1.0)**2']),
-                            promotes=['*'])
+        model.add_subsystem("comp", om.ExecComp(["f1 = x**2", "f2 = (x-1.0)**2"]), promotes=["*"])
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
 
-        model.add_design_var('x', lower=-10.0, upper=10.0)
-        model.add_objective('f1')
-        model.add_objective('f2')
+        model.add_design_var("x", lower=-10.0, upper=10.0)
+        model.add_objective("f1")
+        model.add_objective("f2")
 
         prob.setup()
 
         with self.assertRaises(RuntimeError) as ctx:
             prob.run_driver()
 
-        self.assertIn('GA', str(ctx.exception))
-        self.assertIn('multiple objectives', str(ctx.exception).lower())
+        self.assertIn("GA", str(ctx.exception))
+        self.assertIn("multiple objectives", str(ctx.exception).lower())
 
     def test_discrete_vars_without_mixed_var_ga_raises(self):
         """
@@ -831,27 +831,27 @@ class TestPymooDriver(unittest.TestCase):
         model = prob.model
 
         indep = om.IndepVarComp()
-        indep.add_discrete_output('xI', val=0)
-        indep.add_output('xC', val=7.5)
-        model.add_subsystem('p', indep)
-        model.add_subsystem('comp', BraninDiscrete())
-        model.connect('p.xI', 'comp.x0')
-        model.connect('p.xC', 'comp.x1')
+        indep.add_discrete_output("xI", val=0)
+        indep.add_output("xC", val=7.5)
+        model.add_subsystem("p", indep)
+        model.add_subsystem("comp", BraninDiscrete())
+        model.connect("p.xI", "comp.x0")
+        model.connect("p.xC", "comp.x1")
 
-        model.add_design_var('p.xI', lower=-5, upper=10)
-        model.add_design_var('p.xC', lower=0.0, upper=15.0)
-        model.add_objective('comp.f')
+        model.add_design_var("p.xI", lower=-5, upper=10)
+        model.add_design_var("p.xC", lower=0.0, upper=15.0)
+        model.add_objective("comp.f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
 
         prob.setup()
 
         with self.assertRaises(RuntimeError) as ctx:
             prob.run_driver()
 
-        self.assertIn('MixedVariableGA', str(ctx.exception))
+        self.assertIn("MixedVariableGA", str(ctx.exception))
 
     def test_analysis_error_propagation(self):
         """
@@ -861,33 +861,34 @@ class TestPymooDriver(unittest.TestCase):
         catches it, stores it, and re-raises it after the optimization loop exits
         so the user receives the original exception type.
         """
+
         class AlwaysFailComp(om.ExplicitComponent):
             """Component that always raises ValueError in compute."""
 
             def setup(self):
-                self.add_input('x', 1.0)
-                self.add_output('f', 1.0)
+                self.add_input("x", 1.0)
+                self.add_output("f", 1.0)
 
             def compute(self, inputs, outputs):
-                raise ValueError('intentional failure in compute')
+                raise ValueError("intentional failure in compute")
 
         prob = om.Problem()
-        prob.model.add_subsystem('comp', AlwaysFailComp(), promotes=['*'])
-        prob.model.add_design_var('x', lower=-5.0, upper=10.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", AlwaysFailComp(), promotes=["*"])
+        prob.model.add_design_var("x", lower=-5.0, upper=10.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 10
-        prob.driver.run_settings['termination'] = ('n_gen', 5)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 10
+        prob.driver.run_settings["termination"] = ("n_gen", 5)
 
         prob.setup()
 
         with self.assertRaises(ValueError) as ctx:
             prob.run_driver()
 
-        self.assertIn('intentional failure in compute', str(ctx.exception))
+        self.assertIn("intentional failure in compute", str(ctx.exception))
 
     def test_procs_per_model_without_mpi_raises(self):
         """
@@ -897,22 +898,22 @@ class TestPymooDriver(unittest.TestCase):
         without MPI should raise RuntimeError mentioning 'procs_per_model'.
         """
         if MPI:
-            raise unittest.SkipTest('MPI is available; this test requires no MPI.')
+            raise unittest.SkipTest("MPI is available; this test requires no MPI.")
 
         prob = om.Problem()
-        prob.model.add_subsystem('comp', om.ExecComp('f = x**2'), promotes=['*'])
-        prob.model.add_design_var('x', lower=-5.0, upper=5.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = x**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-5.0, upper=5.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['procs_per_model'] = 2
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["procs_per_model"] = 2
+        prob.driver.options["disp"] = False
 
         with self.assertRaises(RuntimeError) as ctx:
             prob.setup()
 
-        self.assertIn('procs_per_model', str(ctx.exception))
+        self.assertIn("procs_per_model", str(ctx.exception))
 
     def test_pymoo_results_attribute_populated(self):
         """
@@ -923,17 +924,16 @@ class TestPymooDriver(unittest.TestCase):
         raw pymoo output, including optimal design variables and convergence info.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('comp', om.ExecComp('f = (x-3.0)**2'),
-                                 promotes=['*'])
-        prob.model.add_design_var('x', lower=-10.0, upper=10.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-10.0, upper=10.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 10
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 20)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 10
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 20)
 
         prob.setup()
         prob.run_driver()
@@ -949,17 +949,17 @@ class TestPymooDriver(unittest.TestCase):
         for case recording identifiers and logging.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('comp', om.ExecComp('f = x**2'), promotes=['*'])
-        prob.model.add_design_var('x', lower=-5.0, upper=5.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = x**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-5.0, upper=5.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
 
         prob.setup()
 
-        self.assertEqual(prob.driver._get_name(), 'pymoo_GA')
+        self.assertEqual(prob.driver._get_name(), "pymoo_GA")
 
     def test_support_flags_single_obj_algorithm(self):
         """
@@ -970,20 +970,20 @@ class TestPymooDriver(unittest.TestCase):
         supports['inequality_constraints'] should be True.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('comp', om.ExecComp('f = x**2'), promotes=['*'])
-        prob.model.add_design_var('x', lower=-5.0, upper=5.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = x**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-5.0, upper=5.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
 
         prob.setup()
         prob.final_setup()
 
-        self.assertFalse(prob.driver.supports['multiple_objectives'])
-        self.assertFalse(prob.driver.supports['integer_design_vars'])
-        self.assertTrue(prob.driver.supports['inequality_constraints'])
+        self.assertFalse(prob.driver.supports["multiple_objectives"])
+        self.assertFalse(prob.driver.supports["integer_design_vars"])
+        self.assertTrue(prob.driver.supports["inequality_constraints"])
 
     def test_support_flags_multi_obj_algorithm(self):
         """
@@ -995,23 +995,21 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp(['f1 = x**2', 'f2 = (x-1.0)**2']),
-                            promotes=['*'])
+        model.add_subsystem("comp", om.ExecComp(["f1 = x**2", "f2 = (x-1.0)**2"]), promotes=["*"])
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'NSGA2'
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "NSGA2"
+        prob.driver.options["disp"] = False
 
-        model.add_design_var('x', lower=-10.0, upper=10.0)
-        model.add_objective('f1')
-        model.add_objective('f2')
+        model.add_design_var("x", lower=-10.0, upper=10.0)
+        model.add_objective("f1")
+        model.add_objective("f2")
 
         prob.setup()
         prob.final_setup()
 
-        self.assertTrue(prob.driver.supports['multiple_objectives'])
-        self.assertFalse(prob.driver.supports['integer_design_vars'])
+        self.assertTrue(prob.driver.supports["multiple_objectives"])
+        self.assertFalse(prob.driver.supports["integer_design_vars"])
 
     def test_support_flags_mixed_var_ga(self):
         """
@@ -1023,54 +1021,53 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.set_input_defaults('xC', 7.5)
-        model.set_input_defaults('xI', 0.0)
-        model.add_subsystem('comp', Branin(),
-                            promotes_inputs=[('x0', 'xI'), ('x1', 'xC')])
+        model.set_input_defaults("xC", 7.5)
+        model.set_input_defaults("xI", 0.0)
+        model.add_subsystem("comp", Branin(), promotes_inputs=[("x0", "xI"), ("x1", "xC")])
 
-        model.add_design_var('xI', lower=-5.0, upper=10.0)
-        model.add_design_var('xC', lower=0.0, upper=15.0)
-        model.add_objective('comp.f')
+        model.add_design_var("xI", lower=-5.0, upper=10.0)
+        model.add_design_var("xC", lower=0.0, upper=15.0)
+        model.add_objective("comp.f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'MixedVariableGA'
-        prob.driver.options['disp'] = False
+        prob.driver.options["optimizer"] = "MixedVariableGA"
+        prob.driver.options["disp"] = False
 
         prob.setup()
         prob.final_setup()
 
-        self.assertTrue(prob.driver.supports['integer_design_vars'])
-        self.assertFalse(prob.driver.supports['multiple_objectives'])
+        self.assertTrue(prob.driver.supports["integer_design_vars"])
+        self.assertFalse(prob.driver.supports["multiple_objectives"])
 
     def test_get_algorithm_single(self):
         """Test that get_algorithm resolves the correct single-obj class (soo, default naming)."""
         driver = om.pymooDriver()
-        alg_class = driver.get_algorithm('GA')
-        self.assertEqual(alg_class.__name__, 'GA')
+        alg_class = driver.get_algorithm("GA")
+        self.assertEqual(alg_class.__name__, "GA")
 
     def test_get_algorithm_multi(self):
         """Test that get_algorithm resolves the correct multi-obj class (moo, default naming)."""
         driver = om.pymooDriver()
-        alg_class = driver.get_algorithm('NSGA2')
-        self.assertEqual(alg_class.__name__, 'NSGA2')
+        alg_class = driver.get_algorithm("NSGA2")
+        self.assertEqual(alg_class.__name__, "NSGA2")
 
     def test_get_algorithm_mixed_var(self):
         """Test that MixedVariableGA is resolved from pymoo.core.mixed, not soo or moo."""
         driver = om.pymooDriver()
-        alg_class = driver.get_algorithm('MixedVariableGA')
-        self.assertEqual(alg_class.__name__, 'MixedVariableGA')
+        alg_class = driver.get_algorithm("MixedVariableGA")
+        self.assertEqual(alg_class.__name__, "MixedVariableGA")
 
     def test_get_algorithm_non_default_single(self):
         """Test non-default module name mapping for a single-obj algorithm (NelderMead -> nelder)."""
         driver = om.pymooDriver()
-        alg_class = driver.get_algorithm('NelderMead')
-        self.assertEqual(alg_class.__name__, 'NelderMead')
+        alg_class = driver.get_algorithm("NelderMead")
+        self.assertEqual(alg_class.__name__, "NelderMead")
 
     def test_get_algorithm_non_default_multi(self):
         """Test non-default module name mapping for a multi-obj algorithm (SMSEMOA -> sms)."""
         driver = om.pymooDriver()
-        alg_class = driver.get_algorithm('SMSEMOA')
-        self.assertEqual(alg_class.__name__, 'SMSEMOA')
+        alg_class = driver.get_algorithm("SMSEMOA")
+        self.assertEqual(alg_class.__name__, "SMSEMOA")
 
     def test_alg_settings_pop_size_respected(self):
         """
@@ -1087,17 +1084,16 @@ class TestPymooDriver(unittest.TestCase):
 
         def run_with_pop_size(pop_size):
             prob = om.Problem()
-            prob.model.add_subsystem('comp', om.ExecComp('f = (x-3.0)**2'),
-                                     promotes=['*'])
-            prob.model.add_design_var('x', lower=-10.0, upper=10.0)
-            prob.model.add_objective('f')
+            prob.model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2"), promotes=["*"])
+            prob.model.add_design_var("x", lower=-10.0, upper=10.0)
+            prob.model.add_objective("f")
 
             prob.driver = om.pymooDriver()
-            prob.driver.options['optimizer'] = 'GA'
-            prob.driver.options['disp'] = False
-            prob.driver.alg_settings['pop_size'] = pop_size
-            prob.driver.run_settings['seed'] = 1
-            prob.driver.run_settings['termination'] = ('n_gen', n_gen)
+            prob.driver.options["optimizer"] = "GA"
+            prob.driver.options["disp"] = False
+            prob.driver.alg_settings["pop_size"] = pop_size
+            prob.driver.run_settings["seed"] = 1
+            prob.driver.run_settings["termination"] = ("n_gen", n_gen)
 
             prob.setup()
             prob.run_driver()
@@ -1126,17 +1122,16 @@ class TestPymooDriver(unittest.TestCase):
 
         def run_with_n_gen(n_gen):
             prob = om.Problem()
-            prob.model.add_subsystem('comp', om.ExecComp('f = (x-3.0)**2'),
-                                     promotes=['*'])
-            prob.model.add_design_var('x', lower=-10.0, upper=10.0)
-            prob.model.add_objective('f')
+            prob.model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2"), promotes=["*"])
+            prob.model.add_design_var("x", lower=-10.0, upper=10.0)
+            prob.model.add_objective("f")
 
             prob.driver = om.pymooDriver()
-            prob.driver.options['optimizer'] = 'GA'
-            prob.driver.options['disp'] = False
-            prob.driver.alg_settings['pop_size'] = pop_size
-            prob.driver.run_settings['seed'] = 1
-            prob.driver.run_settings['termination'] = ('n_gen', n_gen)
+            prob.driver.options["optimizer"] = "GA"
+            prob.driver.options["disp"] = False
+            prob.driver.alg_settings["pop_size"] = pop_size
+            prob.driver.run_settings["seed"] = 1
+            prob.driver.run_settings["termination"] = ("n_gen", n_gen)
 
             prob.setup()
             prob.run_driver()
@@ -1160,23 +1155,23 @@ class TestPymooDriver(unittest.TestCase):
         run_settings['seed'] should produce bit-for-bit identical design variable
         values for two independent runs with the same seed.
         """
+
         def run_with_seed(seed):
             prob = om.Problem()
-            prob.model.add_subsystem('comp', om.ExecComp('f = (x-3.0)**2'),
-                                     promotes=['*'])
-            prob.model.add_design_var('x', lower=-10.0, upper=10.0)
-            prob.model.add_objective('f')
+            prob.model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2"), promotes=["*"])
+            prob.model.add_design_var("x", lower=-10.0, upper=10.0)
+            prob.model.add_objective("f")
 
             prob.driver = om.pymooDriver()
-            prob.driver.options['optimizer'] = 'GA'
-            prob.driver.options['disp'] = False
-            prob.driver.alg_settings['pop_size'] = 10
-            prob.driver.run_settings['seed'] = seed
-            prob.driver.run_settings['termination'] = ('n_gen', 30)
+            prob.driver.options["optimizer"] = "GA"
+            prob.driver.options["disp"] = False
+            prob.driver.alg_settings["pop_size"] = 10
+            prob.driver.run_settings["seed"] = seed
+            prob.driver.run_settings["termination"] = ("n_gen", 30)
 
             prob.setup()
             prob.run_driver()
-            return prob.get_val('x').item()
+            return prob.get_val("x").item()
 
         result_a = run_with_seed(42)
         result_b = run_with_seed(42)
@@ -1188,17 +1183,16 @@ class TestPymooDriver(unittest.TestCase):
         import contextlib
 
         prob = om.Problem()
-        prob.model.add_subsystem('comp', om.ExecComp('f = (x-3.0)**2'),
-                                 promotes=['*'])
-        prob.model.add_design_var('x', lower=-10.0, upper=10.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-10.0, upper=10.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 10
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 10)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 10
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 10)
 
         prob.setup()
 
@@ -1207,9 +1201,9 @@ class TestPymooDriver(unittest.TestCase):
             prob.run_driver()
 
         output = captured.getvalue()
-        self.assertNotIn('n_gen', output)
-        self.assertNotIn('n_eval', output)
-        self.assertNotIn('Optimization Complete', output)
+        self.assertNotIn("n_gen", output)
+        self.assertNotIn("n_eval", output)
+        self.assertNotIn("Optimization Complete", output)
 
     def test_fail_flag_when_no_feasible_solution(self):
         """
@@ -1222,31 +1216,29 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp(['f = x**2', 'c1 = x', 'c2 = x']),
-                            promotes=['*'])
+        model.add_subsystem("comp", om.ExecComp(["f = x**2", "c1 = x", "c2 = x"]), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 10
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 5)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 10
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 5)
 
-        model.add_design_var('x', lower=-100.0, upper=100.0)
-        model.add_objective('f')
+        model.add_design_var("x", lower=-100.0, upper=100.0)
+        model.add_objective("f")
         # Contradictory constraints: x <= -99 AND x >= 99.
-        model.add_constraint('c1', upper=-99.0)
-        model.add_constraint('c2', lower=99.0)
+        model.add_constraint("c1", upper=-99.0)
+        model.add_constraint("c2", lower=99.0)
 
         prob.setup()
         prob.run_driver()
 
         self.assertTrue(prob.driver.fail)
 
-    @unittest.skipUnless(CMA_INSTALLED, 'cma package is not installed.')
+    @unittest.skipUnless(CMA_INSTALLED, "cma package is not installed.")
     def test_cmaes_output_redirected_to_outputs_dir(self):
         """
         Test that the driver sets verb_filenameprefix to the outputs directory for CMAES.
@@ -1260,29 +1252,27 @@ class TestPymooDriver(unittest.TestCase):
         - The outputs directory is created by the driver during the run.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('comp',
-                                 om.ExecComp('f = (x-3.0)**2 + (y+1.0)**2'),
-                                 promotes=['*'])
-        prob.model.add_design_var('x', lower=-10.0, upper=10.0)
-        prob.model.add_design_var('y', lower=-10.0, upper=10.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2 + (y+1.0)**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-10.0, upper=10.0)
+        prob.model.add_design_var("y", lower=-10.0, upper=10.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'CMAES'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['popsize'] = 10
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 5)
+        prob.driver.options["optimizer"] = "CMAES"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["popsize"] = 10
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 5)
 
         prob.setup()
         prob.run_driver()
 
         # The driver modifies a copy of alg_settings, not alg_settings itself.
-        self.assertNotIn('verb_filenameprefix', prob.driver.alg_settings)
+        self.assertNotIn("verb_filenameprefix", prob.driver.alg_settings)
         # The outputs directory must have been created to receive cma output.
         self.assertTrue(prob.get_outputs_dir().exists())
 
-    @unittest.skipUnless(CMA_INSTALLED, 'cma package is not installed.')
+    @unittest.skipUnless(CMA_INSTALLED, "cma package is not installed.")
     def test_cmaes_output_prefix_not_overridden_by_user(self):
         """
         Test that a user-supplied verb_filenameprefix in alg_settings is not overridden.
@@ -1290,29 +1280,27 @@ class TestPymooDriver(unittest.TestCase):
         The driver only sets verb_filenameprefix when it is absent from alg_settings.
         If the user supplies one, the driver must leave it unchanged.
         """
-        custom_prefix = 'my_custom_cmaes_'
+        custom_prefix = "my_custom_cmaes_"
 
         prob = om.Problem()
-        prob.model.add_subsystem('comp',
-                                 om.ExecComp('f = (x-3.0)**2 + (y+1.0)**2'),
-                                 promotes=['*'])
-        prob.model.add_design_var('x', lower=-10.0, upper=10.0)
-        prob.model.add_design_var('y', lower=-10.0, upper=10.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = (x-3.0)**2 + (y+1.0)**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-10.0, upper=10.0)
+        prob.model.add_design_var("y", lower=-10.0, upper=10.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'CMAES'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['popsize'] = 10
-        prob.driver.alg_settings['verb_filenameprefix'] = custom_prefix
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 5)
+        prob.driver.options["optimizer"] = "CMAES"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["popsize"] = 10
+        prob.driver.alg_settings["verb_filenameprefix"] = custom_prefix
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 5)
 
         prob.setup()
         prob.run_driver()
 
         # The user-supplied prefix must be preserved unchanged after the run.
-        self.assertEqual(prob.driver.alg_settings['verb_filenameprefix'], custom_prefix)
+        self.assertEqual(prob.driver.alg_settings["verb_filenameprefix"], custom_prefix)
 
     def test_citation(self):
         """
@@ -1322,14 +1310,14 @@ class TestPymooDriver(unittest.TestCase):
         include 'pymoo' and the author 'Blank'.
         """
         prob = om.Problem()
-        prob.model.add_subsystem('comp', om.ExecComp('f = x**2'), promotes=['*'])
-        prob.model.add_design_var('x', lower=-5.0, upper=5.0)
-        prob.model.add_objective('f')
+        prob.model.add_subsystem("comp", om.ExecComp("f = x**2"), promotes=["*"])
+        prob.model.add_design_var("x", lower=-5.0, upper=5.0)
+        prob.model.add_objective("f")
 
         prob.driver = om.pymooDriver()
 
-        self.assertIn('pymoo', prob.driver.cite)
-        self.assertIn('Blank', prob.driver.cite)
+        self.assertIn("pymoo", prob.driver.cite)
+        self.assertIn("Blank", prob.driver.cite)
 
     def test_simple_paraboloid_scaled_desvars(self):
         """
@@ -1344,31 +1332,31 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = -x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = -x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 500)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 500)
 
-        model.add_design_var('x', lower=-50.0, upper=50.0, ref=0.02)
-        model.add_design_var('y', lower=-50.0, upper=50.0, ref=0.02)
-        model.add_objective('f_xy')
-        model.add_constraint('c', upper=-15.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0, ref=0.02)
+        model.add_design_var("y", lower=-50.0, upper=50.0, ref=0.02)
+        model.add_objective("f_xy")
+        model.add_constraint("c", upper=-15.0)
 
         prob.setup()
         prob.run_driver()
 
-        self.assertLessEqual(prob.get_val('c'), -15.0 + 0.5)
-        assert_near_equal(prob.get_val('x'), 7.16667, tolerance=0.05)
-        assert_near_equal(prob.get_val('y'), -7.833334, tolerance=0.05)
+        self.assertLessEqual(prob.get_val("c"), -15.0 + 0.5)
+        assert_near_equal(prob.get_val("x"), 7.16667, tolerance=0.05)
+        assert_near_equal(prob.get_val("y"), -7.833334, tolerance=0.05)
 
     def test_simple_paraboloid_scaled_constraint(self):
         """
@@ -1382,31 +1370,31 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = -x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = -x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 500)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 500)
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy')
-        model.add_constraint('c', upper=-15.0, ref=10.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy")
+        model.add_constraint("c", upper=-15.0, ref=10.0)
 
         prob.setup()
         prob.run_driver()
 
-        self.assertLessEqual(prob.get_val('c'), -15.0 + 0.5)
-        assert_near_equal(prob.get_val('x'), 7.16667, tolerance=0.05)
-        assert_near_equal(prob.get_val('y'), -7.833334, tolerance=0.05)
+        self.assertLessEqual(prob.get_val("c"), -15.0 + 0.5)
+        assert_near_equal(prob.get_val("x"), 7.16667, tolerance=0.05)
+        assert_near_equal(prob.get_val("y"), -7.833334, tolerance=0.05)
 
     def test_simple_paraboloid_scaled_objective(self):
         """
@@ -1419,31 +1407,31 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('p1', om.IndepVarComp('x', 50.0), promotes=['*'])
-        model.add_subsystem('p2', om.IndepVarComp('y', 50.0), promotes=['*'])
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.add_subsystem('con', om.ExecComp('c = -x + y'), promotes=['*'])
+        model.add_subsystem("p1", om.IndepVarComp("x", 50.0), promotes=["*"])
+        model.add_subsystem("p2", om.IndepVarComp("y", 50.0), promotes=["*"])
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.add_subsystem("con", om.ExecComp("c = -x + y"), promotes=["*"])
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'GA'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 500)
+        prob.driver.options["optimizer"] = "GA"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 500)
 
-        model.add_design_var('x', lower=-50.0, upper=50.0)
-        model.add_design_var('y', lower=-50.0, upper=50.0)
-        model.add_objective('f_xy', ref=10.0)
-        model.add_constraint('c', upper=-15.0)
+        model.add_design_var("x", lower=-50.0, upper=50.0)
+        model.add_design_var("y", lower=-50.0, upper=50.0)
+        model.add_objective("f_xy", ref=10.0)
+        model.add_constraint("c", upper=-15.0)
 
         prob.setup()
         prob.run_driver()
 
-        self.assertLessEqual(prob.get_val('c'), -15.0 + 0.5)
-        assert_near_equal(prob.get_val('x'), 7.16667, tolerance=0.05)
-        assert_near_equal(prob.get_val('y'), -7.833334, tolerance=0.05)
+        self.assertLessEqual(prob.get_val("c"), -15.0 + 0.5)
+        assert_near_equal(prob.get_val("x"), 7.16667, tolerance=0.05)
+        assert_near_equal(prob.get_val("y"), -7.833334, tolerance=0.05)
 
     def test_pareto_scaled_desvars_in_physical_space(self):
         """
@@ -1457,32 +1445,32 @@ class TestPymooDriver(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp',
-                            om.ExecComp(['f1 = (x+5.0)**2', 'f2 = (x-5.0)**2']),
-                            promotes=['*'])
+        model.add_subsystem(
+            "comp", om.ExecComp(["f1 = (x+5.0)**2", "f2 = (x-5.0)**2"]), promotes=["*"]
+        )
 
         prob.set_solver_print(level=0)
 
         prob.driver = om.pymooDriver()
-        prob.driver.options['optimizer'] = 'NSGA2'
-        prob.driver.options['disp'] = False
-        prob.driver.alg_settings['pop_size'] = 50
-        prob.driver.run_settings['seed'] = 1
-        prob.driver.run_settings['termination'] = ('n_gen', 100)
+        prob.driver.options["optimizer"] = "NSGA2"
+        prob.driver.options["disp"] = False
+        prob.driver.alg_settings["pop_size"] = 50
+        prob.driver.run_settings["seed"] = 1
+        prob.driver.run_settings["termination"] = ("n_gen", 100)
 
-        model.add_design_var('x', lower=-10.0, upper=10.0, ref=0.1)
-        model.add_objective('f1')
-        model.add_objective('f2')
+        model.add_design_var("x", lower=-10.0, upper=10.0, ref=0.1)
+        model.add_objective("f1")
+        model.add_objective("f2")
 
         prob.setup()
         prob.run_driver()
 
-        x_pareto = prob.driver.pareto['X']['x']
+        x_pareto = prob.driver.pareto["X"]["x"]
         # The Pareto front lies in x in [-5, 5] (physical space).
         # Incorrect scaling would leave values in [-50, 50] (optimizer space).
         self.assertTrue(np.all(x_pareto >= -5.1))
         self.assertTrue(np.all(x_pareto <= 5.1))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

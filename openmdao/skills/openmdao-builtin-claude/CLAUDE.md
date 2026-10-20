@@ -12,7 +12,7 @@ The contents of this file will be inserted into either the user global CLAUDE.md
 import openmdao.api as om
 
 prob = om.Problem()
-prob.model.add_subsystem('comp', MyComponent())
+prob.model.add_subsystem("comp", MyComponent())
 prob.setup()
 prob.run_model()
 ```

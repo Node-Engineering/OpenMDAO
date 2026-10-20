@@ -1,4 +1,5 @@
 """Test serial derivatives in implicit group when running in parallel"""
+
 import unittest
 
 import numpy as np
@@ -22,33 +23,23 @@ class SerialImplicitDerivConsist(unittest.TestCase):
                 self.add_input("x", shape_by_conn=True, distributed=True)
                 self.add_input("s0")
                 self.add_input("s1")
-                self.add_output(
-                    "y", shape=5 if self.comm.rank == 0 else 0, distributed=True
-                )
+                self.add_output("y", shape=5 if self.comm.rank == 0 else 0, distributed=True)
 
             def apply_nonlinear(self, inputs, outputs, residuals):
-                residuals["y"] = outputs["y"] - (
-                    np.sum(inputs["x"]) + inputs["s0"] + inputs["s1"]
-                )
+                residuals["y"] = outputs["y"] - (np.sum(inputs["x"]) + inputs["s0"] + inputs["s1"])
 
             def solve_nonlinear(self, inputs, outputs):
                 outputs["y"] = np.sum(inputs["x"]) + inputs["s0"] + inputs["s1"]
 
-            def apply_linear(
-                self, inputs, outputs, d_inputs, d_outputs, d_residuals, mode
-            ):
+            def apply_linear(self, inputs, outputs, d_inputs, d_outputs, d_residuals, mode):
                 if mode == "rev":
                     if "y" in d_residuals:
                         if "x" in d_inputs:
                             d_inputs["x"] = -np.sum(d_residuals["y"])
                         if "s0" in d_inputs:
-                            d_inputs["s0"] = self.comm.allreduce(
-                                -np.sum(d_residuals["y"])
-                            )
+                            d_inputs["s0"] = self.comm.allreduce(-np.sum(d_residuals["y"]))
                         if "s1" in d_inputs:
-                            d_inputs["s1"] = self.comm.allreduce(
-                                -np.sum(d_residuals["y"])
-                            )
+                            d_inputs["s1"] = self.comm.allreduce(-np.sum(d_residuals["y"]))
                         if "y" in d_outputs:
                             d_outputs["y"] = d_residuals["y"]
 

@@ -17,28 +17,60 @@ from openmdao.utils.mpi import MPI
 
 
 # Optimizers in scipy.minimize
-_optimizers = {'Nelder-Mead', 'Powell', 'CG', 'BFGS', 'Newton-CG', 'L-BFGS-B',
-               'TNC', 'COBYLA', 'SLSQP', 'trust-constr'}
+_optimizers = {
+    "Nelder-Mead",
+    "Powell",
+    "CG",
+    "BFGS",
+    "Newton-CG",
+    "L-BFGS-B",
+    "TNC",
+    "COBYLA",
+    "SLSQP",
+    "trust-constr",
+}
 
 # For 'basinhopping' and 'shgo' gradients are used only in the local minimization
-_gradient_optimizers = {'CG', 'BFGS', 'Newton-CG', 'L-BFGS-B', 'TNC', 'SLSQP', 'dogleg',
-                        'trust-ncg', 'trust-constr', 'basinhopping', 'shgo'}
-_hessian_optimizers = {'trust-constr', 'trust-ncg'}
-_bounds_optimizers = {'L-BFGS-B', 'TNC', 'SLSQP', 'trust-constr', 'dual_annealing', 'shgo',
-                      'differential_evolution', 'basinhopping', 'Nelder-Mead', 'COBYLA'}
+_gradient_optimizers = {
+    "CG",
+    "BFGS",
+    "Newton-CG",
+    "L-BFGS-B",
+    "TNC",
+    "SLSQP",
+    "dogleg",
+    "trust-ncg",
+    "trust-constr",
+    "basinhopping",
+    "shgo",
+}
+_hessian_optimizers = {"trust-constr", "trust-ncg"}
+_bounds_optimizers = {
+    "L-BFGS-B",
+    "TNC",
+    "SLSQP",
+    "trust-constr",
+    "dual_annealing",
+    "shgo",
+    "differential_evolution",
+    "basinhopping",
+    "Nelder-Mead",
+    "COBYLA",
+}
 
-_constraint_optimizers = {'COBYLA', 'SLSQP', 'trust-constr', 'shgo', 'differential_evolution'}
-_constraint_grad_optimizers = (_gradient_optimizers & _constraint_optimizers) | \
-    {'differential_evolution'}
+_constraint_optimizers = {"COBYLA", "SLSQP", "trust-constr", "shgo", "differential_evolution"}
+_constraint_grad_optimizers = (_gradient_optimizers & _constraint_optimizers) | {
+    "differential_evolution"
+}
 
 if Version(scipy_version) >= Version("1.14"):
     # COBYQA is only available starting with SciPy 1.14.
-    _optimizers.add('COBYQA')
-    _bounds_optimizers |= {'COBYQA'}
-    _constraint_optimizers |= {'COBYQA'}
+    _optimizers.add("COBYQA")
+    _bounds_optimizers |= {"COBYQA"}
+    _constraint_optimizers |= {"COBYQA"}
 
-_eq_constraint_optimizers = {'SLSQP', 'trust-constr'}
-_global_optimizers = {'differential_evolution', 'basinhopping', 'shgo', 'dual_annealing'}
+_eq_constraint_optimizers = {"SLSQP", "trust-constr"}
+_global_optimizers = {"differential_evolution", "basinhopping", "shgo", "dual_annealing"}
 
 # Global optimizers and optimizers in minimize
 _all_optimizers = _optimizers | _global_optimizers
@@ -46,14 +78,14 @@ _all_optimizers = _optimizers | _global_optimizers
 # These require Hessian or Hessian-vector product, so they are not supported
 # right now.
 # dual-annealing and basinhopping not supported yet
-_unsupported_optimizers = {'dogleg', 'trust-ncg'}
+_unsupported_optimizers = {"dogleg", "trust-ncg"}
 
 # With "old-style" a constraint is a dictionary, with "new-style" an object
 # With "old-style" a bound is a tuple, with "new-style" a Bounds instance
 # In principle now everything can work with "old-style"
-_supports_new_style = {'trust-constr', 'differential_evolution', 'shgo'}
+_supports_new_style = {"trust-constr", "differential_evolution", "shgo"}
 if Version(scipy_version) >= Version("1.14"):
-    _supports_new_style.add('COBYQA')
+    _supports_new_style.add("COBYQA")
 _use_new_style = True  # Recommended to set to True
 
 CITATIONS = """
@@ -133,18 +165,18 @@ class ScipyOptimizeDriver(Driver):
         super().__init__(**kwargs)
 
         # What we support
-        self.supports['optimization'] = True
-        self.supports['inequality_constraints'] = True
-        self.supports['equality_constraints'] = True
-        self.supports['two_sided_constraints'] = True
-        self.supports['linear_constraints'] = True
-        self.supports['simultaneous_derivatives'] = True
+        self.supports["optimization"] = True
+        self.supports["inequality_constraints"] = True
+        self.supports["equality_constraints"] = True
+        self.supports["two_sided_constraints"] = True
+        self.supports["linear_constraints"] = True
+        self.supports["simultaneous_derivatives"] = True
 
         # What we don't support
-        self.supports['multiple_objectives'] = False
-        self.supports['active_set'] = False
-        self.supports['integer_design_vars'] = False
-        self.supports['distributed_design_vars'] = False
+        self.supports["multiple_objectives"] = False
+        self.supports["active_set"] = False
+        self.supports["integer_design_vars"] = False
+        self.supports["distributed_design_vars"] = False
         self.supports._read_only = True
 
         # The user places optimizer-specific settings in here.
@@ -161,7 +193,7 @@ class ScipyOptimizeDriver(Driver):
         self.fail = False
         self.iter_count = 0
         self._check_jac = False
-        self._total_jac_format = 'array'
+        self._total_jac_format = "array"
 
         self.cite = CITATIONS
 
@@ -169,25 +201,36 @@ class ScipyOptimizeDriver(Driver):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare('optimizer', 'SLSQP', values=_all_optimizers,
-                             desc='Name of optimizer to use')
-        self.options.declare('tol', 1.0e-6, lower=0.0,
-                             desc='Tolerance for termination. For detailed '
-                             'control, use solver-specific options.')
-        self.options.declare('maxiter', 200, lower=0,
-                             desc='Maximum number of iterations.')
-        self.options.declare('disp', default=True, types=(int, bool),
-                             desc='Value of "disp" argument provided to scipy.optimize.minimize '
-                             'which controls the verbosity of the optimization.')
-        self.options.declare('singular_jac_behavior', default='warn',
-                             values=['error', 'warn', 'ignore'],
-                             desc='Defines behavior of a zero row/col check after first call to'
-                             'compute_totals:'
-                             'error - raise an error.'
-                             'warn - raise a warning.'
-                             "ignore - don't perform check.")
-        self.options.declare('singular_jac_tol', default=1e-16,
-                             desc='Tolerance for zero row/column check.')
+        self.options.declare(
+            "optimizer", "SLSQP", values=_all_optimizers, desc="Name of optimizer to use"
+        )
+        self.options.declare(
+            "tol",
+            1.0e-6,
+            lower=0.0,
+            desc="Tolerance for termination. For detailed control, use solver-specific options.",
+        )
+        self.options.declare("maxiter", 200, lower=0, desc="Maximum number of iterations.")
+        self.options.declare(
+            "disp",
+            default=True,
+            types=(int, bool),
+            desc='Value of "disp" argument provided to scipy.optimize.minimize '
+            "which controls the verbosity of the optimization.",
+        )
+        self.options.declare(
+            "singular_jac_behavior",
+            default="warn",
+            values=["error", "warn", "ignore"],
+            desc="Defines behavior of a zero row/col check after first call to"
+            "compute_totals:"
+            "error - raise an error."
+            "warn - raise a warning."
+            "ignore - don't perform check.",
+        )
+        self.options.declare(
+            "singular_jac_tol", default=1e-16, desc="Tolerance for zero row/column check."
+        )
 
     def _get_name(self):
         """
@@ -198,7 +241,7 @@ class ScipyOptimizeDriver(Driver):
         str
             The name of the current optimizer.
         """
-        return "ScipyOptimize_" + self.options['optimizer']
+        return "ScipyOptimize_" + self.options["optimizer"]
 
     def _setup_driver(self, problem):
         """
@@ -212,41 +255,43 @@ class ScipyOptimizeDriver(Driver):
             Pointer
         """
         super()._setup_driver(problem)
-        opt = self.options['optimizer']
+        opt = self.options["optimizer"]
 
         self.supports._read_only = False
-        self.supports['gradients'] = opt in _gradient_optimizers
-        self.supports['inequality_constraints'] = opt in _constraint_optimizers
-        self.supports['two_sided_constraints'] = opt in _constraint_optimizers
-        self.supports['equality_constraints'] = opt in _eq_constraint_optimizers
+        self.supports["gradients"] = opt in _gradient_optimizers
+        self.supports["inequality_constraints"] = opt in _constraint_optimizers
+        self.supports["two_sided_constraints"] = opt in _constraint_optimizers
+        self.supports["equality_constraints"] = opt in _eq_constraint_optimizers
         self.supports._read_only = True
-        self._check_jac = self.options['singular_jac_behavior'] in ['error', 'warn']
+        self._check_jac = self.options["singular_jac_behavior"] in ["error", "warn"]
 
         # Raises error if multiple objectives are not supported, but more objectives were defined.
-        if not self.supports['multiple_objectives'] and len(self._objs) > 1:
-            msg = '{} currently does not support multiple objectives.'
+        if not self.supports["multiple_objectives"] and len(self._objs) > 1:
+            msg = "{} currently does not support multiple objectives."
             raise RuntimeError(msg.format(self.msginfo))
 
         # Since COBYLA did not support bounds in versions of SciPy prior to 1.11, we need to
         # add to the _cons metadata for any bounds that need to be translated into a constraint
-        if opt == 'COBYLA' and Version(scipy_version) < Version("1.11"):
+        if opt == "COBYLA" and Version(scipy_version) < Version("1.11"):
             added = False
             for name, meta in self._designvars.items():
-                lower = meta['lower']
-                upper = meta['upper']
-                lower_bounded = isinstance(lower, np.ndarray) or \
-                    (lower is not None and not np.isneginf(lower))
-                upper_bounded = isinstance(upper, np.ndarray) or \
-                    (upper is not None and not np.isposinf(upper))
+                lower = meta["lower"]
+                upper = meta["upper"]
+                lower_bounded = isinstance(lower, np.ndarray) or (
+                    lower is not None and not np.isneginf(lower)
+                )
+                upper_bounded = isinstance(upper, np.ndarray) or (
+                    upper is not None and not np.isposinf(upper)
+                )
                 if lower_bounded or upper_bounded:
                     self._cons[name] = meta.copy()
-                    self._cons[name]['equals'] = None
-                    self._cons[name]['linear'] = True
-                    self._cons[name]['alias'] = None
+                    self._cons[name]["equals"] = None
+                    self._cons[name]["linear"] = True
+                    self._cons[name]["alias"] = None
                     added = True
             if added:
                 # Refresh constraint bounds cache to include the newly-added entries
-                self._autoscaler._compute_scaled_bounds('constraint')
+                self._autoscaler._compute_scaled_bounds("constraint")
 
     def run(self):
         """
@@ -259,7 +304,7 @@ class ScipyOptimizeDriver(Driver):
         """
         self.result.reset()
         prob = self._problem()
-        opt = self.options['optimizer']
+        opt = self.options["optimizer"]
         model = prob.model
         self.iter_count = 0
         self._total_jac = None
@@ -271,7 +316,7 @@ class ScipyOptimizeDriver(Driver):
 
         # Initial Run
         with RecordingDebugging(self._get_name(), self.iter_count, self):
-            with model._relevance.nonlinear_active('iter'):
+            with model._relevance.nonlinear_active("iter"):
                 self._run_solve_nonlinear()
             self.iter_count += 1
 
@@ -280,33 +325,33 @@ class ScipyOptimizeDriver(Driver):
         self._dvlist = list(self._designvars)
 
         # maxiter and disp get passed into scipy with all the other options.
-        if 'maxiter' not in self.opt_settings:  # lets you override the value in options
-            self.opt_settings['maxiter'] = self.options['maxiter']
-        self.opt_settings['disp'] = self.options['disp']
+        if "maxiter" not in self.opt_settings:  # lets you override the value in options
+            self.opt_settings["maxiter"] = self.options["maxiter"]
+        self.opt_settings["disp"] = self.options["disp"]
 
         # Size Problem
         ndesvar = 0
         for desvar in self._designvars.values():
-            size = desvar['global_size'] if desvar['distributed'] else desvar['size']
+            size = desvar["global_size"] if desvar["distributed"] else desvar["size"]
             ndesvar += size
         x_init = np.empty(ndesvar)
 
         if ndesvar == 0:
-            raise RuntimeError('Problem has no design variables.')
+            raise RuntimeError("Problem has no design variables.")
 
         # Initial Design Vars
         i = 0
-        use_bounds = (opt in _bounds_optimizers)
+        use_bounds = opt in _bounds_optimizers
         if use_bounds:
             bounds = []
         else:
             bounds = None
 
-        dv_bounds = self._autoscaler.get_bounds_scaling('design_var')
+        dv_bounds = self._autoscaler.get_bounds_scaling("design_var")
 
         for name, meta in self._designvars.items():
-            size = meta['global_size'] if meta['distributed'] else meta['size']
-            x_init[i:i + size] = desvar_vals[name]
+            size = meta["global_size"] if meta["distributed"] else meta["size"]
+            x_init[i : i + size] = desvar_vals[name]
             i += size
 
             # Bounds if our optimizer supports them
@@ -332,7 +377,7 @@ class ScipyOptimizeDriver(Driver):
 
             # Convert "old-style" bounds to "new_style" bounds
             lower, upper = old_bound_to_new(bounds)  # tuple, tuple
-            keep_feasible = self.opt_settings.get('keep_feasible_bounds', True)
+            keep_feasible = self.opt_settings.get("keep_feasible_bounds", True)
             bounds = Bounds(lb=lower, ub=upper, keep_feasible=keep_feasible)
 
         # Constraints
@@ -345,24 +390,25 @@ class ScipyOptimizeDriver(Driver):
         if opt in _constraint_optimizers:
             # get list of linear constraints and precalculate gradients for them (if any)
             if opt in _constraint_grad_optimizers:
-                lincons = [name for name, meta in self._cons.items() if meta.get('linear')]
+                lincons = [name for name, meta in self._cons.items() if meta.get("linear")]
             else:
                 lincons = []
 
             if lincons:
-                lincongrad = self._lincongrad_cache = \
-                    self._compute_totals(of=lincons, wrt=self._dvlist, return_format='array')
+                lincongrad = self._lincongrad_cache = self._compute_totals(
+                    of=lincons, wrt=self._dvlist, return_format="array"
+                )
             else:
                 self._lincongrad_cache = None
 
-            con_bounds = self._autoscaler.get_bounds_scaling('constraint')
+            con_bounds = self._autoscaler.get_bounds_scaling("constraint")
 
             # map constraints to index and instantiate constraints for scipy
             for name, meta in self._cons.items():
-                if meta['indices'] is not None:
-                    meta['size'] = size = meta['indices'].indexed_src_size
+                if meta["indices"] is not None:
+                    meta["size"] = size = meta["indices"].indexed_src_size
                 else:
-                    size = meta['global_size'] if meta['distributed'] else meta['size']
+                    size = meta["global_size"] if meta["distributed"] else meta["size"]
                 upper = con_bounds[name].upper
                 lower = con_bounds[name].lower
                 equals = con_bounds[name].equals
@@ -388,11 +434,12 @@ class ScipyOptimizeDriver(Driver):
                     else:
                         lb = np.full(size, -inf_b) if lower is None else np.maximum(lower, -inf_b)
                         ub = np.full(size, inf_b) if upper is None else np.minimum(upper, inf_b)
-                    
+
                     if linear:
                         # LinearConstraint
-                        con = LinearConstraint(A=lincongrad[self._con_idx[name]],
-                                               lb=lb, ub=ub, keep_feasible=True)
+                        con = LinearConstraint(
+                            A=lincongrad[self._con_idx[name]], lb=lb, ub=ub, keep_feasible=True
+                        )
                     else:
                         # NonlinearConstraint
                         # Loop over every index separately,
@@ -405,10 +452,13 @@ class ScipyOptimizeDriver(Driver):
                             ub_j = ub[j]
                             con = NonlinearConstraint(
                                 fun=signature_extender(
-                                    WeakMethodWrapper(self, '_con_val_func'), args),
-                                lb=lb_j, ub=ub_j,
+                                    WeakMethodWrapper(self, "_con_val_func"), args
+                                ),
+                                lb=lb_j,
+                                ub=ub_j,
                                 jac=signature_extender(
-                                    WeakMethodWrapper(self, '_congradfunc'), args)
+                                    WeakMethodWrapper(self, "_congradfunc"), args
+                                ),
                             )
                     constraints.append(con)
                 else:
@@ -418,32 +468,39 @@ class ScipyOptimizeDriver(Driver):
                     # because scipy calls each constraint by index.
                     for j in range(size):
                         con_dict = {}
-                        if meta['equals'] is not None:
-                            con_dict['type'] = 'eq'
+                        if meta["equals"] is not None:
+                            con_dict["type"] = "eq"
                         else:
-                            con_dict['type'] = 'ineq'
-                        con_dict['fun'] = WeakMethodWrapper(self, '_confunc')
+                            con_dict["type"] = "ineq"
+                        con_dict["fun"] = WeakMethodWrapper(self, "_confunc")
                         if opt in _constraint_grad_optimizers:
-                            con_dict['jac'] = WeakMethodWrapper(self, '_congradfunc')
-                        con_dict['args'] = [name, False, j]
+                            con_dict["jac"] = WeakMethodWrapper(self, "_congradfunc")
+                        con_dict["args"] = [name, False, j]
                         constraints.append(con_dict)
 
-                        upper_j = None if upper is None else (
-                            upper[j] if isinstance(upper, np.ndarray) else upper)
-                        lower_j = None if lower is None else (
-                            lower[j] if isinstance(lower, np.ndarray) else lower)
+                        upper_j = (
+                            None
+                            if upper is None
+                            else (upper[j] if isinstance(upper, np.ndarray) else upper)
+                        )
+                        lower_j = (
+                            None
+                            if lower is None
+                            else (lower[j] if isinstance(lower, np.ndarray) else lower)
+                        )
 
-                        dblcon = (upper_j is not None and not np.isposinf(upper_j)) and \
-                                 (lower_j is not None and not np.isneginf(lower_j))
+                        dblcon = (upper_j is not None and not np.isposinf(upper_j)) and (
+                            lower_j is not None and not np.isneginf(lower_j)
+                        )
 
                         # Add extra constraint if double-sided
                         if dblcon:
                             dcon_dict = {}
-                            dcon_dict['type'] = 'ineq'
-                            dcon_dict['fun'] = WeakMethodWrapper(self, '_confunc')
+                            dcon_dict["type"] = "ineq"
+                            dcon_dict["fun"] = WeakMethodWrapper(self, "_confunc")
                             if opt in _constraint_grad_optimizers:
-                                dcon_dict['jac'] = WeakMethodWrapper(self, '_congradfunc')
-                            dcon_dict['args'] = [name, True, j]
+                                dcon_dict["jac"] = WeakMethodWrapper(self, "_congradfunc")
+                            dcon_dict["args"] = [name, True, j]
                             constraints.append(dcon_dict)
 
         # Provide gradients for optimizers that support it
@@ -454,11 +511,12 @@ class ScipyOptimizeDriver(Driver):
 
         # Hessian calculation method for optimizers, which require it
         if opt in _hessian_optimizers:
-            if 'hess' in self.opt_settings:
-                hess = self.opt_settings.pop('hess')
+            if "hess" in self.opt_settings:
+                hess = self.opt_settings.pop("hess")
             else:
                 # Defaults to BFGS, if not in opt_settings
                 from scipy.optimize import BFGS
+
                 hess = BFGS()
         else:
             hess = None
@@ -470,39 +528,42 @@ class ScipyOptimizeDriver(Driver):
         try:
             if opt in _optimizers:
                 if prob.comm.rank != 0:
-                    self.opt_settings['disp'] = False
+                    self.opt_settings["disp"] = False
 
-                result = minimize(self._objfunc, x_init,
-                                  # args=(),
-                                  method=opt,
-                                  jac=jac,
-                                  hess=hess,
-                                  # hessp=None,
-                                  bounds=bounds,
-                                  constraints=constraints,
-                                  tol=self.options['tol'],
-                                  # callback=None,
-                                  options=self.opt_settings)
-            elif opt == 'basinhopping':
+                result = minimize(
+                    self._objfunc,
+                    x_init,
+                    # args=(),
+                    method=opt,
+                    jac=jac,
+                    hess=hess,
+                    # hessp=None,
+                    bounds=bounds,
+                    constraints=constraints,
+                    tol=self.options["tol"],
+                    # callback=None,
+                    options=self.opt_settings,
+                )
+            elif opt == "basinhopping":
                 from scipy.optimize import basinhopping
 
                 def fun(x):
                     return self._objfunc(x), jac(x)
 
-                if 'minimizer_kwargs' not in self.opt_settings:
-                    self.opt_settings['minimizer_kwargs'] = {"method": "L-BFGS-B", "jac": True}
-                self.opt_settings.pop('maxiter')  # It does not have this argument
+                if "minimizer_kwargs" not in self.opt_settings:
+                    self.opt_settings["minimizer_kwargs"] = {"method": "L-BFGS-B", "jac": True}
+                self.opt_settings.pop("maxiter")  # It does not have this argument
 
                 def accept_test(f_new, x_new, f_old, x_old):
                     # Used to implement bounds besides the original functionality
                     if bounds is not None:
                         bound_check = all([b[0] <= xi <= b[1] for xi, b in zip(x_new, bounds)])
-                        user_test = self.opt_settings.pop('accept_test', None)  # callable
+                        user_test = self.opt_settings.pop("accept_test", None)  # callable
                         # has to satisfy both the bounds and the acceptance test defined by the
                         # user
                         if user_test is not None:
                             test_res = user_test(f_new, x_new, f_old, x_old)
-                            if test_res == 'force accept':
+                            if test_res == "force accept":
                                 return test_res
                             else:  # result is boolean
                                 return bound_check and test_res
@@ -511,42 +572,43 @@ class ScipyOptimizeDriver(Driver):
                     else:
                         return True
 
-                result = basinhopping(fun, x_init,
-                                      accept_test=accept_test,
-                                      **self.opt_settings)
-            elif opt == 'dual_annealing':
+                result = basinhopping(fun, x_init, accept_test=accept_test, **self.opt_settings)
+            elif opt == "dual_annealing":
                 from scipy.optimize import dual_annealing
-                self.opt_settings.pop('disp')  # It does not have this argument
+
+                self.opt_settings.pop("disp")  # It does not have this argument
                 # There is no "options" param, so "opt_settings" can be used to set the (many)
                 # keyword arguments
-                result = dual_annealing(self._objfunc,
-                                        bounds=bounds,
-                                        **self.opt_settings)
-            elif opt == 'differential_evolution':
+                result = dual_annealing(self._objfunc, bounds=bounds, **self.opt_settings)
+            elif opt == "differential_evolution":
                 from scipy.optimize import differential_evolution
+
                 # There is no "options" param, so "opt_settings" can be used to set the (many)
                 # keyword arguments
-                result = differential_evolution(self._objfunc, bounds=bounds,
-                                                constraints=constraints,
-                                                **self.opt_settings)
-            elif opt == 'shgo':
+                result = differential_evolution(
+                    self._objfunc, bounds=bounds, constraints=constraints, **self.opt_settings
+                )
+            elif opt == "shgo":
                 from scipy.optimize import shgo
+
                 kwargs = dict()
-                for option in ('minimizer_kwargs', 'sampling_method ', 'n', 'iters'):
+                for option in ("minimizer_kwargs", "sampling_method ", "n", "iters"):
                     if option in self.opt_settings:
                         kwargs[option] = self.opt_settings[option]
                 # Set the Jacobian and the Hessian to the value calculated in OpenMDAO
-                if 'minimizer_kwargs' not in kwargs or kwargs['minimizer_kwargs'] is None:
-                    kwargs['minimizer_kwargs'] = {}
-                kwargs['minimizer_kwargs'].setdefault('jac', jac)
-                kwargs['minimizer_kwargs'].setdefault('hess', hess)
+                if "minimizer_kwargs" not in kwargs or kwargs["minimizer_kwargs"] is None:
+                    kwargs["minimizer_kwargs"] = {}
+                kwargs["minimizer_kwargs"].setdefault("jac", jac)
+                kwargs["minimizer_kwargs"].setdefault("hess", hess)
                 # Objective function tolerance
-                self.opt_settings['f_tol'] = self.options['tol']
-                result = shgo(self._objfunc,
-                              bounds=bounds,
-                              constraints=constraints,
-                              options=self.opt_settings,
-                              **kwargs)
+                self.opt_settings["f_tol"] = self.options["tol"]
+                result = shgo(
+                    self._objfunc,
+                    bounds=bounds,
+                    constraints=constraints,
+                    options=self.opt_settings,
+                    **kwargs,
+                )
             else:
                 msg = 'Optimizer "{}" is not implemented yet. Choose from: {}'
                 raise NotImplementedError(msg.format(opt, _all_optimizers))
@@ -562,24 +624,24 @@ class ScipyOptimizeDriver(Driver):
 
         self._scipy_optimize_result = result
 
-        if hasattr(result, 'success'):
+        if hasattr(result, "success"):
             self.fail = not result.success
             if self.fail:
                 if prob.comm.rank == 0:
-                    print('Optimization FAILED.')
+                    print("Optimization FAILED.")
                     print(result.message)
-                    print('-' * 35)
+                    print("-" * 35)
 
-            elif self.options['disp']:
+            elif self.options["disp"]:
                 if prob.comm.rank == 0:
-                    print('Optimization Complete')
-                    print('-' * 35)
+                    print("Optimization Complete")
+                    print("-" * 35)
         else:
             self.fail = True  # It is not known, so the worst option is assumed
             if prob.comm.rank == 0:
-                print('Optimization Complete (success not known)')
+                print("Optimization Complete (success not known)")
                 print(result.message)
-                print('-' * 35)
+                print("-" * 35)
 
         return self.fail
 
@@ -600,10 +662,9 @@ class ScipyOptimizeDriver(Driver):
             Value of the objective function evaluated at the new design point.
         """
         model = self._problem().model
-        dv_vec = self._vectors['design_var']
+        dv_vec = self._vectors["design_var"]
 
         try:
-
             # Broadcast same x_new to all ranks
             if MPI:
                 model.comm.Bcast(x_new, root=0)
@@ -616,7 +677,7 @@ class ScipyOptimizeDriver(Driver):
 
             with RecordingDebugging(self._get_name(), self.iter_count, self):
                 self.iter_count += 1
-                with model._relevance.nonlinear_active('iter'):
+                with model._relevance.nonlinear_active("iter"):
                     self._run_solve_nonlinear()
 
             # Get the objective function evaluations
@@ -656,7 +717,7 @@ class ScipyOptimizeDriver(Driver):
         float
             Value of the constraint function.
         """
-        if self.options['optimizer'] in ['differential_evolution', 'COBYQA']:
+        if self.options["optimizer"] in ["differential_evolution", "COBYQA"]:
             # the DE opt will not have called this, so we do it here to update DV/resp values
             self._objfunc(x_new)
 
@@ -691,10 +752,10 @@ class ScipyOptimizeDriver(Driver):
         cons = self._con_cache
         meta = self._cons[name]
 
-        con_bounds = self._autoscaler.get_bounds_scaling('constraint')
+        con_bounds = self._autoscaler.get_bounds_scaling("constraint")
 
         # Equality constraints
-        if meta['equals'] is not None:
+        if meta["equals"] is not None:
             eq = con_bounds[name].equals
             return cons[name][idx] - eq[idx]
 
@@ -730,8 +791,9 @@ class ScipyOptimizeDriver(Driver):
         model = prob.model
 
         try:
-            grad = self._compute_totals(of=self._obj_and_nlcons, wrt=self._dvlist,
-                                        return_format=self._total_jac_format)
+            grad = self._compute_totals(
+                of=self._obj_and_nlcons, wrt=self._dvlist, return_format=self._total_jac_format
+            )
             self._grad_cache = grad
 
             # First time through, check for zero row/col.
@@ -740,9 +802,10 @@ class ScipyOptimizeDriver(Driver):
                     if subsys._has_approx:
                         break
                 else:
-                    raise_error = self.options['singular_jac_behavior'] == 'error'
-                    self._total_jac.check_total_jac(raise_error=raise_error,
-                                                    tol=self.options['singular_jac_tol'])
+                    raise_error = self.options["singular_jac_behavior"] == "error"
+                    self._total_jac.check_total_jac(
+                        raise_error=raise_error, tol=self.options["singular_jac_tol"]
+                    )
                 self._check_jac = False
 
         except Exception:
@@ -780,7 +843,7 @@ class ScipyOptimizeDriver(Driver):
 
         meta = self._cons[name]
 
-        if meta['linear']:
+        if meta["linear"]:
             grad = self._lincongrad_cache
         else:
             if self._grad_cache is None:
@@ -792,12 +855,12 @@ class ScipyOptimizeDriver(Driver):
         grad_idx = self._con_idx[name] + idx
 
         # Equality constraints
-        if meta['equals'] is not None:
+        if meta["equals"] is not None:
             return grad[grad_idx, :]
 
         # Note, scipy defines constraints to be satisfied when positive,
         # which is the opposite of OpenMDAO.
-        lower = meta['lower']
+        lower = meta["lower"]
         if isinstance(lower, np.ndarray):
             lower = lower[idx]
 
@@ -830,6 +893,7 @@ def signature_extender(fcn, extra_args):
     callable
         The function with the signature expected by the driver.
     """
+
     def closure(x, *args):
         return fcn(x, *extra_args)
 

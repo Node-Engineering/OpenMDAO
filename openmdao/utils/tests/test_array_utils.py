@@ -2,13 +2,17 @@ import unittest
 
 import numpy as np
 
-from openmdao.utils.array_utils import array_connection_compatible, abs_complex, dv_abs_complex, \
-    convert_neg, submat_sparsity_iter
+from openmdao.utils.array_utils import (
+    array_connection_compatible,
+    abs_complex,
+    dv_abs_complex,
+    convert_neg,
+    submat_sparsity_iter,
+)
 from openmdao.utils.assert_utils import assert_near_equal
 
 
 class TestArrayConnectionCompatible(unittest.TestCase):
-
     def test_ones_at_both_ends(self):
         shape1 = (1, 1, 15, 3, 1, 7, 1, 1, 1, 1)
         shape2 = (1, 15, 3, 1, 7)
@@ -46,7 +50,6 @@ class TestArrayConnectionCompatible(unittest.TestCase):
 
 
 class TestArrayUtils(unittest.TestCase):
-
     def test_abs_complex(self):
 
         x = np.array([3.0 + 0.5j, -4.0 - 1.5j, -5.0 + 2.5j, -6.0 - 3.5j])
@@ -67,7 +70,7 @@ class TestArrayUtils(unittest.TestCase):
         assert_near_equal(dy, dy_check, 1e-10)
 
     def test_convert_neg(self):
-        a = np.arange(16).reshape((4,4))
+        a = np.arange(16).reshape((4, 4))
         a[2, 3] = -5
         a[0, 1] = -7
 
@@ -76,12 +79,11 @@ class TestArrayUtils(unittest.TestCase):
         self.assertEqual(b[0, 1], 9)
 
         inds = np.where(a != b)
-        self.assertTrue(np.all(inds[0] == np.array([0,2])))
-        self.assertTrue(np.all(inds[1] == np.array([1,3])))
+        self.assertTrue(np.all(inds[0] == np.array([0, 2])))
+        self.assertTrue(np.all(inds[1] == np.array([1, 3])))
 
 
 class TestSubmatSparsityIter(unittest.TestCase):
-
     def _check_results(self, expected, result):
         expected = list(expected)
         result = list(result)
@@ -106,46 +108,54 @@ class TestSubmatSparsityIter(unittest.TestCase):
         nzrows = np.array([])
         nzcols = np.array([])
         shape = (0, 0)
-        result = list(submat_sparsity_iter(row_var_size_iter, col_var_size_iter, nzrows, nzcols, shape))
+        result = list(
+            submat_sparsity_iter(row_var_size_iter, col_var_size_iter, nzrows, nzcols, shape)
+        )
         self.assertEqual(result, [])
 
     def test_single_element_matrix(self):
-        row_var_size_iter = iter([('a', 1)])
-        col_var_size_iter = iter([('b', 1)])
+        row_var_size_iter = iter([("a", 1)])
+        col_var_size_iter = iter([("b", 1)])
         nzrows = np.array([0])
         nzcols = np.array([0])
         shape = (1, 1)
-        result = list(submat_sparsity_iter(row_var_size_iter, col_var_size_iter, nzrows, nzcols, shape))
-        expected =  [('a', 'b', np.array([0]), np.array([0]), (1, 1))]
+        result = list(
+            submat_sparsity_iter(row_var_size_iter, col_var_size_iter, nzrows, nzcols, shape)
+        )
+        expected = [("a", "b", np.array([0]), np.array([0]), (1, 1))]
         self._check_results(expected, result)
 
     def test_multiple_elements_matrix(self):
-        row_var_size_iter = iter([('a', 2), ('b', 2)])
-        col_var_size_iter = iter([('c', 2), ('d', 2)])
+        row_var_size_iter = iter([("a", 2), ("b", 2)])
+        col_var_size_iter = iter([("c", 2), ("d", 2)])
         nzrows = np.array([0, 1, 2, 3])
         nzcols = np.array([0, 1, 2, 3])
         shape = (4, 4)
-        result = list(submat_sparsity_iter(row_var_size_iter, col_var_size_iter, nzrows, nzcols, shape))
+        result = list(
+            submat_sparsity_iter(row_var_size_iter, col_var_size_iter, nzrows, nzcols, shape)
+        )
         expected = [
-            ('a', 'c', np.array([0, 1]), np.array([0, 1]), (2, 2)),
-            ('a', 'd', np.array([]), np.array([]), (2, 2)),
-            ('b', 'c', np.array([]), np.array([]), (2, 2)),
-            ('b', 'd', np.array([0, 1]), np.array([0, 1]), (2, 2)),
+            ("a", "c", np.array([0, 1]), np.array([0, 1]), (2, 2)),
+            ("a", "d", np.array([]), np.array([]), (2, 2)),
+            ("b", "c", np.array([]), np.array([]), (2, 2)),
+            ("b", "d", np.array([0, 1]), np.array([0, 1]), (2, 2)),
         ]
         self._check_results(expected, result)
 
     def test_sparse_matrix(self):
-        row_var_size_iter = iter([('a', 2), ('b', 2)])
-        col_var_size_iter = iter([('c', 2), ('d', 2)])
+        row_var_size_iter = iter([("a", 2), ("b", 2)])
+        col_var_size_iter = iter([("c", 2), ("d", 2)])
         nzrows = np.array([0, 3])
         nzcols = np.array([0, 3])
         shape = (4, 4)
-        result = list(submat_sparsity_iter(row_var_size_iter, col_var_size_iter, nzrows, nzcols, shape))
+        result = list(
+            submat_sparsity_iter(row_var_size_iter, col_var_size_iter, nzrows, nzcols, shape)
+        )
         expected = [
-            ('a', 'c', np.array([0]), np.array([0]), (2, 2)),
-            ('a', 'd', np.array([]), np.array([]), (2, 2)),
-            ('b', 'c', np.array([]), np.array([]), (2, 2)),
-            ('b', 'd', np.array([1]), np.array([1]), (2, 2))
+            ("a", "c", np.array([0]), np.array([0]), (2, 2)),
+            ("a", "d", np.array([]), np.array([]), (2, 2)),
+            ("b", "c", np.array([]), np.array([]), (2, 2)),
+            ("b", "d", np.array([1]), np.array([1]), (2, 2)),
         ]
         self._check_results(expected, result)
 

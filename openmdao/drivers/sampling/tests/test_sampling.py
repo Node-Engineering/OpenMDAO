@@ -1,6 +1,7 @@
 """
 Test Sampling Generators.
 """
+
 import unittest
 
 import numpy as np
@@ -23,33 +24,33 @@ class ParaboloidArray(om.ExplicitComponent):
     """
 
     def setup(self):
-        self.add_input('xy', val=np.array([0., 0.]))
-        self.add_output('f_xy', val=0.0)
+        self.add_input("xy", val=np.array([0.0, 0.0]))
+        self.add_output("f_xy", val=0.0)
 
     def compute(self, inputs, outputs):
         """
         f(x,y) = (x-3)^2 + xy + (y+4)^2 - 3
         """
-        x = inputs['xy'][0]
-        y = inputs['xy'][1]
-        outputs['f_xy'] = (x - 3.0)**2 + x * y + (y + 4.0)**2 - 3.0
+        x = inputs["xy"][0]
+        y = inputs["xy"][1]
+        outputs["f_xy"] = (x - 3.0) ** 2 + x * y + (y + 4.0) ** 2 - 3.0
 
 
 @use_tempdirs
 class TestUniformGenerator(unittest.TestCase):
-
     def test_unbounded_factor(self):
         # Sampling cannot cover an infinite range, so an unset or infinite bound maps onto
         # the generator's finite _inf_bound sentinel rather than raising or producing NaN.
-        for factors in ({'x': {'lower': None, 'upper': 10}, 'y': {'lower': -10, 'upper': 10}},
-                        {'x': {'lower': -np.inf, 'upper': 10}, 'y': {'lower': -10, 'upper': 10}},
-                        {'x': {'lower': -10, 'upper': np.inf}, 'y': {'lower': -10, 'upper': 10}}):
+        for factors in (
+            {"x": {"lower": None, "upper": 10}, "y": {"lower": -10, "upper": 10}},
+            {"x": {"lower": -np.inf, "upper": 10}, "y": {"lower": -10, "upper": 10}},
+            {"x": {"lower": -10, "upper": np.inf}, "y": {"lower": -10, "upper": 10}},
+        ):
             with self.subTest(factors=factors):
                 gen = UniformGenerator(factors, num_samples=4, seed=0)
                 inf_bound = gen._inf_bound
 
-                x_vals = np.concatenate([np.atleast_1d(sample['x']['val'])
-                                         for sample in gen])
+                x_vals = np.concatenate([np.atleast_1d(sample["x"]["val"]) for sample in gen])
 
                 self.assertEqual(x_vals.size, 4)
                 self.assertTrue(np.all(np.isfinite(x_vals)))
@@ -59,17 +60,17 @@ class TestUniformGenerator(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('comp', Paraboloid(), promotes=['*'])
-        model.set_input_defaults('x', 0.0)
-        model.set_input_defaults('y', 0.0)
+        model.add_subsystem("comp", Paraboloid(), promotes=["*"])
+        model.set_input_defaults("x", 0.0)
+        model.set_input_defaults("y", 0.0)
 
         factors = {
-            'x': {'lower': -10, 'upper': 10},
-            'y': {'lower': -10, 'upper': 10},
+            "x": {"lower": -10, "upper": 10},
+            "y": {"lower": -10, "upper": 10},
         }
 
         prob.driver = om.AnalysisDriver(UniformGenerator(factors, num_samples=5, seed=0))
-        prob.driver.add_response('f_xy')
+        prob.driver.add_response("f_xy")
         prob.driver.add_recorder(om.SqliteRecorder("cases.sql"))
 
         prob.setup()
@@ -78,21 +79,21 @@ class TestUniformGenerator(unittest.TestCase):
 
         # all values should be between -10 and 10, check expected values for seed = 0
         expected = [
-            {'x': np.array([0.97627008]), 'y': np.array([4.30378733])},
-            {'x': np.array([2.05526752]), 'y': np.array([0.89766366])},
-            {'x': np.array([-1.52690401]), 'y': np.array([2.91788226])},
-            {'x': np.array([-1.24825577]), 'y': np.array([7.83546002])},
-            {'x': np.array([9.27325521]), 'y': np.array([-2.33116962])},
+            {"x": np.array([0.97627008]), "y": np.array([4.30378733])},
+            {"x": np.array([2.05526752]), "y": np.array([0.89766366])},
+            {"x": np.array([-1.52690401]), "y": np.array([2.91788226])},
+            {"x": np.array([-1.24825577]), "y": np.array([7.83546002])},
+            {"x": np.array([9.27325521]), "y": np.array([-2.33116962])},
         ]
 
         cr = om.CaseReader(prob.get_outputs_dir() / "cases.sql")
-        cases = cr.list_cases('driver', out_stream=None)
+        cases = cr.list_cases("driver", out_stream=None)
 
         self.assertEqual(len(cases), 5)
 
         for case, expected_case in zip(cases, expected):
             outputs = cr.get_case(case).outputs
-            for name in ('x', 'y'):
+            for name in ("x", "y"):
                 assert_near_equal(outputs[name], expected_case[name], 1e-4)
 
 

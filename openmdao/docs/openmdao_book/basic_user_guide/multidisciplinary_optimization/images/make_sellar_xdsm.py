@@ -1,5 +1,5 @@
-
 from pyxdsm.XDSM import XDSM, FUNC, IFUNC, RIGHT
+
 
 def make_xdsm():
     """
@@ -31,5 +31,6 @@ def make_xdsm():
 
     x.write("sellar_xdsm")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     make_xdsm()

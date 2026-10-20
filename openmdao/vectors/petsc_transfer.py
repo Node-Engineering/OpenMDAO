@@ -1,4 +1,5 @@
 """Define the PETSc Transfer class."""
+
 import numpy as np
 from openmdao.utils.mpi import check_mpi_env
 from openmdao.core.constants import INT_DTYPE
@@ -56,8 +57,11 @@ else:
             in_indexset = PETSc.IS().createGeneral(self._in_inds, comm=comm)
             out_indexset = PETSc.IS().createGeneral(self._out_inds, comm=comm)
 
-            self._scatter = PETSc.Scatter().create(out_vec._petsc, out_indexset, in_vec._petsc,
-                                                   in_indexset).scatter
+            self._scatter = (
+                PETSc.Scatter()
+                .create(out_vec._petsc, out_indexset, in_vec._petsc, in_indexset)
+                .scatter
+            )
 
         @staticmethod
         def _setup_transfers(group):
@@ -69,14 +73,12 @@ else:
             group : <Group>
                 Parent group.
             """
-            rev = group._orig_mode != 'fwd'
+            rev = group._orig_mode != "fwd"
 
-            group._transfers = {
-                'fwd': PETScTransfer._setup_transfers_fwd(group)
-            }
+            group._transfers = {"fwd": PETScTransfer._setup_transfers_fwd(group)}
 
             if rev:
-                group._transfers['rev'] = PETScTransfer._setup_transfers_rev(group)
+                group._transfers["rev"] = PETScTransfer._setup_transfers_rev(group)
 
         @staticmethod
         def _setup_transfers_fwd(group):
@@ -85,33 +87,32 @@ else:
             if not group._conn_abs_in2out:
                 return transfers
 
-            abs2meta_in = group._var_abs2meta['input']
+            abs2meta_in = group._var_abs2meta["input"]
             myrank = group.comm.rank
 
-            if not group._var_allprocs_abs2meta['input']:
+            if not group._var_allprocs_abs2meta["input"]:
                 return transfers
 
-            offsets_in = group._get_var_offsets()['input'][myrank, :]
+            offsets_in = group._get_var_offsets()["input"][myrank, :]
             mypathlen = len(group.pathname) + 1 if group.pathname else 0
 
             xfer_in = defaultdict(list)
             xfer_out = defaultdict(list)
 
             allprocs_abs2idx = group._var_allprocs_abs2idx
-            sizes_in = group._var_sizes['input'][myrank, :]
+            sizes_in = group._var_sizes["input"][myrank, :]
 
             total_len = 0
 
             scaled_in_set = set()
-            scale_factors = group._problem_meta['model_ref']()._scale_factors
+            scale_factors = group._problem_meta["model_ref"]()._scale_factors
 
             # Loop through all connections owned by this system
             for abs_in, abs_out in group._conn_abs_in2out.items():
-                sub_in = abs_in[mypathlen:].partition('.')[0]
+                sub_in = abs_in[mypathlen:].partition(".")[0]
 
                 # Only continue if the input exists on this processor
                 if abs_in in abs2meta_in:
-
                     output_inds, _ = _get_output_inds(group, abs_out, abs_in)
 
                     idx_in = allprocs_abs2idx[abs_in]
@@ -121,7 +122,7 @@ else:
 
                     if scale_factors is not None and abs_in in scale_factors:
                         factors = scale_factors[abs_in]
-                        if 'input' in factors:
+                        if "input" in factors:
                             scaled_in_set.add(sub_in)
 
                     xfer_in[sub_in].append(input_inds)
@@ -135,45 +136,61 @@ else:
             if xfer_in:
                 full_xfer_in, full_xfer_out = _setup_index_views(total_len, xfer_in, xfer_out)
                 # full transfer (transfer to all subsystems at once)
-                transfers[None] = PETScTransfer(group._vectors['input']['nonlinear'],
-                                                group._vectors['output']['nonlinear'],
-                                                full_xfer_in, full_xfer_out, len(scaled_in_set) > 0,
-                                                group._comm)
+                transfers[None] = PETScTransfer(
+                    group._vectors["input"]["nonlinear"],
+                    group._vectors["output"]["nonlinear"],
+                    full_xfer_in,
+                    full_xfer_out,
+                    len(scaled_in_set) > 0,
+                    group._comm,
+                )
 
                 # transfers to individual subsystems
                 for sname, inds in xfer_in.items():
-                    transfers[sname] = PETScTransfer(group._vectors['input']['nonlinear'],
-                                                     group._vectors['output']['nonlinear'],
-                                                     inds, xfer_out[sname],
-                                                     sname in scaled_in_set, group._comm)
+                    transfers[sname] = PETScTransfer(
+                        group._vectors["input"]["nonlinear"],
+                        group._vectors["output"]["nonlinear"],
+                        inds,
+                        xfer_out[sname],
+                        sname in scaled_in_set,
+                        group._comm,
+                    )
 
             return transfers
 
         @staticmethod
         def _setup_transfers_rev(group):
-            abs2meta_in = group._var_abs2meta['input']
-            abs2meta_out = group._var_abs2meta['output']
+            abs2meta_in = group._var_abs2meta["input"]
+            abs2meta_out = group._var_abs2meta["output"]
 
             # for an FD group, we use the relevance graph to determine which inputs on the
             # boundary of the group are upstream of responses within the group so
             # that we can perform any necessary corrections to the derivative inputs.
             if group._owns_approx_jac:
-                if group.comm.size > 1 and group.pathname != '' and group._has_distrib_vars:
+                if group.comm.size > 1 and group.pathname != "" and group._has_distrib_vars:
                     # connections internal to this group and all direct/indirect subsystems
                     conns = group._conn_global_abs_in2out
-                    inp_boundary_set = set(group._var_allprocs_abs2meta['input']).difference(conns)
+                    inp_boundary_set = set(group._var_allprocs_abs2meta["input"]).difference(conns)
 
                     if inp_boundary_set:
-                        prefix = group.pathname + '.'
+                        prefix = group.pathname + "."
                         iter_seed_pair_relevance = group._relevance.iter_seed_pair_relevance
-                        all_abs2meta_out = group._var_allprocs_abs2meta['output']
+                        all_abs2meta_out = group._var_allprocs_abs2meta["output"]
                         all_dvs, all_resp = group._relevance.get_full_seeds()
                         # response is continuous and inside this group and dv is outside this group
                         dvs = tuple(sorted([d for d in all_dvs if not d.startswith(prefix)]))
-                        resps = tuple(sorted([r for r in all_resp if r in all_abs2meta_out and
-                                              all_abs2meta_out[r]['distributed']]))
-                        for _, resp, rel in iter_seed_pair_relevance(fwd_seeds=dvs,
-                                                                     rev_seeds=resps, inputs=True):
+                        resps = tuple(
+                            sorted(
+                                [
+                                    r
+                                    for r in all_resp
+                                    if r in all_abs2meta_out and all_abs2meta_out[r]["distributed"]
+                                ]
+                            )
+                        )
+                        for _, resp, rel in iter_seed_pair_relevance(
+                            fwd_seeds=dvs, rev_seeds=resps, inputs=True
+                        ):
                             for inp in inp_boundary_set.intersection(rel):
                                 if inp in abs2meta_in:
                                     if resp not in group._fd_rev_xfer_correction_dist:
@@ -190,7 +207,7 @@ else:
             offsets = group._get_var_offsets()
             mypathlen = len(group.pathname) + 1 if group.pathname else 0
 
-            has_par_coloring = group._problem_meta['has_par_deriv_color']
+            has_par_coloring = group._problem_meta["has_par_deriv_color"]
             has_nocolor_xfers = 0
 
             xfer_in = defaultdict(list)
@@ -200,24 +217,24 @@ else:
             xfer_in_nocolor = defaultdict(list)
             xfer_out_nocolor = defaultdict(list)
 
-            sizes_in = group._var_sizes['input']
-            offsets_in = offsets['input']
-            offsets_out = offsets['output']
+            sizes_in = group._var_sizes["input"]
+            offsets_in = offsets["input"]
+            offsets_out = offsets["output"]
 
             total_size = total_size_nocolor = 0
 
             scaled_in_set = set()
-            scale_factors = group._problem_meta['model_ref']()._scale_factors
+            scale_factors = group._problem_meta["model_ref"]()._scale_factors
 
             # Loop through all connections owned by this system
             for abs_in, abs_out in group._conn_abs_in2out.items():
-                sub_out = abs_out[mypathlen:].partition('.')[0]
+                sub_out = abs_out[mypathlen:].partition(".")[0]
 
                 # Only continue if the input exists on this processor
                 if abs_in in abs2meta_in:
                     if scale_factors is not None and abs_in in scale_factors:
                         factors = scale_factors[abs_in]
-                        if 'input' in factors:
+                        if "input" in factors:
                             scaled_in_set.add(sub_out)
 
                     meta_in = abs2meta_in[abs_in]
@@ -227,17 +244,20 @@ else:
                     output_inds, src_indices = _get_output_inds(group, abs_out, abs_in)
 
                     # Compute the input indices
-                    input_inds = range(offsets_in[myrank, idx_in],
-                                       offsets_in[myrank, idx_in] + sizes_in[myrank, idx_in])
+                    input_inds = range(
+                        offsets_in[myrank, idx_in],
+                        offsets_in[myrank, idx_in] + sizes_in[myrank, idx_in],
+                    )
 
                     # Now the indices are ready - input_inds, output_inds
-                    inp_is_dup, inp_missing, distrib_in = group.get_var_dup_info(abs_in, 'input')
-                    out_is_dup, _, distrib_out = group.get_var_dup_info(abs_out, 'output')
+                    inp_is_dup, inp_missing, distrib_in = group.get_var_dup_info(abs_in, "input")
+                    out_is_dup, _, distrib_out = group.get_var_dup_info(abs_out, "output")
 
                     iowninput = myrank == group._owning_rank[abs_in]
 
-                    if inp_is_dup and (abs_out not in abs2meta_out or
-                                       (distrib_out and not iowninput)):
+                    if inp_is_dup and (
+                        abs_out not in abs2meta_out or (distrib_out and not iowninput)
+                    ):
                         xfer_in[sub_out]
                         xfer_out[sub_out]
                     elif out_is_dup and inp_missing > 0 and (iowninput or distrib_in):
@@ -250,9 +270,11 @@ else:
                         oidxlist_nc = []
                         iidxlist_nc = []
                         size = size_nc = 0
-                        for rnk, osize, isize in zip(range(group.comm.size),
-                                                     group.get_var_sizes(abs_out, 'output'),
-                                                     group.get_var_sizes(abs_in, 'input')):
+                        for rnk, osize, isize in zip(
+                            range(group.comm.size),
+                            group.get_var_sizes(abs_out, "output"),
+                            group.get_var_sizes(abs_in, "input"),
+                        ):
                             if rnk == myrank:  # transfer to output on same rank
                                 oidxlist.append(output_inds)
                                 iidxlist.append(input_inds)
@@ -262,7 +284,7 @@ else:
                                 # input, so we send the owning/distrib input to the dup output
                                 offset = offsets_out[rnk, idx_out]
                                 if src_indices is None:
-                                    oarr = range(offset, offset + meta_in['size'])
+                                    oarr = range(offset, offset + meta_in["size"])
                                 elif src_indices.size > 0:
                                     oarr = np.asarray(src_indices + offset, dtype=INT_DTYPE)
                                 else:
@@ -307,8 +329,12 @@ else:
                             xfer_in_nocolor[sub_out].append(input_inds)
                             xfer_out_nocolor[sub_out].append(output_inds)
                     else:
-                        if (inp_is_dup and out_is_dup and src_indices is not None and
-                                src_indices.size > 0):
+                        if (
+                            inp_is_dup
+                            and out_is_dup
+                            and src_indices is not None
+                            and src_indices.size > 0
+                        ):
                             offset = offsets_out[myrank, idx_out]
                             output_inds = np.asarray(src_indices + offset, dtype=INT_DTYPE)
 
@@ -327,41 +353,55 @@ else:
             full_xfer_in, full_xfer_out = _setup_index_views(total_size, xfer_in, xfer_out)
 
             transfers = {
-                None: PETScTransfer(vectors['input']['nonlinear'],
-                                    vectors['output']['nonlinear'],
-                                    full_xfer_in, full_xfer_out, len(scaled_in_set) > 0,
-                                    group._comm)
+                None: PETScTransfer(
+                    vectors["input"]["nonlinear"],
+                    vectors["output"]["nonlinear"],
+                    full_xfer_in,
+                    full_xfer_out,
+                    len(scaled_in_set) > 0,
+                    group._comm,
+                )
             }
 
             for sname, inds in xfer_out.items():
-                transfers[sname] = PETScTransfer(vectors['input']['nonlinear'],
-                                                 vectors['output']['nonlinear'],
-                                                 xfer_in[sname], inds, sname in scaled_in_set,
-                                                 group._comm)
+                transfers[sname] = PETScTransfer(
+                    vectors["input"]["nonlinear"],
+                    vectors["output"]["nonlinear"],
+                    xfer_in[sname],
+                    inds,
+                    sname in scaled_in_set,
+                    group._comm,
+                )
 
             if has_par_coloring:
                 has_nocolor_xfers = group._comm.allreduce(has_nocolor_xfers)
                 if has_nocolor_xfers:
-                    full_xfer_in, full_xfer_out = _setup_index_views(total_size_nocolor,
-                                                                     xfer_in_nocolor,
-                                                                     xfer_out_nocolor)
+                    full_xfer_in, full_xfer_out = _setup_index_views(
+                        total_size_nocolor, xfer_in_nocolor, xfer_out_nocolor
+                    )
 
-                    transfers[(None, '@nocolor')] = PETScTransfer(vectors['input']['nonlinear'],
-                                                                  vectors['output']['nonlinear'],
-                                                                  full_xfer_in, full_xfer_out,
-                                                                  len(scaled_in_set) > 0,
-                                                                  group._comm)
+                    transfers[(None, "@nocolor")] = PETScTransfer(
+                        vectors["input"]["nonlinear"],
+                        vectors["output"]["nonlinear"],
+                        full_xfer_in,
+                        full_xfer_out,
+                        len(scaled_in_set) > 0,
+                        group._comm,
+                    )
 
                     for sname, inds in xfer_out_nocolor.items():
-                        transfers[(sname, '@nocolor')] = \
-                            PETScTransfer(vectors['input']['nonlinear'],
-                                          vectors['output']['nonlinear'],
-                                          xfer_in_nocolor[sname], inds,
-                                          sname in scaled_in_set, group._comm)
+                        transfers[(sname, "@nocolor")] = PETScTransfer(
+                            vectors["input"]["nonlinear"],
+                            vectors["output"]["nonlinear"],
+                            xfer_in_nocolor[sname],
+                            inds,
+                            sname in scaled_in_set,
+                            group._comm,
+                        )
 
             return transfers
 
-        def _transfer(self, in_vec, out_vec, mode='fwd'):
+        def _transfer(self, in_vec, out_vec, mode="fwd"):
             """
             Perform transfer.
 
@@ -375,7 +415,7 @@ else:
                 'fwd' or 'rev'.
             """
             flag = False
-            if mode == 'rev':
+            if mode == "rev":
                 flag = True
                 in_vec, out_vec = out_vec, in_vec
 
@@ -385,7 +425,6 @@ else:
             # For Complex Step, need to disassemble real and imag parts, transfer them separately,
             # then reassemble them.
             if in_vec._under_complex_step and out_vec._alloc_complex:
-
                 # Real
                 in_petsc.array = in_vec._data.real
                 out_petsc.array = out_vec._data.real
@@ -401,7 +440,6 @@ else:
                 in_vec._data[:] = in_petsc.array + in_petsc_imag.array * 1j
 
             else:
-
                 # Anything that has been allocated complex requires an additional step because
                 # the petsc vector does not directly reference the _data.
 
@@ -448,15 +486,16 @@ def _merge(inds_list, tot_size):
 
 
 def _get_output_inds(group, abs_out, abs_in):
-    meta_in = group._var_abs2meta['input'][abs_in]
-    out_dist = group._var_allprocs_abs2meta['output'][abs_out]['distributed']
+    meta_in = group._var_abs2meta["input"][abs_in]
+    out_dist = group._var_allprocs_abs2meta["output"][abs_out]["distributed"]
     src_indices = group.get_conn_graph().get_src_index_array(abs_in)
 
-    rank = group.comm.rank if abs_out in group._var_abs2meta['output'] else \
-        group._owning_rank[abs_out]
+    rank = (
+        group.comm.rank if abs_out in group._var_abs2meta["output"] else group._owning_rank[abs_out]
+    )
     out_idx = group._var_allprocs_abs2idx[abs_out]
-    offsets = group._get_var_offsets()['output'][:, out_idx]
-    sizes = group._var_sizes['output'][:, out_idx]
+    offsets = group._get_var_offsets()["output"][:, out_idx]
+    sizes = group._var_sizes["output"][:, out_idx]
 
     # NOTE: src_indices are relative to a single, possibly distributed variable,
     # while the output_inds that we compute are relative to the full distributed
@@ -466,9 +505,11 @@ def _get_output_inds(group, abs_out, abs_in):
             # input in this case is non-distributed (else src_indices would be
             # defined by now).  dist output to non-distributed input conns w/o
             # src_indices are not allowed.
-            raise RuntimeError(f"{group.msginfo}: Can't connect distributed output "
-                               f"'{abs_out}' to non-distributed input '{abs_in}' "
-                               "without declaring src_indices.")
+            raise RuntimeError(
+                f"{group.msginfo}: Can't connect distributed output "
+                f"'{abs_out}' to non-distributed input '{abs_in}' "
+                "without declaring src_indices."
+            )
         else:
             offset = offsets[rank]
             output_inds = range(offset, offset + sizes[rank])
@@ -476,11 +517,10 @@ def _get_output_inds(group, abs_out, abs_in):
         return output_inds, None
 
     else:
-
         orig_src_inds = src_indices
 
-        if not (out_dist or meta_in['distributed']):  # serial --> serial
-            if offsets[rank] > 0.:
+        if not (out_dist or meta_in["distributed"]):  # serial --> serial
+            if offsets[rank] > 0.0:
                 return src_indices + offsets[rank], orig_src_inds
             else:
                 return src_indices, orig_src_inds

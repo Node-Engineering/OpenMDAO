@@ -1,4 +1,3 @@
-
 import os
 import sys
 import re
@@ -7,6 +6,7 @@ from contextlib import contextmanager
 from collections import defaultdict, OrderedDict
 
 from io import StringIO
+
 try:
     import objgraph
 except ImportError:
@@ -16,9 +16,15 @@ try:
 except ImportError:
     psutil = None
 
-from openmdao.devtools.iprof_utils import _create_profile_callback, find_qualified_name, \
-                                         func_group, _collect_methods, _Options, _setup_func_group,\
-                                         _get_methods
+from openmdao.devtools.iprof_utils import (
+    _create_profile_callback,
+    find_qualified_name,
+    func_group,
+    _collect_methods,
+    _Options,
+    _setup_func_group,
+    _get_methods,
+)
 from openmdao.devtools.memory import mem_usage
 from openmdao.utils.mpi import MPI
 
@@ -28,19 +34,21 @@ _registered = False  # prevents multiple atexit registrations
 _printer = None
 
 MAXLINE = 80
-tab = '   '
+tab = "   "
 time0 = None
 
 addr_regex = re.compile(" at 0x[0-9a-fA-F]+")
 
-def _indented_print(f_locals, d, indent, excludes=set(['__init__', 'self', '__class__']),
-                    show_ptrs=False):
+
+def _indented_print(
+    f_locals, d, indent, excludes=set(["__init__", "self", "__class__"]), show_ptrs=False
+):
     """
     Print trace info, indenting based on call depth.
     """
     global _printer
     sindent = tab * indent
-    sep = '=' if d is f_locals else ':'
+    sep = "=" if d is f_locals else ":"
 
     for name in sorted(d, key=lambda a: str(a)):
         if name not in excludes:
@@ -53,14 +61,14 @@ def _indented_print(f_locals, d, indent, excludes=set(['__init__', 'self', '__cl
                 s = "  %s%s%s{%s}" % (sindent, name, sep, f.getvalue())
             else:
                 s = "  %s%s%s%s" % (sindent, name, sep, d[name])
-            if not show_ptrs and ' object at ' in s:
-                s = addr_regex.sub('', s)
+            if not show_ptrs and " object at " in s:
+                s = addr_regex.sub("", s)
             linelen = len(s)
             leneq = len(s.split(sep, 1)[0])
             if linelen > MAXLINE:
-                if '\n' in s:
+                if "\n" in s:
                     # change indent
-                    s = s.replace("\n", "\n%s" % (' '*leneq))
+                    s = s.replace("\n", "\n%s" % (" " * leneq))
             _printer(s)
 
 
@@ -70,17 +78,22 @@ def _get_printer(stream, rank=-1):
     """
     if MPI and rank >= MPI.COMM_WORLD.size:
         if MPI.COMM_WORLD.rank == 0:
-            print("Specified rank (%d) is outside of the valid range (0-%d)." %
-                  (rank, MPI.COMM_WORLD.size - 1))
+            print(
+                "Specified rank (%d) is outside of the valid range (0-%d)."
+                % (rank, MPI.COMM_WORLD.size - 1)
+            )
         exit()
 
     # rank < 0 means output on all ranks
     if not MPI or rank < 0 or MPI.COMM_WORLD.rank == rank:
+
         def prt(*args, **kwargs):
             print(*args, file=stream, flush=True, **kwargs)
     else:
+
         def prt(*args, **kwargs):
             pass
+
     return prt
 
 
@@ -92,13 +105,23 @@ def _trace_call(frame, arg, stack, context):
     if time0 is None:
         time0 = time.perf_counter()
 
-    (qual_cache, method_counts, class_counts, id2count,
-     verbose, memory, leaks, stream, show_ptrs) = context
+    (
+        qual_cache,
+        method_counts,
+        class_counts,
+        id2count,
+        verbose,
+        memory,
+        leaks,
+        stream,
+        show_ptrs,
+    ) = context
 
-    funcname = find_qualified_name(frame.f_code.co_filename,
-                                   frame.f_code.co_firstlineno, qual_cache)
+    funcname = find_qualified_name(
+        frame.f_code.co_filename, frame.f_code.co_firstlineno, qual_cache
+    )
 
-    self = frame.f_locals['self']
+    self = frame.f_locals["self"]
     try:
         pname = "(%s)" % self.pathname
     except AttributeError:
@@ -114,13 +137,13 @@ def _trace_call(frame, arg, stack, context):
 
     sname = "%s#%d%s" % (self.__class__.__name__, id_count, pname)
 
-    fullname = '.'.join((sname, funcname))
+    fullname = ".".join((sname, funcname))
     method_counts[fullname] += 1
 
-    indent = tab * (len(stack)-1)
+    indent = tab * (len(stack) - 1)
     if verbose:
         _printer("%s--> %s (%d)" % (indent, fullname, method_counts[fullname]))
-        _indented_print(frame.f_locals, frame.f_locals, len(stack)-1, show_ptrs=show_ptrs)
+        _indented_print(frame.f_locals, frame.f_locals, len(stack) - 1, show_ptrs=show_ptrs)
     else:
         _printer("%s-->%s" % (indent, fullname))
 
@@ -129,9 +152,9 @@ def _trace_call(frame, arg, stack, context):
 
     if leaks is not None:
         stats = objgraph.typestats()
-        stats['frame'] += 1
-        stats['cell'] += 1
-        stats['list'] += 1
+        stats["frame"] += 1
+        stats["cell"] += 1
+        stats["list"] += 1
         leaks.append(stats)
 
 
@@ -143,12 +166,22 @@ def _trace_return(frame, arg, stack, context):
     """
     global time0
 
-    (qual_cache, method_counts, class_counts, id2count,
-     verbose, memory, leaks, stream, show_ptrs) = context
-    funcname = find_qualified_name(frame.f_code.co_filename,
-                                   frame.f_code.co_firstlineno, qual_cache)
+    (
+        qual_cache,
+        method_counts,
+        class_counts,
+        id2count,
+        verbose,
+        memory,
+        leaks,
+        stream,
+        show_ptrs,
+    ) = context
+    funcname = find_qualified_name(
+        frame.f_code.co_filename, frame.f_code.co_firstlineno, qual_cache
+    )
 
-    self = frame.f_locals['self']
+    self = frame.f_locals["self"]
     try:
         pname = "(%s)" % self.pathname
     except AttributeError:
@@ -162,25 +195,34 @@ def _trace_return(frame, arg, stack, context):
         last_mem = memory.pop()
         if current_mem != last_mem:
             delta = current_mem - last_mem
-            _printer("%s<-- %s (time: %8.5f) (total: %6.3f MB) (diff: %+.0f KB)" %
-                     (indent, '.'.join((sname, funcname)), time.perf_counter() - time0, current_mem,
-                     delta * 1024.))
+            _printer(
+                "%s<-- %s (time: %8.5f) (total: %6.3f MB) (diff: %+.0f KB)"
+                % (
+                    indent,
+                    ".".join((sname, funcname)),
+                    time.perf_counter() - time0,
+                    current_mem,
+                    delta * 1024.0,
+                )
+            )
 
             # add this delta to all callers so when they calculate their own delta, this
             # delta won't be included
             for i in range(len(memory) - 1, -1, -1):
                 memory[i] += delta
         else:
-            _printer("%s<-- %s (time: %8.5f) (total: %6.3f MB)" %
-                     (indent, '.'.join((sname, funcname)), time.perf_counter() - time0, current_mem))
+            _printer(
+                "%s<-- %s (time: %8.5f) (total: %6.3f MB)"
+                % (indent, ".".join((sname, funcname)), time.perf_counter() - time0, current_mem)
+            )
     else:
-        _printer("%s<-- %s" % (indent, '.'.join((sname, funcname))))
+        _printer("%s<-- %s" % (indent, ".".join((sname, funcname))))
 
     if verbose:
         if arg is not None:
             s = "%s     %s" % (indent, arg)
-            if not show_ptrs and ' object at ' in s:
-                s = addr_regex.sub('', s)
+            if not show_ptrs and " object at " in s:
+                s = addr_regex.sub("", s)
             _printer(s)
 
     if leaks is not None:
@@ -201,7 +243,7 @@ def _setup(options):
     show_returns = options.show_returns or memory or leaks
 
     if not _registered:
-        methods = _get_methods(options, default='openmdao')
+        methods = _get_methods(options, default="openmdao")
 
         call_stack = []
         qual_cache = {}
@@ -211,42 +253,58 @@ def _setup(options):
 
         if memory:
             if psutil is None:
-                raise RuntimeError("Memory tracing requires the 'psutil' package.  "
-                                   "Install it using 'pip install psutil'.")
+                raise RuntimeError(
+                    "Memory tracing requires the 'psutil' package.  "
+                    "Install it using 'pip install psutil'."
+                )
             memory = []
         else:
             memory = None
 
         if leaks:
             if objgraph is None:
-                raise RuntimeError("Leak detection requires the 'objgraph' package. "
-                                   "Install it using 'pip install objgraph'.")
+                raise RuntimeError(
+                    "Leak detection requires the 'objgraph' package. "
+                    "Install it using 'pip install objgraph'."
+                )
             leaks = []
         else:
             leaks = None
 
-        if options.outfile == 'stdout':
+        if options.outfile == "stdout":
             stream = sys.stdout
-        elif options.outfile == 'stderr':
+        elif options.outfile == "stderr":
             stream = sys.stderr
         else:
-            stream = open(options.outfile, 'w')
+            stream = open(options.outfile, "w")
 
         _printer = _get_printer(stream, options.rank)
 
         ret = _trace_return if show_returns else None
 
-        _trace_calls = _create_profile_callback(call_stack, _collect_methods(methods),
-                                                do_call=_trace_call,
-                                                do_ret=ret,
-                                                context=(qual_cache, method_counts,
-                                                         class_counts, id2count, verbose, memory,
-                                                         leaks, stream, options.show_ptrs),
-                                                filters=options.filters)
+        _trace_calls = _create_profile_callback(
+            call_stack,
+            _collect_methods(methods),
+            do_call=_trace_call,
+            do_ret=ret,
+            context=(
+                qual_cache,
+                method_counts,
+                class_counts,
+                id2count,
+                verbose,
+                memory,
+                leaks,
+                stream,
+                options.show_ptrs,
+            ),
+            filters=options.filters,
+        )
 
 
-def setup(methods=None, verbose=None, memory=None, leaks=False, rank=-1, show_ptrs=False,
-          outfile='stdout'):
+def setup(
+    methods=None, verbose=None, memory=None, leaks=False, rank=-1, show_ptrs=False, outfile="stdout"
+):
     """
     Setup call tracing.
 
@@ -267,8 +325,17 @@ def setup(methods=None, verbose=None, memory=None, leaks=False, rank=-1, show_pt
     outfile : file-like or str
         Output file.
     """
-    _setup(_Options(methods=methods, verbose=verbose, memory=memory, leaks=leaks, rank=rank,
-                    show_ptrs=show_ptrs, outfile=outfile))
+    _setup(
+        _Options(
+            methods=methods,
+            verbose=verbose,
+            memory=memory,
+            leaks=leaks,
+            rank=rank,
+            show_ptrs=show_ptrs,
+            outfile=outfile,
+        )
+    )
 
 
 def start():
@@ -338,10 +405,17 @@ class tracedfunc(object):
         If True, show addresses of printed objects.
     """
 
-    def __init__(self, methods=None, verbose=False, memory=False, leaks=False, filters=None,
-                 show_ptrs=False):
-        self.options = _Options(methods=methods, verbose=verbose, memory=memory, leaks=leaks,
-                                filters=filters, show_ptrs=show_ptrs)
+    def __init__(
+        self, methods=None, verbose=False, memory=False, leaks=False, filters=None, show_ptrs=False
+    ):
+        self.options = _Options(
+            methods=methods,
+            verbose=verbose,
+            memory=memory,
+            leaks=leaks,
+            filters=filters,
+            show_ptrs=show_ptrs,
+        )
         self._call_setup = True
 
     def __call__(self, func):
@@ -352,6 +426,7 @@ class tracedfunc(object):
             start()
             func(*args, **kwargs)
             stop()
+
         return wrapped
 
 
@@ -362,30 +437,69 @@ def _itrace_setup_parser(parser):
     if not func_group:
         _setup_func_group()
 
-    parser.add_argument('file', nargs=1, help='Python file to be traced.')
-    parser.add_argument('-g', '--group', action='store', dest='methods',
-                        default='openmdao',
-                        help='Determines which group of methods will be traced. Default is "openmdao".'
-                              ' Options are: %s' % sorted(func_group.keys()))
-    parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
-                        help="Show function locals and return values.")
-    parser.add_argument('--ptrs', action='store_true', dest='show_ptrs',
-                        help="Show addresses of printed objects.")
-    parser.add_argument('-m', '--memory', action='store_true', dest='memory',
-                        help="Show memory usage.")
-    parser.add_argument('-l', '--leaks', action='store_true', dest='leaks',
-                        help="Show objects that are not garbage collected after each function call.")
-    parser.add_argument('--show_returns', action='store_true', dest='show_returns',
-                        help="Show return for each function.")
-    parser.add_argument('-r', '--rank', action='store', dest='rank', type=int,
-                        default=-1, help='MPI rank where output is desired.  Default is all ranks.')
-    parser.add_argument('-o', '--outfile', action='store', dest='outfile',
-                        default='stdout', help='Output file.  Defaults to stdout.')
-    parser.add_argument('-f', '--filter', action='append', dest='filters',
-                        default=[],
-                        help='An expression.  If it evaluates to True for any matching trace '
-                             'function, that function will be displayed in the trace. One '
-                             'expression can be added for each class.')
+    parser.add_argument("file", nargs=1, help="Python file to be traced.")
+    parser.add_argument(
+        "-g",
+        "--group",
+        action="store",
+        dest="methods",
+        default="openmdao",
+        help='Determines which group of methods will be traced. Default is "openmdao".'
+        " Options are: %s" % sorted(func_group.keys()),
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        dest="verbose",
+        help="Show function locals and return values.",
+    )
+    parser.add_argument(
+        "--ptrs", action="store_true", dest="show_ptrs", help="Show addresses of printed objects."
+    )
+    parser.add_argument(
+        "-m", "--memory", action="store_true", dest="memory", help="Show memory usage."
+    )
+    parser.add_argument(
+        "-l",
+        "--leaks",
+        action="store_true",
+        dest="leaks",
+        help="Show objects that are not garbage collected after each function call.",
+    )
+    parser.add_argument(
+        "--show_returns",
+        action="store_true",
+        dest="show_returns",
+        help="Show return for each function.",
+    )
+    parser.add_argument(
+        "-r",
+        "--rank",
+        action="store",
+        dest="rank",
+        type=int,
+        default=-1,
+        help="MPI rank where output is desired.  Default is all ranks.",
+    )
+    parser.add_argument(
+        "-o",
+        "--outfile",
+        action="store",
+        dest="outfile",
+        default="stdout",
+        help="Output file.  Defaults to stdout.",
+    )
+    parser.add_argument(
+        "-f",
+        "--filter",
+        action="append",
+        dest="filters",
+        default=[],
+        help="An expression.  If it evaluates to True for any matching trace "
+        "function, that function will be displayed in the trace. One "
+        "expression can be added for each class.",
+    )
 
 
 def _itrace_exec(options, user_args):
@@ -395,18 +509,18 @@ def _itrace_exec(options, user_args):
     progname = options.file[0]
     sys.path.insert(0, os.path.dirname(progname))
 
-    with open(progname, 'rb') as fp:
-        code = compile(fp.read(), progname, 'exec')
+    with open(progname, "rb") as fp:
+        code = compile(fp.read(), progname, "exec")
 
     globals_dict = {
-        '__file__': progname,
-        '__name__': '__main__',
-        '__package__': None,
-        '__cached__': None,
+        "__file__": progname,
+        "__name__": "__main__",
+        "__package__": None,
+        "__cached__": None,
     }
 
     _setup(options)
     start()
 
     sys.argv[:] = [progname] + user_args
-    exec (code, globals_dict)  # nosec: just runs user's code with additional functionality
+    exec(code, globals_dict)  # nosec: just runs user's code with additional functionality

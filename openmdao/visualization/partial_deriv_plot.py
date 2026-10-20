@@ -1,11 +1,13 @@
 """
 Visualization of data functions.
 """
+
 import numpy as np
 
 
-def partial_deriv_plot(of, wrt, check_partials_data, title=None, jac_method='J_fwd', tol=1e-10,
-                       binary=True):
+def partial_deriv_plot(
+    of, wrt, check_partials_data, title=None, jac_method="J_fwd", tol=1e-10, binary=True
+):
     """
     Visually examine the computed and finite differenced Jacobians.
 
@@ -58,10 +60,10 @@ def partial_deriv_plot(of, wrt, check_partials_data, title=None, jac_method='J_f
     model_jac = model_jacs[key]
 
     # get finite difference arrays
-    if 'J_fd' not in model_jac:
+    if "J_fd" not in model_jac:
         msg = 'Jacobian "{}" not found.'
-        raise KeyError(msg.format('J_fd'))
-    fd_full = model_jac['J_fd']
+        raise KeyError(msg.format("J_fd"))
+    fd_full = model_jac["J_fd"]
     fd_full_flat = fd_full.flatten()  # for getting max min later
     if binary:
         fd_binary = fd_full.copy()
@@ -86,6 +88,7 @@ def partial_deriv_plot(of, wrt, check_partials_data, title=None, jac_method='J_f
     # Cannot do this sooner because of import and matplotlib
     #  backend issues when testing
     import matplotlib.pyplot as plt
+
     BINARY_CMP = plt.cm.gray
     NON_BINARY_CMP = plt.cm.viridis
     NON_BINARY_DIFF_CMP = plt.cm.RdBu
@@ -96,20 +99,31 @@ def partial_deriv_plot(of, wrt, check_partials_data, title=None, jac_method='J_f
 
     # plot Jacobians
     if binary:
-        ax[0].imshow(fd_binary.real, interpolation='none',
-                     cmap=BINARY_CMP, aspect='auto')
-        im_computed = ax[1].imshow(computed_binary.real, interpolation='none', cmap=BINARY_CMP,
-                                   aspect='auto')
+        ax[0].imshow(fd_binary.real, interpolation="none", cmap=BINARY_CMP, aspect="auto")
+        im_computed = ax[1].imshow(
+            computed_binary.real, interpolation="none", cmap=BINARY_CMP, aspect="auto"
+        )
     else:
-        ax[0].imshow(fd_full.real, interpolation='none', vmin=vmin, vmax=vmax, cmap=NON_BINARY_CMP,
-                     aspect='auto')
-        im_computed = ax[1].imshow(computed_full.real, interpolation='none', vmin=vmin, vmax=vmax,
-                                   cmap=NON_BINARY_CMP, aspect='auto')
-    ax[0].set_title('Approximated Jacobian')
-    ax[1].set_title('User-Defined Jacobian')
+        ax[0].imshow(
+            fd_full.real,
+            interpolation="none",
+            vmin=vmin,
+            vmax=vmax,
+            cmap=NON_BINARY_CMP,
+            aspect="auto",
+        )
+        im_computed = ax[1].imshow(
+            computed_full.real,
+            interpolation="none",
+            vmin=vmin,
+            vmax=vmax,
+            cmap=NON_BINARY_CMP,
+            aspect="auto",
+        )
+    ax[0].set_title("Approximated Jacobian")
+    ax[1].set_title("User-Defined Jacobian")
     # Legend
-    fig.colorbar(im_computed, orientation='horizontal',
-                 ax=ax[0:2].ravel().tolist())
+    fig.colorbar(im_computed, orientation="horizontal", ax=ax[0:2].ravel().tolist())
 
     # plot difference between computed and finite differenced
     diff = computed_full.real - fd_full.real
@@ -120,10 +134,16 @@ def partial_deriv_plot(of, wrt, check_partials_data, title=None, jac_method='J_f
         vmin = -1 * tol
         vmax = tol
     color_limit = max(abs(vmin), abs(vmax))
-    im_diff = ax[2].imshow(diff, interpolation='none', vmin=-color_limit, vmax=color_limit,
-                           cmap=NON_BINARY_DIFF_CMP, aspect='auto')
-    fig.colorbar(im_diff, orientation='horizontal', ax=ax[2], aspect=10)
-    ax[2].set_title('Difference')
+    im_diff = ax[2].imshow(
+        diff,
+        interpolation="none",
+        vmin=-color_limit,
+        vmax=color_limit,
+        cmap=NON_BINARY_DIFF_CMP,
+        aspect="auto",
+    )
+    fig.colorbar(im_diff, orientation="horizontal", ax=ax[2], aspect=10)
+    ax[2].set_title("Difference")
 
     plt.show()
     return fig, ax

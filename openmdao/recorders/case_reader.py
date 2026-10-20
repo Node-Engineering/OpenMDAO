@@ -1,6 +1,7 @@
 """
 CaseReader factory function.
 """
+
 from openmdao.recorders.sqlite_reader import SqliteCaseReader
 
 

@@ -10,31 +10,27 @@ from openmdao.utils.assert_utils import assert_near_equal
 
 
 class CompA(ExplicitComponent):
-
     def setup(self):
-        self.add_output('x')
+        self.add_output("x")
 
 
 class CompB(ExplicitComponent):
-
     def setup(self):
-        self.add_input('x')
-        self.add_output('f')
+        self.add_input("x")
+        self.add_output("f")
 
     def compute(self, inputs, outputs):
-        outputs['f'] = 2 * inputs['x']
+        outputs["f"] = 2 * inputs["x"]
 
 
 class GroupG(Group):
-
     def add_subsystems(self):
-        self.add_subsystem('A', IndepVarComp('x', 0.))
-        self.add_subsystem('B', CompB())
-        self.connect('A.x', 'B.x')
+        self.add_subsystem("A", IndepVarComp("x", 0.0))
+        self.add_subsystem("B", CompB())
+        self.connect("A.x", "B.x")
 
 
 class Test(unittest.TestCase):
-
     def setUp(self):
         group = GroupG()
         group.add_subsystems()
@@ -50,24 +46,22 @@ class Test(unittest.TestCase):
 
     def test_prom_names(self):
         root = self.p.model
-        self.assertEqual(list(root.A._resolver.prom_iter('output')), ['x'])
+        self.assertEqual(list(root.A._resolver.prom_iter("output")), ["x"])
 
     def test_var_indices(self):
         def get_inds(p, sname, type_):
             system = p.model._get_subsystem(sname) if sname else p.model
             idxs = p.model._var_allprocs_abs2idx
-            return np.array([
-                idxs[name] for name in system._var_abs2meta[type_]
-            ])
+            return np.array([idxs[name] for name in system._var_abs2meta[type_]])
 
-        assert_near_equal(get_inds(self.p, '', 'input'), np.array([0]))
-        assert_near_equal(get_inds(self.p, '', 'output'), np.array([0,1]))
+        assert_near_equal(get_inds(self.p, "", "input"), np.array([0]))
+        assert_near_equal(get_inds(self.p, "", "output"), np.array([0, 1]))
 
-        assert_near_equal(get_inds(self.p, 'A', 'input'), np.array([]))
-        assert_near_equal(get_inds(self.p, 'A', 'output'), np.array([0]))
+        assert_near_equal(get_inds(self.p, "A", "input"), np.array([]))
+        assert_near_equal(get_inds(self.p, "A", "output"), np.array([0]))
 
-        assert_near_equal(get_inds(self.p, 'B', 'input'), np.array([0]))
-        assert_near_equal(get_inds(self.p, 'B', 'output'), np.array([1]))
+        assert_near_equal(get_inds(self.p, "B", "input"), np.array([0]))
+        assert_near_equal(get_inds(self.p, "B", "output"), np.array([1]))
 
     def test_GS(self):
         root = self.p.model
@@ -77,26 +71,25 @@ class Test(unittest.TestCase):
             compB = root.B
 
             if root.comm.rank == 0:
-                assert_near_equal(root._outputs['A.x'], 0)
-                assert_near_equal(compA._outputs['x'], 0)
-                compA._outputs['x'] = 10
+                assert_near_equal(root._outputs["A.x"], 0)
+                assert_near_equal(compA._outputs["x"], 0)
+                compA._outputs["x"] = 10
             if root.comm.rank == 2:
-                assert_near_equal(compB._inputs['x'], 0)
-                assert_near_equal(compB._outputs['f'], 0)
+                assert_near_equal(compB._inputs["x"], 0)
+                assert_near_equal(compB._outputs["f"], 0)
 
             root.run_solve_nonlinear()
 
             if root.comm.rank == 0:
-                assert_near_equal(root._outputs['A.x'], 10)
-                assert_near_equal(compA._outputs['x'], 10)
+                assert_near_equal(root._outputs["A.x"], 10)
+                assert_near_equal(compA._outputs["x"], 10)
             if root.comm.rank == 2:
-                assert_near_equal(compB._inputs['x'], 10)
-                assert_near_equal(compB._outputs['f'], 20)
+                assert_near_equal(compB._inputs["x"], 10)
+                assert_near_equal(compB._outputs["f"], 20)
 
 
 @unittest.skipUnless(PETScVector, "PETSc is required.")
 class TestPETScVec(Test):
-
     N_PROCS = 1
 
     def setUp(self):
@@ -107,5 +100,5 @@ class TestPETScVec(Test):
         self.p.final_setup()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

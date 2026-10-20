@@ -12,11 +12,26 @@ import warnings
 from openmdao import __version__ as om_version
 
 
-__all__ = ['issue_warning', 'reset_warnings', 'reset_warning_registry', '_warn_simple_format',
-           'OpenMDAOWarning', 'SetupWarning', 'DistributedComponentWarning', 'CaseRecorderWarning',
-           'CacheWarning', 'PromotionWarning', 'UnusedOptionWarning', 'DerivativesWarning',
-           'MPIWarning', 'UnitsWarning', 'SolverWarning', 'DriverWarning', 'OMDeprecationWarning',
-           'OMInvalidCheckDerivativesOptionsWarning']
+__all__ = [
+    "issue_warning",
+    "reset_warnings",
+    "reset_warning_registry",
+    "_warn_simple_format",
+    "OpenMDAOWarning",
+    "SetupWarning",
+    "DistributedComponentWarning",
+    "CaseRecorderWarning",
+    "CacheWarning",
+    "PromotionWarning",
+    "UnusedOptionWarning",
+    "DerivativesWarning",
+    "MPIWarning",
+    "UnitsWarning",
+    "SolverWarning",
+    "DriverWarning",
+    "OMDeprecationWarning",
+    "OMInvalidCheckDerivativesOptionsWarning",
+]
 
 
 class OpenMDAOWarning(UserWarning):
@@ -24,8 +39,8 @@ class OpenMDAOWarning(UserWarning):
     Base class for all OpenMDAO warnings.
     """
 
-    name = 'warn_openmdao'
-    filter = 'always'
+    name = "warn_openmdao"
+    filter = "always"
 
 
 class SetupWarning(OpenMDAOWarning):
@@ -33,8 +48,8 @@ class SetupWarning(OpenMDAOWarning):
     Warning class for warnings that occur during setup.
     """
 
-    name = 'warn_setup'
-    filter = 'always'
+    name = "warn_setup"
+    filter = "always"
 
 
 class PromotionWarning(SetupWarning):
@@ -42,8 +57,8 @@ class PromotionWarning(SetupWarning):
     Warning dealing with the promotion of an input or output.
     """
 
-    name = 'warn_promotion'
-    filter = 'always'
+    name = "warn_promotion"
+    filter = "always"
 
 
 class UnitsWarning(SetupWarning):
@@ -51,8 +66,8 @@ class UnitsWarning(SetupWarning):
     Warning which is issued when unitless variable is connected to a variable with units.
     """
 
-    name = 'warn_units'
-    filter = 'always'
+    name = "warn_units"
+    filter = "always"
 
 
 class DerivativesWarning(OpenMDAOWarning):
@@ -60,8 +75,8 @@ class DerivativesWarning(OpenMDAOWarning):
     Warning issued when the approximated partials or coloring cannot be evaluated as expected.
     """
 
-    name = 'warn_derivatives'
-    filter = 'always'
+    name = "warn_derivatives"
+    filter = "always"
 
 
 class MPIWarning(SetupWarning):
@@ -69,8 +84,8 @@ class MPIWarning(SetupWarning):
     Warning dealing with the availability of MPI.
     """
 
-    name = 'warn_mpi'
-    filter = 'always'
+    name = "warn_mpi"
+    filter = "always"
 
 
 class DistributedComponentWarning(SetupWarning):
@@ -78,8 +93,8 @@ class DistributedComponentWarning(SetupWarning):
     Warning specific to a distributed component.
     """
 
-    name = 'warn_distributed_component'
-    filter = 'always'
+    name = "warn_distributed_component"
+    filter = "always"
 
 
 class SolverWarning(OpenMDAOWarning):
@@ -87,8 +102,8 @@ class SolverWarning(OpenMDAOWarning):
     Warning base class for solver-related warnings.
     """
 
-    name = 'warn_solver'
-    filter = 'always'
+    name = "warn_solver"
+    filter = "always"
 
 
 class DriverWarning(OpenMDAOWarning):
@@ -96,8 +111,8 @@ class DriverWarning(OpenMDAOWarning):
     Warning which is issued during the execution of a driver.
     """
 
-    name = 'warn_driver'
-    filter = 'always'
+    name = "warn_driver"
+    filter = "always"
 
 
 class UnusedOptionWarning(OpenMDAOWarning):
@@ -105,8 +120,8 @@ class UnusedOptionWarning(OpenMDAOWarning):
     Warning dealing with an unnecessary option or argument being provided.
     """
 
-    name = 'warn_unused_option'
-    filter = 'always'
+    name = "warn_unused_option"
+    filter = "always"
 
 
 class CaseRecorderWarning(OpenMDAOWarning):
@@ -114,8 +129,8 @@ class CaseRecorderWarning(OpenMDAOWarning):
     Warning pertaining to case recording and reading.
     """
 
-    name = 'warn_case_recorder'
-    filter = 'always'
+    name = "warn_case_recorder"
+    filter = "always"
 
 
 class CacheWarning(OpenMDAOWarning):
@@ -123,8 +138,8 @@ class CacheWarning(OpenMDAOWarning):
     Warning which is issued when the a cache is invalid and needs to be rebuilt.
     """
 
-    name = 'warn_cache'
-    filter = 'always'
+    name = "warn_cache"
+    filter = "always"
 
 
 class OMDeprecationWarning(OpenMDAOWarning):
@@ -132,8 +147,8 @@ class OMDeprecationWarning(OpenMDAOWarning):
     An OpenMDAO-specific deprecation warning that is noisy by default, unlike the Python one.
     """
 
-    name = 'warn_deprecation'
-    filter = 'once'
+    name = "warn_deprecation"
+    filter = "once"
 
 
 class OMInvalidCheckDerivativesOptionsWarning(OpenMDAOWarning):
@@ -144,13 +159,15 @@ class OMInvalidCheckDerivativesOptionsWarning(OpenMDAOWarning):
     used to computer the derivatives, including all the settings.
     """
 
-    name = 'warn_invalid_check_derivatives'
-    filter = 'error'
+    name = "warn_invalid_check_derivatives"
+    filter = "error"
 
 
-_warnings = [_class for _, _class in
-             inspect.getmembers(sys.modules[__name__], inspect.isclass)
-             if issubclass(_class, Warning)]
+_warnings = [
+    _class
+    for _, _class in inspect.getmembers(sys.modules[__name__], inspect.isclass)
+    if issubclass(_class, Warning)
+]
 
 
 # The order of warnings matters in the Python warnings module! See
@@ -181,7 +198,7 @@ def reset_warnings():
         warnings.filterwarnings(w_class.filter, category=w_class)
 
 
-def issue_warning(msg, prefix='', stacklevel=2, category=OpenMDAOWarning):
+def issue_warning(msg, prefix="", stacklevel=2, category=OpenMDAOWarning):
     """
     Display a warning with the desired stack level and optional prefix.
 
@@ -202,7 +219,7 @@ def issue_warning(msg, prefix='', stacklevel=2, category=OpenMDAOWarning):
     """
     old_format = warnings.formatwarning
     warnings.formatwarning = _warn_simple_format
-    _msg = f'{prefix}: {msg}' if prefix else msg
+    _msg = f"{prefix}: {msg}" if prefix else msg
     try:
         warnings.warn(_msg, category=category, stacklevel=stacklevel)
     finally:
@@ -220,17 +237,17 @@ def _make_table(superclass=OpenMDAOWarning):
     """
     s = io.StringIO()
     max_name_len = max([len(_class.__name__) for _class in _warnings])
-    max_desc_len = max([len(' '.join(c.__doc__.split())) for c in _warnings])
+    max_desc_len = max([len(" ".join(c.__doc__.split())) for c in _warnings])
 
     name_header = "Warning Class"
     desc_header = "Description"
-    print(f'| {name_header:<{max_name_len}} | {desc_header:<{max_desc_len}} |', file=s)
-    print(f'| {max_name_len * "-"} | {max_desc_len * "-"} |', file=s)
+    print(f"| {name_header:<{max_name_len}} | {desc_header:<{max_desc_len}} |", file=s)
+    print(f"| {max_name_len * '-'} | {max_desc_len * '-'} |", file=s)
 
     for _class in _warnings:
         if isinstance(_class, superclass) or issubclass(_class, superclass):
-            desc = ' '.join(_class.__doc__.split())
-            print(f'| {_class.__name__:<{max_name_len}} | {desc:<{max_desc_len}} |', file=s)
+            desc = " ".join(_class.__doc__.split())
+            print(f"| {_class.__name__:<{max_name_len}} | {desc:<{max_desc_len}} |", file=s)
     return s.getvalue()
 
 
@@ -256,11 +273,11 @@ def warn_deprecation(msg, expires=None):
     """
     # note, stack level 3 should take us back to original caller.
     if expires is not None:
-        om_numeric = om_version.split('-')[0]
-        om_version_tuple = tuple([int(s) for s in om_numeric.split('.')])
-        expires_version_tuple = tuple([int(s) for s in expires.split('.')])
+        om_numeric = om_version.split("-")[0]
+        om_version_tuple = tuple([int(s) for s in om_numeric.split(".")])
+        expires_version_tuple = tuple([int(s) for s in expires.split(".")])
         if om_version_tuple >= expires_version_tuple:
-            raise RuntimeError(f'Deprecation message expired in version {expires}')
+            raise RuntimeError(f"Deprecation message expired in version {expires}")
     issue_warning(msg, stacklevel=3, category=OMDeprecationWarning)
 
 
@@ -289,7 +306,7 @@ def _warn_simple_format(message, category, filename, lineno, file=None, line=Non
         A formatted warning message.
 
     """
-    return f'{filename}:{lineno}: {category.__name__}:{message}\n'
+    return f"{filename}:{lineno}: {category.__name__}:{message}\n"
 
 
 class reset_warning_registry(object):

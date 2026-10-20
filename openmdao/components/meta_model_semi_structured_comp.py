@@ -1,4 +1,5 @@
 """Define the MetaModelSemiStructuredComp class."""
+
 import inspect
 import warnings
 
@@ -61,16 +62,27 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
         """
         Initialize the component.
         """
-        self.options.declare('extrapolate', types=bool, default=True,
-                             desc='Sets whether extrapolation should be performed '
-                                  'when an input is out of bounds.')
-        self.options.declare('training_data_gradients', types=bool, default=False,
-                             desc='When True, compute gradients with respect to training data '
-                             'values.')
-        self.options.declare('vec_size', types=int, default=1,
-                             desc='Number of points to evaluate at once.')
-        self.options.declare('method', values=TABLE_METHODS, default='slinear',
-                             desc='Spline interpolation method to use for all outputs.')
+        self.options.declare(
+            "extrapolate",
+            types=bool,
+            default=True,
+            desc="Sets whether extrapolation should be performed when an input is out of bounds.",
+        )
+        self.options.declare(
+            "training_data_gradients",
+            types=bool,
+            default=False,
+            desc="When True, compute gradients with respect to training data values.",
+        )
+        self.options.declare(
+            "vec_size", types=int, default=1, desc="Number of points to evaluate at once."
+        )
+        self.options.declare(
+            "method",
+            values=TABLE_METHODS,
+            default="slinear",
+            desc="Spline interpolation method to use for all outputs.",
+        )
 
     def add_input(self, name, training_data, val=1.0, **kwargs):
         """
@@ -88,11 +100,10 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
         **kwargs : dict
             Additional agruments for add_input.
         """
-        n = self.options['vec_size']
+        n = self.options["vec_size"]
 
         # Currently no support for vector inputs, apart from vec_size
         if not np.isscalar(val):
-
             if len(val) not in [1, n] or len(val.shape) > 1:
                 msg = "{}: Input {} must either be scalar, or of length equal to vec_size."
                 raise ValueError(msg.format(self.msginfo, name))
@@ -119,18 +130,17 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
         **kwargs : dict
             Additional agruments for add_output.
         """
-        n = self.options['vec_size']
+        n = self.options["vec_size"]
 
         # Currently no support for vector outputs, apart from vec_size
         if not np.isscalar(val):
-
             if len(val) not in [1, n] or len(val.shape) > 1:
                 msg = "{}: Output {} must either be scalar, or of length equal to vec_size."
                 raise ValueError(msg.format(self.msginfo, name))
 
         super().add_output(name, val * np.ones(n), **kwargs)
 
-        if self.options['training_data_gradients']:
+        if self.options["training_data_gradients"]:
             if training_data is None:
                 for item in self.training_inputs.values():
                     n_train = len(item)
@@ -149,7 +159,7 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
         """
         Instantiate surrogates for the output variables that use the default surrogate.
         """
-        interp_method = self.options['method']
+        interp_method = self.options["method"]
 
         # Make sure all training data is sized correctly.
         size = len(self.training_inputs[self.pnames[0]])
@@ -157,15 +167,18 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
             for name, data in data_dict.items():
                 size2 = len(data)
                 if size2 != size:
-                    msg = f"Size mismatch: training data for '{name}' is length {size2}, but" + \
-                        f" data for '{self.pnames[0]}' is length {size}."
+                    msg = (
+                        f"Size mismatch: training data for '{name}' is length {size2}, but"
+                        + f" data for '{self.pnames[0]}' is length {size}."
+                    )
                     raise ValueError(msg)
 
         grid = np.array([col for col in self.training_inputs.values()]).T
 
         for name, train_data in self.training_outputs.items():
-            self.interps[name] = InterpNDSemi(grid, train_data, method=interp_method,
-                                              extrapolate=self.options['extrapolate'])
+            self.interps[name] = InterpNDSemi(
+                grid, train_data, method=interp_method, extrapolate=self.options["extrapolate"]
+            )
 
         super()._setup_var_data()
 
@@ -178,19 +191,20 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
         super()._setup_partials()
         wrtnames = tuple(self.pnames)
         pattern_meta = {
-            'diagonal': True,
-            'dependent': True,
+            "diagonal": True,
+            "dependent": True,
         }
 
-        for of in self._var_rel_names['output']:
+        for of in self._var_rel_names["output"]:
             self._resolve_partials_patterns(of=of, wrt=wrtnames, pattern_meta=pattern_meta)
-            if self.options['training_data_gradients']:
-                self._resolve_partials_patterns(of=of, wrt="%s_train" % of,
-                                                pattern_meta={'dependent': True})
+            if self.options["training_data_gradients"]:
+                self._resolve_partials_patterns(
+                    of=of, wrt="%s_train" % of, pattern_meta={"dependent": True}
+                )
 
         # The scipy methods do not support complex step.
-        if self.options['method'].startswith('scipy'):
-            self.set_check_partial_options('*', method='fd')
+        if self.options["method"].startswith("scipy"):
+            self.set_check_partial_options("*", method="fd")
 
     def compute(self, inputs, outputs):
         """
@@ -205,7 +219,7 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
         """
         pt = np.array([inputs[pname].ravel() for pname in self.pnames]).T
         for out_name, interp in self.interps.items():
-            if self.options['training_data_gradients']:
+            if self.options["training_data_gradients"]:
                 # Training point values may have changed every time we compute.
                 interp.values = inputs["%s_train" % out_name]
                 interp._compute_d_dvalues = True
@@ -214,16 +228,19 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
                 val = interp._interpolate(pt)
 
             except OutOfBoundsError as err:
-                varname_causing_error = '.'.join((self.pathname, self.pnames[err.idx]))
-                errmsg = (f"{self.msginfo}: Error interpolating output '{out_name}' "
-                          f"because input '{varname_causing_error}' required extrapolation while "
-                          f"interpolating dimension {err.idx + 1}, where its value '{err.value}'"
-                          f" exceeded the range ('{err.lower}', '{err.upper}')")
+                varname_causing_error = ".".join((self.pathname, self.pnames[err.idx]))
+                errmsg = (
+                    f"{self.msginfo}: Error interpolating output '{out_name}' "
+                    f"because input '{varname_causing_error}' required extrapolation while "
+                    f"interpolating dimension {err.idx + 1}, where its value '{err.value}'"
+                    f" exceeded the range ('{err.lower}', '{err.upper}')"
+                )
                 raise AnalysisError(errmsg, inspect.currentframe(), self.msginfo)
 
             except ValueError as err:
-                raise ValueError(f"{self.msginfo}: Error interpolating output '{out_name}':\n"
-                                 f"{str(err)}")
+                raise ValueError(
+                    f"{self.msginfo}: Error interpolating output '{out_name}':\n{str(err)}"
+                )
             outputs[out_name] = val
 
     def compute_partials(self, inputs, partials):
@@ -248,7 +265,7 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
             for i, p in enumerate(self.pnames):
                 partials[out_name, p] = dval[i, :]
 
-            if self.options['training_data_gradients']:
+            if self.options["training_data_gradients"]:
                 train_name = f"{out_name}_train"
                 d_dvalues = interp._d_dvalues
                 partials[out_name, train_name] = d_dvalues
@@ -270,10 +287,10 @@ class MetaModelSemiStructuredComp(ExplicitComponent):
         """
         for out_name, interp in self.interps.items():
             extrapolated_points = interp.extrapolated_points
-            msg = ''
+            msg = ""
             for j, extrap_flag in enumerate(extrapolated_points):
                 if extrap_flag:
-                    if msg == '':
+                    if msg == "":
                         msg = f"Interpolation of '{out_name}' in '{self.pathname}' encountered "
                         msg += "extrapolation for the following points:\n  "
 

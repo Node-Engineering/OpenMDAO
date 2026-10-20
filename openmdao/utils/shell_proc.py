@@ -1,4 +1,5 @@
 """Some basic shell utilities, used for ExternalCodeComp mostly."""
+
 import ctypes
 import errno
 import os
@@ -9,7 +10,7 @@ import time
 
 PIPE = subprocess.PIPE
 STDOUT = subprocess.STDOUT
-DEV_NULL = 'nul:' if sys.platform == 'win32' else '/dev/null'
+DEV_NULL = "nul:" if sys.platform == "win32" else "/dev/null"
 
 
 class CalledProcessError(subprocess.CalledProcessError):
@@ -50,8 +51,11 @@ class CalledProcessError(subprocess.CalledProcessError):
         str
             Error message.
         """
-        return 'Command %r returned non-zero exit status %d: %s' % (self.cmd, self.returncode,
-                                                                    self.errormsg)
+        return "Command %r returned non-zero exit status %d: %s" % (
+            self.cmd,
+            self.returncode,
+            self.errormsg,
+        )
 
 
 class ShellProc(subprocess.Popen):
@@ -102,8 +106,9 @@ class ShellProc(subprocess.Popen):
         Save handle to make closing easier.
     """
 
-    def __init__(self, args, stdin=None, stdout=None, stderr=None, env=None,
-                 universal_newlines=False):
+    def __init__(
+        self, args, stdin=None, stdout=None, stderr=None, env=None, universal_newlines=False
+    ):
         """
         Initialize.
         """
@@ -116,37 +121,49 @@ class ShellProc(subprocess.Popen):
         self._stderr_arg = stderr
 
         if isinstance(stdin, str):
-            self._inp = open(stdin, 'r')
+            self._inp = open(stdin, "r")
         else:
             self._inp = stdin
 
         if isinstance(stdout, str):
-            self._out = open(stdout, 'w')
+            self._out = open(stdout, "w")
         else:
             self._out = stdout
 
         if isinstance(stderr, str):
-            self._err = open(stderr, 'w')
+            self._err = open(stderr, "w")
         else:
             self._err = stderr
 
         shell = isinstance(args, str)
 
         try:
-            if sys.platform == 'win32':
-                subprocess.Popen.__init__(self, args, stdin=self._inp,
-                                          stdout=self._out, stderr=self._err,
-                                          shell=shell, env=environ,  # nosec: user responsibility
-                                          universal_newlines=universal_newlines)
+            if sys.platform == "win32":
+                subprocess.Popen.__init__(
+                    self,
+                    args,
+                    stdin=self._inp,
+                    stdout=self._out,
+                    stderr=self._err,
+                    shell=shell,
+                    env=environ,  # nosec: user responsibility
+                    universal_newlines=universal_newlines,
+                )
             else:
-                subprocess.Popen.__init__(self, args, stdin=self._inp,
-                                          stdout=self._out, stderr=self._err,
-                                          shell=shell, env=environ,  # nosec: user responsibility
-                                          universal_newlines=universal_newlines,
-                                          # setsid to put this and any children in
-                                          # same process group so we can kill them
-                                          # all if necessary
-                                          preexec_fn=os.setsid)
+                subprocess.Popen.__init__(
+                    self,
+                    args,
+                    stdin=self._inp,
+                    stdout=self._out,
+                    stderr=self._err,
+                    shell=shell,
+                    env=environ,  # nosec: user responsibility
+                    universal_newlines=universal_newlines,
+                    # setsid to put this and any children in
+                    # same process group so we can kill them
+                    # all if necessary
+                    preexec_fn=os.setsid,
+                )
 
         except Exception:
             self.close_files()
@@ -183,7 +200,7 @@ class ShellProc(subprocess.Popen):
         str
             Error Message.
         """
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             subprocess.Popen(f"TASKKILL /F /PID {self.pid} /T")  # nosec: trusted input
         else:
             os.killpg(os.getpgid(self.pid), signal.SIGTERM)
@@ -191,7 +208,7 @@ class ShellProc(subprocess.Popen):
         if timeout is not None:
             return self.wait(timeout=timeout)
 
-    def wait(self, poll_delay=0., timeout=0.):
+    def wait(self, poll_delay=0.0, timeout=0.0):
         """
         Poll for command completion or timeout.
 
@@ -216,8 +233,8 @@ class ShellProc(subprocess.Popen):
         return_code = None
         try:
             if poll_delay <= 0:
-                poll_delay = max(0.1, timeout / 100.)
-                poll_delay = min(10., poll_delay)
+                poll_delay = max(0.1, timeout / 100.0)
+                poll_delay = min(10.0, poll_delay)
             npolls = int(timeout / poll_delay) + 1
 
             time.sleep(poll_delay)
@@ -236,7 +253,7 @@ class ShellProc(subprocess.Popen):
         if return_code is not None:
             self.errormsg = self.error_message(return_code)
         else:
-            self.errormsg = 'Timed out'
+            self.errormsg = "Timed out"
         return (return_code, self.errormsg)
 
     def error_message(self, return_code):
@@ -257,27 +274,26 @@ class ShellProc(subprocess.Popen):
         str
             Error Message string.
         """
-        error_msg = ''
+        error_msg = ""
         if return_code:
             if return_code > 0:
                 try:
                     error_msg = os.strerror(return_code)
                 except OverflowError:
                     error_msg = "Process exited with unknown return code {}".format(return_code)
-            elif sys.platform != 'win32':
+            elif sys.platform != "win32":
                 sig = -return_code
                 if sig < signal.NSIG:
                     for item in signal.__dict__.keys():
-                        if item.startswith('SIG'):
+                        if item.startswith("SIG"):
                             if getattr(signal, item) == sig:
-                                error_msg = ': %s' % item
+                                error_msg = ": %s" % item
                                 break
 
         return error_msg
 
 
-def call(args, stdin=None, stdout=None, stderr=None, env=None,
-         poll_delay=0., timeout=0.):
+def call(args, stdin=None, stdout=None, stderr=None, env=None, poll_delay=0.0, timeout=0.0):
     """
     Run command with arguments.
 
@@ -320,8 +336,7 @@ def call(args, stdin=None, stdout=None, stderr=None, env=None,
     return process.wait(poll_delay, timeout)
 
 
-def check_call(args, stdin=None, stdout=None, stderr=None, env=None,
-               poll_delay=0., timeout=0.):
+def check_call(args, stdin=None, stdout=None, stderr=None, env=None, poll_delay=0.0, timeout=0.0):
     """
     Run command with arguments.
 
@@ -367,9 +382,7 @@ def _is_process_running(pid):
         PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
         # Attempt to open the process.
-        handle = ctypes.windll.kernel32.OpenProcess(
-            PROCESS_QUERY_LIMITED_INFORMATION, False, pid
-        )
+        handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
         if handle:
             ctypes.windll.kernel32.CloseHandle(handle)
             return True

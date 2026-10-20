@@ -1,4 +1,3 @@
-
 import ast
 
 from inspect import getmembers
@@ -32,7 +31,7 @@ class FunctionFinder(ast.NodeVisitor):
 
     def _do_callable_def(self, node):
         if self.stack:
-            qual =  (None, '.'.join(self.stack),  node.name)
+            qual = (None, ".".join(self.stack), node.name)
         else:
             qual = ("<%s:%d>" % (self.fname, node.lineno), None, node.name)
         self.cache[node.lineno] = qual
@@ -77,10 +76,10 @@ def find_qualified_name(filename, line, cache, full=True):
     if filename not in cache:
         fcache = {}
 
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filename, "r", encoding="utf-8") as f:
             contents = f.read()
-            if len(contents) > 0 and contents[-1] != '\n':
-                contents += '\n'
+            if len(contents) > 0 and contents[-1] != "\n":
+                contents += "\n"
 
             FunctionFinder(filename, fcache).visit(ast.parse(contents, filename))
 
@@ -89,9 +88,9 @@ def find_qualified_name(filename, line, cache, full=True):
     if full:
         parts = cache[filename][line]
         if parts[0]:
-            return '.'.join((parts[0], parts[2]))
+            return ".".join((parts[0], parts[2]))
         else:
-            return '.'.join((parts[1], parts[2]))
+            return ".".join((parts[1], parts[2]))
 
     return cache[filename][line]
 
@@ -119,127 +118,168 @@ def _setup_func_group():
     from openmdao.matrices.matrix import Matrix
     from openmdao.vectors.default_vector import DefaultVector, DefaultTransfer
 
-    for class_ in [System, ExplicitComponent, Problem, Driver, _TotalJacInfo, Solver, LinearSolver,
-                   NewtonSolver, Jacobian, Matrix, DefaultVector, DefaultTransfer, Group]:
+    for class_ in [
+        System,
+        ExplicitComponent,
+        Problem,
+        Driver,
+        _TotalJacInfo,
+        Solver,
+        LinearSolver,
+        NewtonSolver,
+        Jacobian,
+        Matrix,
+        DefaultVector,
+        DefaultTransfer,
+        Group,
+    ]:
         base_classes[class_.__name__] = class_
 
-
-    func_group.update({
-        'openmdao': [
-            ("*", (System, Jacobian, Matrix, Solver, Driver, Problem)),
-        ],
-        'openmdao_all': [
-            ("*", (System, DefaultVector, DefaultTransfer, Jacobian, Matrix, Solver, Driver,
-                   Problem, _TotalJacInfo)),
-        ],
-        'setup': [
-            ("__init__", (System, Solver, Driver, Problem, Jacobian, DefaultVector, _TotalJacInfo,
-                          Matrix)),
-            ("*setup*", (System, Solver, Driver, Problem, Jacobian, DefaultVector, _TotalJacInfo,
-                         Matrix)),
-            ('_configure', (System,)),
-            ('set_initial_values', (System,)),
-            ('_set_initial_conditions', (Problem,)),
-            ('_build', (Matrix,)),
-            ('_add_submat', (Matrix,)),
-            ('_get_promotion_maps', (System,)),
-            ('_add_approximations', (System,)),
-            ('_get_initial_*', (System,)),
-            ('_initialize_*', (DefaultVector,)),
-            ('_create_*', (DefaultVector,)),
-            ('_extract_root_data', (DefaultVector,)),
-        ],
-        'dataflow': [
-            ('*compute*', (System,)),
-            ('*linear*', (System,)),
-            ('_transfer', (System,)),
-            ('*', (DefaultTransfer,)),
-        ],
-        'linear': [
-            ('_apply_linear', (System,)),
-            ('_setup_jacobians', (System, Solver)),
-            ('_solve_linear', (System,)),
-            ('apply_linear', (System,)),
-            ('solve_linear', (System,)),
-            ('_add_approximations', (System,)),
-            ('_linearize', (System, Solver)),
-            # include NewtonSolver to provide some context
-            ('solve', (LinearSolver, NewtonSolver)),
-            ('_update', (Jacobian,)),
-            ('_apply', (Jacobian,)),
-            ('_initialize', (Jacobian,)),
-            ('compute_totals', (_TotalJacInfo, Problem, Driver)),
-            ('_compute_totals_approx', (_TotalJacInfo,)),
-            ('compute_jacvec_product', (System,)),
-        ],
-        'apply_linear': [
-            ('_transfer', (Group,)),
-            ('_apply_linear', (System,)),
-            ('_solve_linear', (System,)),
-            ('apply_linear', (System,)),
-            ('solve_linear', (System,)),
-            ('compute_totals', (_TotalJacInfo, Problem, Driver)),
-            ('_compute_totals_approx', (_TotalJacInfo,)),
-            ('compute_jacvec_product', (System,)),
-        ],
-        'jac': [
-            ('_linearize', (System, DirectSolver)),
-            ('_setup_jacobians', (System,)),
-            ('compute_totals', (_TotalJacInfo, Problem, Driver)),
-            ('_compute_totals_approx', (_TotalJacInfo,)),
-            ('_apply_linear', (System,)),
-            ('solve', (LinearSolver, NewtonSolver)),
-            ('_update', (Jacobian,)),
-            ('_initialize', (Jacobian,)),
-        ],
-        'solver': [
-            ('*', (Solver,))
-        ],
-        'driver': [
-            ('*', (Driver,))
-        ],
-        'transfer': [
-            ('*', (DefaultTransfer,)),
-            ('_transfer', (System,))
-        ],
-        'coloring': [
-            ('*_approx_*', (Driver, System)),
-            ('*color*', (object,)),
-            ('*partials*', (System, Driver)),
-            ('*sparsity*', (Jacobian, System, Driver)),
-            ('*simul*', (Driver, System)),
-            ('*jacobian*', (Driver, System)),
-            ('_setup', (System,)),
-            ('_final_setup', (System,)),
-        ]
-        # NOTE: context managers and other functions that yield instead of return will NOT show
-        # up properly in the trace.  For example, our context managers for scaling will show up
-        # as a call and immediate return from the context manager, followed by the functions that
-        # should show up as inside of the context manager but don't.  This is just here to
-        # remind me not to try to create a 'scaling' group again.
-        # 'scaling': [
-        #     ('*scaled_context*', (System,)),
-        #     ('compute*', (Component, ApproximationScheme)),
-        #     ('_solve*', (System,)),
-        #     ('solve_*', (System,)),
-        #     ('run_*', (System,)),
-        #     ('guess_*', (System,)),
-        #     ('*apply*', (System,)),
-        #     ('_apply', (Jacobian,)),
-        #     ('*linearize', (System,)),
-        # ],
-    })
+    func_group.update(
+        {
+            "openmdao": [
+                ("*", (System, Jacobian, Matrix, Solver, Driver, Problem)),
+            ],
+            "openmdao_all": [
+                (
+                    "*",
+                    (
+                        System,
+                        DefaultVector,
+                        DefaultTransfer,
+                        Jacobian,
+                        Matrix,
+                        Solver,
+                        Driver,
+                        Problem,
+                        _TotalJacInfo,
+                    ),
+                ),
+            ],
+            "setup": [
+                (
+                    "__init__",
+                    (
+                        System,
+                        Solver,
+                        Driver,
+                        Problem,
+                        Jacobian,
+                        DefaultVector,
+                        _TotalJacInfo,
+                        Matrix,
+                    ),
+                ),
+                (
+                    "*setup*",
+                    (
+                        System,
+                        Solver,
+                        Driver,
+                        Problem,
+                        Jacobian,
+                        DefaultVector,
+                        _TotalJacInfo,
+                        Matrix,
+                    ),
+                ),
+                ("_configure", (System,)),
+                ("set_initial_values", (System,)),
+                ("_set_initial_conditions", (Problem,)),
+                ("_build", (Matrix,)),
+                ("_add_submat", (Matrix,)),
+                ("_get_promotion_maps", (System,)),
+                ("_add_approximations", (System,)),
+                ("_get_initial_*", (System,)),
+                ("_initialize_*", (DefaultVector,)),
+                ("_create_*", (DefaultVector,)),
+                ("_extract_root_data", (DefaultVector,)),
+            ],
+            "dataflow": [
+                ("*compute*", (System,)),
+                ("*linear*", (System,)),
+                ("_transfer", (System,)),
+                ("*", (DefaultTransfer,)),
+            ],
+            "linear": [
+                ("_apply_linear", (System,)),
+                ("_setup_jacobians", (System, Solver)),
+                ("_solve_linear", (System,)),
+                ("apply_linear", (System,)),
+                ("solve_linear", (System,)),
+                ("_add_approximations", (System,)),
+                ("_linearize", (System, Solver)),
+                # include NewtonSolver to provide some context
+                ("solve", (LinearSolver, NewtonSolver)),
+                ("_update", (Jacobian,)),
+                ("_apply", (Jacobian,)),
+                ("_initialize", (Jacobian,)),
+                ("compute_totals", (_TotalJacInfo, Problem, Driver)),
+                ("_compute_totals_approx", (_TotalJacInfo,)),
+                ("compute_jacvec_product", (System,)),
+            ],
+            "apply_linear": [
+                ("_transfer", (Group,)),
+                ("_apply_linear", (System,)),
+                ("_solve_linear", (System,)),
+                ("apply_linear", (System,)),
+                ("solve_linear", (System,)),
+                ("compute_totals", (_TotalJacInfo, Problem, Driver)),
+                ("_compute_totals_approx", (_TotalJacInfo,)),
+                ("compute_jacvec_product", (System,)),
+            ],
+            "jac": [
+                ("_linearize", (System, DirectSolver)),
+                ("_setup_jacobians", (System,)),
+                ("compute_totals", (_TotalJacInfo, Problem, Driver)),
+                ("_compute_totals_approx", (_TotalJacInfo,)),
+                ("_apply_linear", (System,)),
+                ("solve", (LinearSolver, NewtonSolver)),
+                ("_update", (Jacobian,)),
+                ("_initialize", (Jacobian,)),
+            ],
+            "solver": [("*", (Solver,))],
+            "driver": [("*", (Driver,))],
+            "transfer": [("*", (DefaultTransfer,)), ("_transfer", (System,))],
+            "coloring": [
+                ("*_approx_*", (Driver, System)),
+                ("*color*", (object,)),
+                ("*partials*", (System, Driver)),
+                ("*sparsity*", (Jacobian, System, Driver)),
+                ("*simul*", (Driver, System)),
+                ("*jacobian*", (Driver, System)),
+                ("_setup", (System,)),
+                ("_final_setup", (System,)),
+            ],
+            # NOTE: context managers and other functions that yield instead of return will NOT show
+            # up properly in the trace.  For example, our context managers for scaling will show up
+            # as a call and immediate return from the context manager, followed by the functions that
+            # should show up as inside of the context manager but don't.  This is just here to
+            # remind me not to try to create a 'scaling' group again.
+            # 'scaling': [
+            #     ('*scaled_context*', (System,)),
+            #     ('compute*', (Component, ApproximationScheme)),
+            #     ('_solve*', (System,)),
+            #     ('solve_*', (System,)),
+            #     ('run_*', (System,)),
+            #     ('guess_*', (System,)),
+            #     ('*apply*', (System,)),
+            #     ('_apply', (Jacobian,)),
+            #     ('*linearize', (System,)),
+            # ],
+        }
+    )
 
     try:
-        from mpi4py import MPI      # noqa: F401
+        from mpi4py import MPI  # noqa: F401
         from petsc4py import PETSc  # noqa: F401
         from openmdao.vectors.petsc_vector import PETScVector, PETScTransfer
 
         # TODO: this needs work.  Still lots of MPI calls not covered here...
-        func_group['mpi'] = [
-            ('*', (PETScTransfer,)),
-            ('get_norm', (PETScVector,)),
-            ('_initialize_data', (PETScVector,))
+        func_group["mpi"] = [
+            ("*", (PETScTransfer,)),
+            ("get_norm", (PETScVector,)),
+            ("_initialize_data", (PETScVector,)),
         ]
     except ImportError:
         pass
@@ -271,7 +311,7 @@ def _collect_methods(method_patterns=None):
     for pattern, classes in method_patterns:
         for class_ in classes:
             for name, obj in getmembers(class_):
-                if callable(obj) and (pattern == '*' or fnmatchcase(name, pattern)):
+                if callable(obj) and (pattern == "*" or fnmatchcase(name, pattern)):
                     matches[name].append(class_)
 
     # convert values to tuples so we can use in isinstance call
@@ -285,8 +325,9 @@ def _collect_methods(method_patterns=None):
     return matches
 
 
-def _create_profile_callback(stack, matches=None, do_call=None, do_ret=None, context=None,
-                             filters=None):
+def _create_profile_callback(
+    stack, matches=None, do_call=None, do_ret=None, context=None, filters=None
+):
     """
     The wrapped function returned from here handles identification of matching calls when called
     as a setprofile callback.
@@ -294,22 +335,25 @@ def _create_profile_callback(stack, matches=None, do_call=None, do_ret=None, con
     if filters:
         newfilts = []
         for s in filters:
-            class_name, filt = s.split(' ', 1)
+            class_name, filt = s.split(" ", 1)
             class_ = base_classes[class_name]
-            newfilts.append((class_, compile(filt, mode='eval', filename=filt)))
+            newfilts.append((class_, compile(filt, mode="eval", filename=filt)))
         filters = newfilts
 
     def _wrapped(frame, event, arg):
-        if event == 'call':
+        if event == "call":
             if matches is None:
                 stack.append(id(frame))
                 if do_call is not None:
                     return do_call(frame, arg, stack, context)
-            elif 'self' in frame.f_locals and frame.f_code.co_name in matches and \
-                    isinstance(frame.f_locals['self'], matches[frame.f_code.co_name]):
+            elif (
+                "self" in frame.f_locals
+                and frame.f_code.co_name in matches
+                and isinstance(frame.f_locals["self"], matches[frame.f_code.co_name])
+            ):
                 pred = True
                 if filters:
-                    inst = frame.f_locals['self']
+                    inst = frame.f_locals["self"]
                     for class_, filt in filters:
                         if isinstance(inst, class_):
                             pred = eval(filt, globals(), frame.f_locals)  # nosec: internal use
@@ -317,8 +361,8 @@ def _create_profile_callback(stack, matches=None, do_call=None, do_ret=None, con
                 if pred:
                     stack.append(id(frame))
                     if do_call is not None:
-                       return do_call(frame, arg, stack, context)
-        elif event == 'return' and stack:
+                        return do_call(frame, arg, stack, context)
+        elif event == "return" and stack:
             if id(frame) == stack[-1]:
                 stack.pop()
                 if do_ret is not None:

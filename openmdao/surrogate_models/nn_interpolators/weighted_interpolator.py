@@ -40,14 +40,14 @@ class WeightedInterpolator(NNBase):
         dist = np.power(ndist, dist_eff)
 
         # Ignore Division by Zero Warnings
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide="ignore"):
             weights = 1.0 / dist
 
         # Replace any nan's to use the training data
         rows, cols = np.where(np.isinf(weights))
 
-        weights[rows, :] = 0.
-        weights[rows, cols] = 1.
+        weights[rows, :] = 0.0
+        weights[rows, cols] = 1.0
 
         return weights
 
@@ -71,9 +71,11 @@ class WeightedInterpolator(NNBase):
             Interpolated values at the prediction points.
         """
         if self._ntpts < num_neighbors:
-            raise ValueError('WeightedInterpolant does not have sufficient '
-                             f'training data to use num_neighbors={num_neighbors}, '
-                             f'only {self._ntpts} points available.')
+            raise ValueError(
+                "WeightedInterpolant does not have sufficient "
+                f"training data to use num_neighbors={num_neighbors}, "
+                f"only {self._ntpts} points available."
+            )
 
         if dist_eff == 0:
             # If default, use #dims + 1
@@ -101,7 +103,7 @@ class WeightedInterpolator(NNBase):
 
         weight_sum = np.sum(weights, axis=1)
         vals = self._tv[nloc]
-        wt = np.einsum('ijk,ij->ik', vals, weights)
+        wt = np.einsum("ijk,ij->ik", vals, weights)
         predz = ((wt / weight_sum[:, np.newaxis]) * self._tvr) + self._tvm
 
         self._pt_cache = (normalized_pts, ndist, nloc)
@@ -128,9 +130,11 @@ class WeightedInterpolator(NNBase):
             Gradient values at the prediction points.
         """
         if self._ntpts < num_neighbors:
-            raise ValueError('WeightedInterpolant does not have sufficient '
-                             f'training data to use num_neighbors={num_neighbors}, '
-                             f'only {self._ntpts} points available.')
+            raise ValueError(
+                "WeightedInterpolant does not have sufficient "
+                f"training data to use num_neighbors={num_neighbors}, "
+                f"only {self._ntpts} points available."
+            )
 
         if dist_eff == 0:
             # If default, use #dims + 1
@@ -142,8 +146,7 @@ class WeightedInterpolator(NNBase):
 
         normalized_pts = (prediction_points - self._tpm) / self._tpr
 
-        if self._pt_cache is not None and \
-                np.allclose(self._pt_cache[0], normalized_pts):
+        if self._pt_cache is not None and np.allclose(self._pt_cache[0], normalized_pts):
             ndist, nloc = self._pt_cache[1:]
         else:
             ndist, nloc = self._KData.query(normalized_pts, num_neighbors)
@@ -156,16 +159,16 @@ class WeightedInterpolator(NNBase):
         dimdiff = normalized_pts - self._tp[nloc]
 
         weights = np.power(ndist, -dist_eff)
-        dweights = -dist_eff * \
-            np.power(ndist[..., np.newaxis], -(dist_eff + 2)) * dimdiff
+        dweights = -dist_eff * np.power(ndist[..., np.newaxis], -(dist_eff + 2)) * dimdiff
 
         weight_sum = np.sum(weights, axis=1)
 
         vals = self._tv[nloc]
 
-        gradient = (weight_sum * np.einsum('ikj,ikl->ilj', dweights, vals)
-                    - (np.einsum('ij,ijk->ik', weights, vals)[..., np.newaxis]
-                       * np.sum(dweights, axis=1))) / np.power(weight_sum, 2)
+        gradient = (
+            weight_sum * np.einsum("ikj,ikl->ilj", dweights, vals)
+            - (np.einsum("ij,ijk->ik", weights, vals)[..., np.newaxis] * np.sum(dweights, axis=1))
+        ) / np.power(weight_sum, 2)
 
         grad = gradient * (self._tvr[..., np.newaxis] / self._tpr)
 

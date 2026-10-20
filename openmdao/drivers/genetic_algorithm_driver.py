@@ -20,6 +20,7 @@ Sobieszczanski-Sobieski, J., Morris, A. J., van Tooren, M. J. L. (2015)
 Multidisciplinary Design Optimization Supported by Knowledge Based Engineering.
 John Wiley & Sons, Ltd.
 """
+
 from importlib.util import find_spec
 import os
 import copy
@@ -65,35 +66,37 @@ class SimpleGADriver(Driver):
         """
         Initialize the SimpleGADriver driver.
         """
-        if find_spec('pydoe') is None:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+        if find_spec("pydoe") is None:
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         super().__init__(**kwargs)
 
         # What we support
-        self.supports['optimization'] = True
-        self.supports['integer_design_vars'] = True
-        self.supports['inequality_constraints'] = True
-        self.supports['equality_constraints'] = True
-        self.supports['multiple_objectives'] = True
+        self.supports["optimization"] = True
+        self.supports["integer_design_vars"] = True
+        self.supports["inequality_constraints"] = True
+        self.supports["equality_constraints"] = True
+        self.supports["multiple_objectives"] = True
 
         # What we don't support yet
-        self.supports['two_sided_constraints'] = False
-        self.supports['linear_constraints'] = False
-        self.supports['simultaneous_derivatives'] = False
-        self.supports['active_set'] = False
-        self.supports['distributed_design_vars'] = False
+        self.supports["two_sided_constraints"] = False
+        self.supports["linear_constraints"] = False
+        self.supports["simultaneous_derivatives"] = False
+        self.supports["active_set"] = False
+        self.supports["distributed_design_vars"] = False
         self.supports._read_only = True
 
         self._desvar_idx = {}
         self._ga = None
 
         # random state can be set for predictability during testing
-        if 'SimpleGADriver_seed' in os.environ:
-            self._randomstate = int(os.environ['SimpleGADriver_seed'])
+        if "SimpleGADriver_seed" in os.environ:
+            self._randomstate = int(os.environ["SimpleGADriver_seed"])
         else:
             self._randomstate = None
 
@@ -103,56 +106,94 @@ class SimpleGADriver(Driver):
 
         self._nfit = 0  # Number of successful function evaluations
 
-        warn_deprecation('The `SimpleGADriver` is deprecated. Please use '
-                        '`pymooDriver` for population based optimizations.')
+        warn_deprecation(
+            "The `SimpleGADriver` is deprecated. Please use "
+            "`pymooDriver` for population based optimizations."
+        )
 
     def _declare_options(self):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare('bits', default={}, types=(dict),
-                             desc='Number of bits of resolution. Default is an empty dict, where '
-                             'every unspecified variable is assumed to be integer, and the number '
-                             'of bits is calculated automatically. If you have a continuous var, '
-                             'you should set a bits value as a key in this dictionary.')
-        self.options.declare('elitism', types=bool, default=True,
-                             desc='If True, replace worst performing point with best from previous'
-                             ' generation each iteration.')
-        self.options.declare('gray', types=bool, default=False,
-                             desc='If True, use Gray code for binary encoding. Gray coding makes'
-                             ' the binary representation of adjacent integers differ by one bit.')
-        self.options.declare('cross_bits', types=bool, default=False,
-                             desc='If True, crossover swaps single bits instead the default'
-                             ' k-point crossover.')
-        self.options.declare('max_gen', default=100,
-                             desc='Number of generations before termination.')
-        self.options.declare('pop_size', default=0,
-                             desc='Number of points in the GA. Set to 0 and it will be computed '
-                             'as four times the number of bits.')
-        self.options.declare('run_parallel', types=bool, default=False,
-                             desc='Set to True to execute the points in a generation in parallel.')
-        self.options.declare('procs_per_model', default=1, lower=1,
-                             desc='Number of processors to give each model under MPI.')
-        self.options.declare('penalty_parameter', default=10., lower=0.,
-                             desc='Penalty function parameter.')
-        self.options.declare('penalty_exponent', default=1.,
-                             desc='Penalty function exponent.')
-        self.options.declare('Pc', default=0.1, lower=0., upper=1.,
-                             desc='Crossover rate.')
-        self.options.declare('Pm', default=0.01, lower=0., upper=1., allow_none=True,
-                             desc='Mutation rate.')
-        self.options.declare('multi_obj_weights', default={}, types=(dict),
-                             desc='Weights of objectives for multi-objective optimization.'
-                             'Weights are specified as a dictionary with the absolute names'
-                             'of the objectives. The same weights for all objectives are assumed, '
-                             'if not given.')
-        self.options.declare('multi_obj_exponent', default=1., lower=0.,
-                             desc='Multi-objective weighting exponent.')
-        self.options.declare('compute_pareto', default=False, types=(bool, ),
-                             desc='When True, compute a set of non-dominated points based on all '
-                             'given objectives and update it each generation. The multi-objective '
-                             'weight and exponents are ignored because the algorithm uses all '
-                             'objective values instead of a composite.')
+        self.options.declare(
+            "bits",
+            default={},
+            types=(dict),
+            desc="Number of bits of resolution. Default is an empty dict, where "
+            "every unspecified variable is assumed to be integer, and the number "
+            "of bits is calculated automatically. If you have a continuous var, "
+            "you should set a bits value as a key in this dictionary.",
+        )
+        self.options.declare(
+            "elitism",
+            types=bool,
+            default=True,
+            desc="If True, replace worst performing point with best from previous"
+            " generation each iteration.",
+        )
+        self.options.declare(
+            "gray",
+            types=bool,
+            default=False,
+            desc="If True, use Gray code for binary encoding. Gray coding makes"
+            " the binary representation of adjacent integers differ by one bit.",
+        )
+        self.options.declare(
+            "cross_bits",
+            types=bool,
+            default=False,
+            desc="If True, crossover swaps single bits instead the default k-point crossover.",
+        )
+        self.options.declare(
+            "max_gen", default=100, desc="Number of generations before termination."
+        )
+        self.options.declare(
+            "pop_size",
+            default=0,
+            desc="Number of points in the GA. Set to 0 and it will be computed "
+            "as four times the number of bits.",
+        )
+        self.options.declare(
+            "run_parallel",
+            types=bool,
+            default=False,
+            desc="Set to True to execute the points in a generation in parallel.",
+        )
+        self.options.declare(
+            "procs_per_model",
+            default=1,
+            lower=1,
+            desc="Number of processors to give each model under MPI.",
+        )
+        self.options.declare(
+            "penalty_parameter", default=10.0, lower=0.0, desc="Penalty function parameter."
+        )
+        self.options.declare("penalty_exponent", default=1.0, desc="Penalty function exponent.")
+        self.options.declare("Pc", default=0.1, lower=0.0, upper=1.0, desc="Crossover rate.")
+        self.options.declare(
+            "Pm", default=0.01, lower=0.0, upper=1.0, allow_none=True, desc="Mutation rate."
+        )
+        self.options.declare(
+            "multi_obj_weights",
+            default={},
+            types=(dict),
+            desc="Weights of objectives for multi-objective optimization."
+            "Weights are specified as a dictionary with the absolute names"
+            "of the objectives. The same weights for all objectives are assumed, "
+            "if not given.",
+        )
+        self.options.declare(
+            "multi_obj_exponent", default=1.0, lower=0.0, desc="Multi-objective weighting exponent."
+        )
+        self.options.declare(
+            "compute_pareto",
+            default=False,
+            types=(bool,),
+            desc="When True, compute a set of non-dominated points based on all "
+            "given objectives and update it each generation. The multi-objective "
+            "weight and exponents are ignored because the algorithm uses all "
+            "objective values instead of a composite.",
+        )
 
     def _setup_driver(self, problem):
         """
@@ -169,32 +210,36 @@ class SimpleGADriver(Driver):
 
         # check design vars and constraints for invalid bounds
         for name, meta in self._designvars.items():
-            lower, upper = meta['lower'], meta['upper']
+            lower, upper = meta["lower"], meta["upper"]
             for param in (lower, upper):
                 if param is None or np.any(np.isinf(np.atleast_1d(param))):
-                    msg = (f"Invalid bounds for design variable '{name}'. When using "
-                           f"{self.__class__.__name__}, finite values for both 'lower' and "
-                           f"'upper' must be specified, but they are: "
-                           f"lower={lower}, upper={upper}.")
+                    msg = (
+                        f"Invalid bounds for design variable '{name}'. When using "
+                        f"{self.__class__.__name__}, finite values for both 'lower' and "
+                        f"'upper' must be specified, but they are: "
+                        f"lower={lower}, upper={upper}."
+                    )
                     raise ValueError(msg)
 
         for name, meta in self._cons.items():
-            equals, lower, upper = meta['equals'], meta['lower'], meta['upper']
+            equals, lower, upper = meta["equals"], meta["lower"], meta["upper"]
             eq_unbounded = equals is None or np.all(np.isinf(np.atleast_1d(equals)))
             lower_unbounded = lower is None or np.all(np.isinf(np.atleast_1d(lower)))
             upper_unbounded = upper is None or np.all(np.isinf(np.atleast_1d(upper)))
             if eq_unbounded and lower_unbounded and upper_unbounded:
-                msg = (f"Invalid bounds for constraint '{name}'. "
-                       f"When using {self.__class__.__name__}, a finite value for 'equals', "
-                       f"'lower' or 'upper' must be specified, but they are: "
-                       f"equals={equals}, lower={lower}, upper={upper}.")
+                msg = (
+                    f"Invalid bounds for constraint '{name}'. "
+                    f"When using {self.__class__.__name__}, a finite value for 'equals', "
+                    f"'lower' or 'upper' must be specified, but they are: "
+                    f"equals={equals}, lower={lower}, upper={upper}."
+                )
                 raise ValueError(msg)
 
         model_mpi = None
         comm = problem.comm
         if self._concurrent_pop_size > 0:
             model_mpi = (self._concurrent_pop_size, self._concurrent_color)
-        elif not self.options['run_parallel']:
+        elif not self.options["run_parallel"]:
             comm = None
 
         self._ga = GeneticAlgorithm(self.objective_callback, comm=comm, model_mpi=model_mpi)
@@ -217,17 +262,18 @@ class SimpleGADriver(Driver):
         """
         self._problem_comm = comm
 
-        procs_per_model = self.options['procs_per_model']
-        if MPI and self.options['run_parallel']:
-
+        procs_per_model = self.options["procs_per_model"]
+        if MPI and self.options["run_parallel"]:
             full_size = comm.size
             size = full_size // procs_per_model
             if full_size != size * procs_per_model:
-                raise RuntimeError("The total number of processors is not evenly divisible by the "
-                                   "specified number of processors per model.\n Provide a "
-                                   "number of processors that is a multiple of %d, or "
-                                   "specify a number of processors per model that divides "
-                                   "into %d." % (procs_per_model, full_size))
+                raise RuntimeError(
+                    "The total number of processors is not evenly divisible by the "
+                    "specified number of processors per model.\n Provide a "
+                    "number of processors that is a multiple of %d, or "
+                    "specify a number of processors per model that divides "
+                    "into %d." % (procs_per_model, full_size)
+                )
             color = comm.rank % size
             model_comm = comm.Split(color)
 
@@ -246,8 +292,8 @@ class SimpleGADriver(Driver):
         Set up case recording.
         """
         if MPI:
-            run_parallel = self.options['run_parallel']
-            procs_per_model = self.options['procs_per_model']
+            run_parallel = self.options["run_parallel"]
+            procs_per_model = self.options["procs_per_model"]
 
             for recorder in self._rec_mgr:
                 if run_parallel:
@@ -290,16 +336,16 @@ class SimpleGADriver(Driver):
         model = self._problem().model
         ga = self._ga
 
-        ga.elite = self.options['elitism']
-        ga.gray_code = self.options['gray']
-        ga.cross_bits = self.options['cross_bits']
-        pop_size = self.options['pop_size']
-        max_gen = self.options['max_gen']
-        user_bits = self.options['bits']
-        compute_pareto = self.options['compute_pareto']
+        ga.elite = self.options["elitism"]
+        ga.gray_code = self.options["gray"]
+        ga.cross_bits = self.options["cross_bits"]
+        pop_size = self.options["pop_size"]
+        max_gen = self.options["max_gen"]
+        user_bits = self.options["bits"]
+        compute_pareto = self.options["compute_pareto"]
 
-        Pm = self.options['Pm']  # if None, it will be calculated in execute_ga()
-        Pc = self.options['Pc']
+        Pm = self.options["Pm"]  # if None, it will be calculated in execute_ga()
+        Pc = self.options["Pc"]
 
         self._check_for_missing_objective()
         self._check_for_invalid_desvar_values()
@@ -320,21 +366,21 @@ class SimpleGADriver(Driver):
                 else:
                     size = len(val)
             else:
-                size = meta['size']
+                size = meta["size"]
             self._desvar_idx[name] = (count, count + size)
             count += size
 
-        lower_bound = np.empty((count, ))
-        upper_bound = np.empty((count, ))
-        outer_bound = np.full((count, ), np.inf)
-        bits = np.empty((count, ), dtype=np.int_)
+        lower_bound = np.empty((count,))
+        upper_bound = np.empty((count,))
+        outer_bound = np.full((count,), np.inf)
+        bits = np.empty((count,), dtype=np.int_)
         x0 = np.empty(count)
 
         # Figure out bounds vectors and initial design vars
         for name, meta in desvars.items():
             i, j = self._desvar_idx[name]
-            lower_bound[i:j] = meta['lower']
-            upper_bound[i:j] = meta['upper']
+            lower_bound[i:j] = meta["lower"]
+            upper_bound[i:j] = meta["upper"]
             x0[i:j] = desvar_vals[name]
 
         # Bits of resolution
@@ -343,8 +389,8 @@ class SimpleGADriver(Driver):
         for name, meta in desvars.items():
             i, j = self._desvar_idx[name]
 
-            if resolver.is_abs(name, 'output'):
-                prom_name = resolver.abs2prom(name, 'output')
+            if resolver.is_abs(name, "output"):
+                prom_name = resolver.abs2prom(name, "output")
             else:
                 prom_name = name
 
@@ -364,7 +410,7 @@ class SimpleGADriver(Driver):
                 mask = log_range % 2 > 0  # mask for vars requiring padding
                 val[mask] = np.ceil(log_range[mask])
                 outer_bound[i:j][mask] = upper_bound[i:j][mask]
-                upper_bound[i:j][mask] = 2**np.ceil(log_range[mask]) - 1 + lower_bound[i:j][mask]
+                upper_bound[i:j][mask] = 2 ** np.ceil(log_range[mask]) - 1 + lower_bound[i:j][mask]
 
             bits[i:j] = val
 
@@ -372,9 +418,18 @@ class SimpleGADriver(Driver):
         if pop_size == 0:
             pop_size = 4 * np.sum(bits)
 
-        desvar_new, obj, self._nfit = ga.execute_ga(x0, lower_bound, upper_bound, outer_bound,
-                                                    bits, pop_size, max_gen,
-                                                    self._randomstate, Pm, Pc)
+        desvar_new, obj, self._nfit = ga.execute_ga(
+            x0,
+            lower_bound,
+            upper_bound,
+            outer_bound,
+            bits,
+            pop_size,
+            max_gen,
+            self._randomstate,
+            Pm,
+            Pc,
+        )
 
         if compute_pareto:
             # Just save the non-dominated points.
@@ -481,12 +536,12 @@ class SimpleGADriver(Driver):
                 is_single_objective = len(obj) == 1
                 break
 
-        obj_exponent = self.options['multi_obj_exponent']
-        if self.options['multi_obj_weights']:  # not empty
-            obj_weights = self.options['multi_obj_weights']
+        obj_exponent = self.options["multi_obj_exponent"]
+        if self.options["multi_obj_weights"]:  # not empty
+            obj_weights = self.options["multi_obj_weights"]
         else:
             # Same weight for all objectives, if not specified
-            obj_weights = {name: 1. for name in objs.keys()}
+            obj_weights = {name: 1.0 for name in objs.keys()}
         sum_weights = sum(obj_weights.values())
 
         for name in self._designvars:
@@ -509,7 +564,7 @@ class SimpleGADriver(Driver):
                 for i in obj_values.values():
                     obj = i  # First and only key in the dict
 
-            elif self.options['compute_pareto']:
+            elif self.options["compute_pareto"]:
                 obj = np.array([val for val in obj_values.values()]).flatten()
 
             else:  # Multi-objective optimization with weighted sums
@@ -520,16 +575,18 @@ class SimpleGADriver(Driver):
                     try:
                         weighted_obj = val * obj_weights[name] / val.size
                     except KeyError:
-                        msg = ('Name "{}" in "multi_obj_weights" option '
-                               'is not an absolute name of an objective.')
+                        msg = (
+                            'Name "{}" in "multi_obj_weights" option '
+                            "is not an absolute name of an objective."
+                        )
                         raise KeyError(msg.format(name))
                     weighted_objectives = np.hstack((weighted_objectives, weighted_obj))
 
-                obj = sum(weighted_objectives / sum_weights)**obj_exponent
+                obj = sum(weighted_objectives / sum_weights) ** obj_exponent
 
             # Parameters of the penalty method
-            penalty = self.options['penalty_parameter']
-            exponent = self.options['penalty_exponent']
+            penalty = self.options["penalty_parameter"]
+            exponent = self.options["penalty_exponent"]
 
             if penalty == 0:
                 fun = obj
@@ -538,18 +595,21 @@ class SimpleGADriver(Driver):
                 for name, val in self.get_constraint_values().items():
                     con = self._cons[name]
                     # None means unbounded; np.inf also means unbounded
-                    has_lower_con = con['lower'] is not None and \
-                        not np.all(np.isneginf(np.atleast_1d(con['lower'])))
-                    has_upper_con = con['upper'] is not None and \
-                        not np.all(np.isposinf(np.atleast_1d(con['upper'])))
-                    has_eq_con = con['equals'] is not None and \
-                        not np.all(np.isinf(np.atleast_1d(con['equals'])))
+                    has_lower_con = con["lower"] is not None and not np.all(
+                        np.isneginf(np.atleast_1d(con["lower"]))
+                    )
+                    has_upper_con = con["upper"] is not None and not np.all(
+                        np.isposinf(np.atleast_1d(con["upper"]))
+                    )
+                    has_eq_con = con["equals"] is not None and not np.all(
+                        np.isinf(np.atleast_1d(con["equals"]))
+                    )
                     if has_lower_con:
-                        lb_diff = val - con['lower']
-                        lb_violation = np.array([0. if d >= 0 else abs(d) for d in lb_diff])
+                        lb_diff = val - con["lower"]
+                        lb_violation = np.array([0.0 if d >= 0 else abs(d) for d in lb_diff])
                     if has_upper_con:
-                        ub_diff = val - con['upper']
-                        ub_violation = np.array([0. if d <= 0 else abs(d) for d in ub_diff])
+                        ub_diff = val - con["upper"]
+                        ub_violation = np.array([0.0 if d <= 0 else abs(d) for d in ub_diff])
                     if has_lower_con and (not has_upper_con):
                         violation = lb_violation
                     elif has_upper_con and (not has_lower_con):
@@ -557,7 +617,7 @@ class SimpleGADriver(Driver):
                     elif has_upper_con and has_lower_con:
                         violation = np.maximum(lb_violation, ub_violation)
                     elif has_eq_con and not (has_lower_con or has_upper_con):
-                        diff = val - con['equals']
+                        diff = val - con["equals"]
                         violation = np.absolute(diff)
 
                     constraint_violations = np.hstack((constraint_violations, violation))
@@ -624,12 +684,15 @@ class GeneticAlgorithm:
         """
         try:
             from pydoe import lhs
+
             self._lhs = lhs
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         self.objfun = objfun
         self.comm = comm
@@ -708,8 +771,9 @@ class GeneticAlgorithm:
             Pm = (self.lchrom + 1.0) / (2.0 * pop_size * np.sum(bits))
         elite = self.elite
 
-        new_gen = np.round(self._lhs(self.lchrom, self.npop, criterion='center',
-                                     random_state=random_state))
+        new_gen = np.round(
+            self._lhs(self.lchrom, self.npop, criterion="center", random_state=random_state)
+        )
         new_gen[0] = self.encode(x0, vlb, vub, bits)
 
         # Main Loop
@@ -726,8 +790,9 @@ class GeneticAlgorithm:
                 # and use it on all.
                 x_pop = comm.bcast(x_pop, root=0)
 
-                cases = [((item, ii), None) for ii, item in enumerate(x_pop)
-                         if np.all(item - vob <= 0)]
+                cases = [
+                    ((item, ii), None) for ii, item in enumerate(x_pop) if np.all(item - vob <= 0)
+                ]
 
                 # Pad the cases with some dummy cases to make the cases divisible amongst the procs.
                 # TODO: Add a load balancing option to this driver.
@@ -736,8 +801,9 @@ class GeneticAlgorithm:
                     for j in range(comm.size - extra):
                         cases.append(cases[-1])
 
-                results = concurrent_eval(self.objfun, cases, comm, allgather=True,
-                                          model_mpi=self.model_mpi)
+                results = concurrent_eval(
+                    self.objfun, cases, comm, allgather=True, model_mpi=self.model_mpi
+                )
 
                 fitness[:] = np.inf
                 for result in results:
@@ -751,7 +817,7 @@ class GeneticAlgorithm:
 
                     else:
                         # Print the traceback if it fails
-                        print('A case failed:')
+                        print("A case failed:")
                         print(traceback)
 
             else:
@@ -780,9 +846,9 @@ class GeneticAlgorithm:
                 # previous generation.
                 if elite and generation > 0:
                     max_index = np.argmax(fitness[:, 0])
-                    old_gen[max_index] = min_gen        # noqa: F821, min_gen initialized below
-                    x_pop[max_index] = min_x            # noqa: F821, min_x initialized below
-                    fitness[max_index, 0] = min_fit     # noqa: F821, min_fit initialized below
+                    old_gen[max_index] = min_gen  # noqa: F821, min_gen initialized below
+                    x_pop[max_index] = min_x  # noqa: F821, min_x initialized below
+                    fitness[max_index, 0] = min_fit  # noqa: F821, min_fit initialized below
 
                 # Find best performing point in this generation.
                 min_fit = np.min(fitness)
@@ -916,8 +982,9 @@ class GeneticAlgorithm:
             new_gen.append(old_gen[selected])
             new_obj.append(obj_val[selected])
 
-        return np.concatenate(np.array(new_gen), axis=1).reshape(old_gen.shape), \
-            np.concatenate(np.array(new_obj), axis=1).reshape(obj_val.shape)
+        return np.concatenate(np.array(new_gen), axis=1).reshape(old_gen.shape), np.concatenate(
+            np.array(new_obj), axis=1
+        ).reshape(obj_val.shape)
 
     def crossover(self, old_gen, Pc):
         """
@@ -947,7 +1014,7 @@ class GeneticAlgorithm:
             if self.cross_bits:  # swap single bit
                 new_gen[i][jj] = old_gen[j][jj]
                 new_gen[j][jj] = old_gen[i][jj]
-            else:               # swap remainder
+            else:  # swap remainder
                 new_gen[i][jj:] = old_gen[j][jj:]
                 new_gen[j][jj:] = old_gen[i][jj:]
         return new_gen
@@ -1028,10 +1095,10 @@ class GeneticAlgorithm:
         sbit = 0
         ebit = 0
         for jj in range(num_desvar):
-            exponents = 2**np.array(range(bits[jj] - 1, -1, -1))
+            exponents = 2 ** np.array(range(bits[jj] - 1, -1, -1))
             ebit += bits[jj]
             fact = exponents * (pts[:, sbit:ebit])
-            x[:, jj] = np.einsum('ij->i', fact) * interval[jj] + vlb[jj]
+            x[:, jj] = np.einsum("ij->i", fact) * interval[jj] + vlb[jj]
             sbit = ebit
         return x
 
@@ -1082,11 +1149,11 @@ class GeneticAlgorithm:
         ndarray
             Binary array using Gray code, e.g. np.array([0, 0, 1, 1]).
         """
-        s = ''.join([str(x) for x in g])                     # convert to binary string: '0010'
-        i = int(s, 2)                                        # convert to Integer: 2
-        gi = i ^ (i >> 1)                                    # compute gray code Integer: 3
-        gs = np.binary_repr(gi, len(g))                      # convert to binary string: '0011'
-        return np.array([0 if q == '0' else 1 for q in gs])  # convert to np.array: [0, 0, 1, 1]
+        s = "".join([str(x) for x in g])  # convert to binary string: '0010'
+        i = int(s, 2)  # convert to Integer: 2
+        gi = i ^ (i >> 1)  # compute gray code Integer: 3
+        gs = np.binary_repr(gi, len(g))  # convert to binary string: '0011'
+        return np.array([0 if q == "0" else 1 for q in gs])  # convert to np.array: [0, 0, 1, 1]
 
     @staticmethod
     def from_gray(g):

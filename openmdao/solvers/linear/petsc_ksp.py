@@ -49,7 +49,7 @@ KSP_TYPES = [
     "gcr",
     "pipegcr",
     "tsirm",
-    "cgls"
+    "cgls",
 ]
 
 
@@ -91,14 +91,14 @@ def _get_petsc_vec_array_old(vec):
     return vec.getArray()
 
 
-if find_spec('petsc4py') is not None:
-    petsc_version = ilmd.version('petsc4py')
-    if int(petsc_version.split('.')[1]) >= 6:
+if find_spec("petsc4py") is not None:
+    petsc_version = ilmd.version("petsc4py")
+    if int(petsc_version.split(".")[1]) >= 6:
         _get_petsc_vec_array = _get_petsc_vec_array_new
     else:
         _get_petsc_vec_array = _get_petsc_vec_array_old
 else:
-    petsc_version = '3.5'
+    petsc_version = "3.5"
 
 
 class Monitor(object):
@@ -172,7 +172,7 @@ class PETScKrylov(LinearSolver):
         Lazily imported petsc4py.PETSc module.
     """
 
-    SOLVER = 'LN: PETScKrylov'
+    SOLVER = "LN: PETScKrylov"
 
     def __init__(self, **kwargs):
         """
@@ -184,6 +184,7 @@ class PETScKrylov(LinearSolver):
         if use_mpi is not False:
             try:
                 from petsc4py import PETSc
+
                 self._PETSc = PETSc
             except ImportError:
                 self._PETSc = None
@@ -193,8 +194,10 @@ class PETScKrylov(LinearSolver):
             self._PETSc = None
 
         if self._PETSc is None:
-            raise RuntimeError(f"{self.msginfo}: PETSc is not available. "
-                               "Set shell variable OPENMDAO_USE_MPI=1 to detect earlier.")
+            raise RuntimeError(
+                f"{self.msginfo}: PETSc is not available. "
+                "Set shell variable OPENMDAO_USE_MPI=1 to detect earlier."
+            )
 
         self._ksp = None
         self.precon = None
@@ -206,36 +209,50 @@ class PETScKrylov(LinearSolver):
         """
         super()._declare_options()
 
-        self.options.declare('ksp_type', default='fgmres', values=KSP_TYPES,
-                             desc="KSP algorithm to use. Default is 'fgmres'.")
+        self.options.declare(
+            "ksp_type",
+            default="fgmres",
+            values=KSP_TYPES,
+            desc="KSP algorithm to use. Default is 'fgmres'.",
+        )
 
-        self.options.declare('divtol', default=None, types=float,
-                             desc="Divergence tolerance.")
+        self.options.declare("divtol", default=None, types=float, desc="Divergence tolerance.")
 
-        self.options.declare('restart', default=1000, types=int,
-                             desc='Number of iterations between restarts. Larger values increase '
-                             'iteration cost, but may be necessary for convergence')
+        self.options.declare(
+            "restart",
+            default=1000,
+            types=int,
+            desc="Number of iterations between restarts. Larger values increase "
+            "iteration cost, but may be necessary for convergence",
+        )
 
-        self.options.declare('precon_side', default='right', values=['left', 'right'],
-                             desc='Preconditioner side, default is right.')
+        self.options.declare(
+            "precon_side",
+            default="right",
+            values=["left", "right"],
+            desc="Preconditioner side, default is right.",
+        )
 
-        self.options.declare('rhs_checking', types=(bool, dict),
-                             default=False,
-                             desc="If True, check RHS vs. cache and/or zero to avoid some solves."
-                             "Can also be set to a dict of options for the LinearRHSChecker to "
-                             "allow finer control over it. Allowed options are: "
-                             f"{LinearRHSChecker.options}")
+        self.options.declare(
+            "rhs_checking",
+            types=(bool, dict),
+            default=False,
+            desc="If True, check RHS vs. cache and/or zero to avoid some solves."
+            "Can also be set to a dict of options for the LinearRHSChecker to "
+            "allow finer control over it. Allowed options are: "
+            f"{LinearRHSChecker.options}",
+        )
 
         # changing the default maxiter from the base class
-        self.options['maxiter'] = 100
+        self.options["maxiter"] = 100
 
-        self.supports['implicit_components'] = True
+        self.supports["implicit_components"] = True
 
     def _assembled_jac_solver_iter(self):
         """
         Return a generator of linear solvers using assembled jacs.
         """
-        if self.options['assemble_jac']:
+        if self.options["assemble_jac"]:
             yield self, self.preferred_sparse_format()
         if self.precon is not None:
             for tup in self.precon._assembled_jac_solver_iter():
@@ -261,7 +278,7 @@ class PETScKrylov(LinearSolver):
         logger : object
             The object that manages logging output.
         """
-        if self.options['rhs_checking'] is False:
+        if self.options["rhs_checking"] is False:
             system = self._system()
             redundant_adj = system.pathname in system._relevance.get_redundant_adjoint_systems()
             if redundant_adj:
@@ -288,10 +305,11 @@ class PETScKrylov(LinearSolver):
         if self.precon is not None:
             self.precon._setup_solvers(self._system(), self._depth + 1)
 
-        self._lin_rhs_checker = LinearRHSChecker.create(self._system(),
-                                                        self.options['rhs_checking'])
+        self._lin_rhs_checker = LinearRHSChecker.create(
+            self._system(), self.options["rhs_checking"]
+        )
 
-    def _set_solver_print(self, level=2, type_='all'):
+    def _set_solver_print(self, level=2, type_="all"):
         """
         Control printing for solvers and subsolvers in the model.
 
@@ -306,7 +324,7 @@ class PETScKrylov(LinearSolver):
         """
         super()._set_solver_print(level=level, type_=type_)
 
-        if self.precon is not None and type_ != 'NL':
+        if self.precon is not None and type_ != "NL":
             self.precon._set_solver_print(level=level, type_=type_)
 
     def mult(self, mat, in_vec, result):
@@ -335,7 +353,7 @@ class PETScKrylov(LinearSolver):
         # assign x and b vectors based on mode
         system = self._system()
 
-        if self._mode == 'fwd':
+        if self._mode == "fwd":
             x_vec = system._doutputs
             b_vec = system._dresiduals
         else:  # rev
@@ -392,16 +410,17 @@ class PETScKrylov(LinearSolver):
         options = self.options
 
         if system.under_complex_step:
-            raise RuntimeError('{}: PETScKrylov solver is not supported under '
-                               'complex step.'.format(self.msginfo))
+            raise RuntimeError(
+                "{}: PETScKrylov solver is not supported under complex step.".format(self.msginfo)
+            )
 
-        maxiter = options['maxiter']
-        atol = options['atol']
-        rtol = options['rtol']
-        divtol = options['divtol']
+        maxiter = options["maxiter"]
+        atol = options["atol"]
+        rtol = options["rtol"]
+        divtol = options["divtol"]
 
         # assign x and b vectors based on mode
-        if self._mode == 'fwd':
+        if self._mode == "fwd":
             x_vec = system._doutputs
             b_vec = system._dresiduals
         else:  # rev
@@ -434,7 +453,7 @@ class PETScKrylov(LinearSolver):
         x_vec.set_val(sol_array)
 
         # as of petsc4py v3.20, the 'converged' attribute has been renamed to 'is_converged'
-        if hasattr(self._ksp, 'is_converged'):
+        if hasattr(self._ksp, "is_converged"):
             if not self._ksp.is_converged:
                 self._convergence_failure()
         elif not self._ksp.converged:
@@ -442,7 +461,7 @@ class PETScKrylov(LinearSolver):
 
         sol_petsc_vec = rhs_petsc_vec = None
 
-        if not system.under_complex_step and self._lin_rhs_checker is not None and mode == 'rev':
+        if not system.under_complex_step and self._lin_rhs_checker is not None and mode == "rev":
             self._lin_rhs_checker.add_solution(rhs_array, sol_array, system, copy=False)
 
     def apply(self, mat, in_vec, result):
@@ -466,7 +485,7 @@ class PETScKrylov(LinearSolver):
             system._dinputs.set_val(0.0)
 
             # assign x and b vectors based on mode
-            if mode == 'fwd':
+            if mode == "fwd":
                 x_vec = system._doutputs
                 b_vec = system._dresiduals
             else:  # rev
@@ -508,20 +527,19 @@ class PETScKrylov(LinearSolver):
             return self._ksp
 
         iproc = system.comm.rank
-        lsize = np.sum(system._var_sizes['output'][iproc, :])
-        size = np.sum(system._var_sizes['output'])
+        lsize = np.sum(system._var_sizes["output"][iproc, :])
+        size = np.sum(system._var_sizes["output"])
 
-        jac_mat = self._PETSc.Mat().createPython([(lsize, size), (lsize, size)],
-                                                 comm=system.comm)
+        jac_mat = self._PETSc.Mat().createPython([(lsize, size), (lsize, size)], comm=system.comm)
         jac_mat.setPythonContext(self)
         jac_mat.setUp()
 
         ksp = self._ksp = self._PETSc.KSP().create(comm=system.comm)
 
         ksp.setOperators(jac_mat)
-        ksp.setType(self.options['ksp_type'])
-        ksp.setGMRESRestart(self.options['restart'])
-        if self.options['precon_side'] == 'left':
+        ksp.setType(self.options["ksp_type"])
+        ksp.setGMRESRestart(self.options["restart"])
+        if self.options["precon_side"] == "left":
             ksp.setPCSide(self._PETSc.PC.Side.LEFT)
         else:
             ksp.setPCSide(self._PETSc.PC.Side.RIGHT)
@@ -529,7 +547,7 @@ class PETScKrylov(LinearSolver):
         ksp.setInitialGuessNonzero(True)
 
         pc_mat = ksp.getPC()
-        pc_mat.setType('python')
+        pc_mat.setType("python")
         pc_mat.setPythonContext(self)
 
         return ksp
@@ -543,4 +561,4 @@ class PETScKrylov(LinearSolver):
         str
             The preferred sparse format for the dr/do matrix of a split jacobian.
         """
-        return 'csr'
+        return "csr"

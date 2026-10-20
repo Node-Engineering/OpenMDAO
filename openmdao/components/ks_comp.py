@@ -1,6 +1,7 @@
 """
 KS Function Component.
 """
+
 import numpy as np
 
 from openmdao.core.explicitcomponent import ExplicitComponent
@@ -35,7 +36,7 @@ def check_option(option, value):
     ------
     ValueError
     """
-    if option == 'units' and value is not None and not valid_units(value):
+    if option == "units" and value is not None and not valid_units(value):
         raise ValueError("The units '%s' are invalid." % value)
 
 
@@ -156,67 +157,121 @@ class KSComp(ExplicitComponent):
         """
         Declare options.
         """
-        self.options.declare('width', types=int, default=1, desc='Width of constraint vector.')
-        self.options.declare('vec_size', types=int, default=1,
-                             desc='The number of rows to independently aggregate.')
-        self.options.declare('minimum', types=bool, default=False,
-                             desc='Return the minimum instead of the maximum by multiplying both '
-                                  'the inputs and output by -1. It is not recommended to use both '
-                                  'this option and the lower_flag option (it will return the '
-                                  'negative of the aggregated max.)')
-        self.options.declare('lower_flag', types=bool, default=False,
-                             desc='Set to True to reverse sign of input constraints.')
-        self.options.declare('rho', 50.0, desc="Constraint Aggregation Factor.")
-        self.options.declare('upper', 0.0, desc="Upper bound for constraint, default is zero.")
-        self.options.declare('add_constraint', types=bool, default=False,
-                             desc='If True, add a constraint on the resulting output of the KSComp.'
-                                  ' If False, the user will be expected to add a constraint '
-                                  'explicitly.')
-        self.options.declare('units', types=str, allow_none=True, default=None,
-                             desc='Units to be assigned to all variables in this component. '
-                                  'Default is None, which means variables are unitless.',
-                             check_valid=check_option)
-        self.options.declare('scaler', types=(int, float), allow_none=True, default=None,
-                             desc="Scaler for constraint, if added, default is one.")
-        self.options.declare('adder', types=(int, float), allow_none=True, default=None,
-                             desc="Adder for constraint, if added, default is zero.")
-        self.options.declare('ref0', types=(int, float), allow_none=True, default=None,
-                             desc="Zero-reference for constraint, if added, default is zero.")
-        self.options.declare('ref', types=(int, float), allow_none=True, default=None,
-                             desc="Unit reference for constraint, if added, default is one.")
-        self.options.declare('parallel_deriv_color', types=str, allow_none=True, default=None,
-                             desc='If specified, this design var will be grouped for parallel '
-                                  'derivative calculations with other variables sharing the same '
-                                  'parallel_deriv_color.')
+        self.options.declare("width", types=int, default=1, desc="Width of constraint vector.")
+        self.options.declare(
+            "vec_size", types=int, default=1, desc="The number of rows to independently aggregate."
+        )
+        self.options.declare(
+            "minimum",
+            types=bool,
+            default=False,
+            desc="Return the minimum instead of the maximum by multiplying both "
+            "the inputs and output by -1. It is not recommended to use both "
+            "this option and the lower_flag option (it will return the "
+            "negative of the aggregated max.)",
+        )
+        self.options.declare(
+            "lower_flag",
+            types=bool,
+            default=False,
+            desc="Set to True to reverse sign of input constraints.",
+        )
+        self.options.declare("rho", 50.0, desc="Constraint Aggregation Factor.")
+        self.options.declare("upper", 0.0, desc="Upper bound for constraint, default is zero.")
+        self.options.declare(
+            "add_constraint",
+            types=bool,
+            default=False,
+            desc="If True, add a constraint on the resulting output of the KSComp."
+            " If False, the user will be expected to add a constraint "
+            "explicitly.",
+        )
+        self.options.declare(
+            "units",
+            types=str,
+            allow_none=True,
+            default=None,
+            desc="Units to be assigned to all variables in this component. "
+            "Default is None, which means variables are unitless.",
+            check_valid=check_option,
+        )
+        self.options.declare(
+            "scaler",
+            types=(int, float),
+            allow_none=True,
+            default=None,
+            desc="Scaler for constraint, if added, default is one.",
+        )
+        self.options.declare(
+            "adder",
+            types=(int, float),
+            allow_none=True,
+            default=None,
+            desc="Adder for constraint, if added, default is zero.",
+        )
+        self.options.declare(
+            "ref0",
+            types=(int, float),
+            allow_none=True,
+            default=None,
+            desc="Zero-reference for constraint, if added, default is zero.",
+        )
+        self.options.declare(
+            "ref",
+            types=(int, float),
+            allow_none=True,
+            default=None,
+            desc="Unit reference for constraint, if added, default is one.",
+        )
+        self.options.declare(
+            "parallel_deriv_color",
+            types=str,
+            allow_none=True,
+            default=None,
+            desc="If specified, this design var will be grouped for parallel "
+            "derivative calculations with other variables sharing the same "
+            "parallel_deriv_color.",
+        )
 
     def setup(self):
         """
         Declare inputs, outputs, and derivatives for the KS component.
         """
         opts = self.options
-        width = opts['width']
-        vec_size = opts['vec_size']
-        units = opts['units']
+        width = opts["width"]
+        vec_size = opts["vec_size"]
+        units = opts["units"]
 
         # Inputs
-        self.add_input('g', shape=(vec_size, width), units=units,
-                       desc="Array of function values to be aggregated")
+        self.add_input(
+            "g",
+            shape=(vec_size, width),
+            units=units,
+            desc="Array of function values to be aggregated",
+        )
 
         # Outputs
-        self.add_output('KS', shape=(vec_size, 1), units=units,
-                        desc="Value of the aggregate KS function")
+        self.add_output(
+            "KS", shape=(vec_size, 1), units=units, desc="Value of the aggregate KS function"
+        )
 
-        if opts['add_constraint']:
-            self.add_constraint(name='KS', upper=0.0, scaler=opts['scaler'], adder=opts['adder'],
-                                ref0=opts['ref0'], ref=opts['ref'],
-                                parallel_deriv_color=opts['parallel_deriv_color'])
+        if opts["add_constraint"]:
+            self.add_constraint(
+                name="KS",
+                upper=0.0,
+                scaler=opts["scaler"],
+                adder=opts["adder"],
+                ref0=opts["ref0"],
+                ref=opts["ref"],
+                parallel_deriv_color=opts["parallel_deriv_color"],
+            )
 
         rows = np.zeros(width, dtype=int)
         cols = range(width)
         rows = np.tile(rows, vec_size) + np.repeat(np.arange(vec_size), width)
         cols = np.tile(cols, vec_size) + np.repeat(np.arange(vec_size), width) * width
 
-        self.declare_partials(of='KS', wrt='g', rows=rows, cols=cols)
+        self.declare_partials(of="KS", wrt="g", rows=rows, cols=cols)
 
     def compute(self, inputs, outputs):
         """
@@ -231,18 +286,18 @@ class KSComp(ExplicitComponent):
         """
         opt = self.options
 
-        con_val = inputs['g'] - opt['upper']
-        if opt['lower_flag']:
+        con_val = inputs["g"] - opt["upper"]
+        if opt["lower_flag"]:
             con_val = -con_val
-        if opt['minimum']:
+        if opt["minimum"]:
             con_val = -con_val
 
-        ks_val = KSfunction.compute(con_val, opt['rho'])
+        ks_val = KSfunction.compute(con_val, opt["rho"])
 
-        if opt['minimum']:
+        if opt["minimum"]:
             ks_val = -ks_val
 
-        outputs['KS'] = ks_val
+        outputs["KS"] = ks_val
 
     def compute_partials(self, inputs, partials):
         """
@@ -257,15 +312,15 @@ class KSComp(ExplicitComponent):
         """
         opt = self.options
 
-        con_val = inputs['g'] - opt['upper']
-        if opt['lower_flag']:
+        con_val = inputs["g"] - opt["upper"]
+        if opt["lower_flag"]:
             con_val = -con_val
-        if opt['minimum']:
+        if opt["minimum"]:
             con_val = -con_val
 
-        derivs = KSfunction.derivatives(con_val, opt['rho'])[0]
+        derivs = KSfunction.derivatives(con_val, opt["rho"])[0]
 
-        if self.options['lower_flag']:
+        if self.options["lower_flag"]:
             derivs = -derivs
 
-        partials['KS', 'g'] = derivs.flatten()
+        partials["KS", "g"] = derivs.flatten()

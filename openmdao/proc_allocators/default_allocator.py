@@ -102,10 +102,10 @@ class DefaultAllocator(ProcAllocator):
             for i in range(extras):
                 mask = max_procs <= num_procs
                 weighted[mask] = 0.0
-                weighted *= (1. / np.sum(weighted))
+                weighted *= 1.0 / np.sum(weighted)
                 newsum += 1
                 mat = eye + num_procs
-                mat *= (1. / newsum)
+                mat *= 1.0 / newsum
                 mat -= weighted
                 # prevent rows associated with the maxed out subsystems from having the
                 # smallest norm.

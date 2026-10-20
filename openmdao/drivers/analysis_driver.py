@@ -1,6 +1,7 @@
 """
 AnalysisDriver definition.
 """
+
 from collections import deque
 from collections.abc import Iterable
 import itertools
@@ -62,43 +63,66 @@ class AnalysisDriver(Driver):
         elif isinstance(samples, AnalysisGenerator):
             self._generator = samples
         elif samples is not None:
-            raise ValueError('samples must be a list, tuple, '
-                             f'or derived from AnalysisGenerator but got {type(samples)}')
+            raise ValueError(
+                "samples must be a list, tuple, "
+                f"or derived from AnalysisGenerator but got {type(samples)}"
+            )
 
         super().__init__(**kwargs)
 
         # What we support
-        self.supports['integer_design_vars'] = True
+        self.supports["integer_design_vars"] = True
 
         # What we don't support
-        self.supports['distributed_design_vars'] = False
-        self.supports['optimization'] = False
+        self.supports["distributed_design_vars"] = False
+        self.supports["optimization"] = False
         self.supports._read_only = True
 
-        self._name = 'AnalysisDriver'
+        self._name = "AnalysisDriver"
         self._problem_comm = None
         self._color = None
         self._num_colors = 1
         self._prev_sample_vars = set()
-        self._total_jac_format = 'dict'
+        self._total_jac_format = "dict"
 
     def _declare_options(self):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare('run_parallel', types=bool, default=False,
-                             desc='Set to True to execute samples in parallel.')
-        self.options.declare('batch_size', types=int, default=1000,
-                             desc='Number of samples to distribute among the processors '
-                             'at a time when run_parallel is True. This should be limited when '
-                             'the memory required to store the batch size of samples grows too '
-                             'large.')
-        self.options.declare('procs_per_model', types=int, default=1, lower=1,
-                             desc='Number of processors to give each model under MPI.')
+        self.options.declare(
+            "run_parallel",
+            types=bool,
+            default=False,
+            desc="Set to True to execute samples in parallel.",
+        )
+        self.options.declare(
+            "batch_size",
+            types=int,
+            default=1000,
+            desc="Number of samples to distribute among the processors "
+            "at a time when run_parallel is True. This should be limited when "
+            "the memory required to store the batch size of samples grows too "
+            "large.",
+        )
+        self.options.declare(
+            "procs_per_model",
+            types=int,
+            default=1,
+            lower=1,
+            desc="Number of processors to give each model under MPI.",
+        )
 
-    def add_response(self, name, indices=None, units=None,
-                     linear=False, parallel_deriv_color=None,
-                     cache_linear_solution=False, flat_indices=None, alias=None):
+    def add_response(
+        self,
+        name,
+        indices=None,
+        units=None,
+        linear=False,
+        parallel_deriv_color=None,
+        cache_linear_solution=False,
+        flat_indices=None,
+        alias=None,
+    ):
         r"""
         Add a response variable to the model associated with this AnalysisDriver.
 
@@ -136,11 +160,17 @@ class AnalysisDriver(Driver):
             indices of the same variable.
         """
         model = self._problem().model
-        model.add_response(name=name, type_='obj', indices=indices,
-                           linear=linear, units=units,
-                           parallel_deriv_color=parallel_deriv_color,
-                           cache_linear_solution=cache_linear_solution,
-                           flat_indices=flat_indices, alias=alias)
+        model.add_response(
+            name=name,
+            type_="obj",
+            indices=indices,
+            linear=linear,
+            units=units,
+            parallel_deriv_color=parallel_deriv_color,
+            cache_linear_solution=cache_linear_solution,
+            flat_indices=flat_indices,
+            alias=alias,
+        )
 
     def add_responses(self, responses):
         """
@@ -186,16 +216,18 @@ class AnalysisDriver(Driver):
         if not MPI:
             return comm
         else:
-            procs_per_model = self.options['procs_per_model']
+            procs_per_model = self.options["procs_per_model"]
 
             full_size = comm.size
             self._num_colors = size = full_size // procs_per_model
             if full_size != size * procs_per_model:
-                raise RuntimeError("The total number of processors is not evenly divisible by the "
-                                   "specified number of processors per model.\n Provide a "
-                                   f"number of processors that is a multiple of {procs_per_model}, "
-                                   "or specify a number of processors per model that divides "
-                                   f"into {full_size}.")
+                raise RuntimeError(
+                    "The total number of processors is not evenly divisible by the "
+                    "specified number of processors per model.\n Provide a "
+                    f"number of processors that is a multiple of {procs_per_model}, "
+                    "or specify a number of processors per model that divides "
+                    f"into {full_size}."
+                )
 
             color = self._color = comm.rank % size
             new_comm = comm.Split(color)
@@ -236,15 +268,17 @@ class AnalysisDriver(Driver):
         # overridden when evaluating the model.
         # Implicit outputs can override the value given in the case, but it might be a
         # useful mechanism for providing an initial guess for a nonlinear solver.
-        model_inputs = {meta['prom_name'] for _, meta in
-                        model.list_inputs(is_indep_var=True, out_stream=None)}
-        model_implicit_outputs = {meta['prom_name'] for _, meta
-                                  in model.list_outputs(explicit=False, out_stream=None)}
+        model_inputs = {
+            meta["prom_name"] for _, meta in model.list_inputs(is_indep_var=True, out_stream=None)
+        }
+        model_implicit_outputs = {
+            meta["prom_name"] for _, meta in model.list_outputs(explicit=False, out_stream=None)
+        }
         self._allowable_vars = model_inputs | model_implicit_outputs
         n_procs = 1 if comm is None else comm.size
 
-        if self.options['run_parallel'] and MPI and n_procs > 1:
-            batch_size = self.options['batch_size']
+        if self.options["run_parallel"] and MPI and n_procs > 1:
+            batch_size = self.options["batch_size"]
             color_cycler = itertools.cycle(range(self._num_colors))
             samples_complete = False
             sample_num = 0
@@ -252,8 +286,9 @@ class AnalysisDriver(Driver):
             colors = comm.gather(self._color, root=0)
 
             if comm.rank == 0:
-                color_to_rank_map = {num: [i for i, x in enumerate(colors)
-                                     if x == num] for num in set(colors)}
+                color_to_rank_map = {
+                    num: [i for i, x in enumerate(colors) if x == num] for num in set(colors)
+                }
 
             while not samples_complete:
                 if comm.rank == 0:
@@ -319,65 +354,73 @@ class AnalysisDriver(Driver):
 
         for var, meta in sample.items():
             sample_vars.add(var)
-            val = meta['val']
-            units = meta.get('units', None)
-            idxs = meta.get('indices', None)
+            val = meta["val"]
+            units = meta.get("units", None)
+            idxs = meta.get("indices", None)
             # If we've given the model more procs than necessary,
             # then it will not have inputs/implicit outputs on some ranks.
             # Check that self._allowable_vars is not empty before we warn.
             if self._allowable_vars and var not in self._allowable_vars:
-                issue_warning(msg=f'Variable `{var}` is neither an independent variable\n'
-                              f'nor an implicit output in the model on rank {rank}.\n'
-                              'Setting its value in the case data will have no\n'
-                              'impact on the outputs of the model after execution.',
-                              category=DriverWarning)
+                issue_warning(
+                    msg=f"Variable `{var}` is neither an independent variable\n"
+                    f"nor an implicit output in the model on rank {rank}.\n"
+                    "Setting its value in the case data will have no\n"
+                    "impact on the outputs of the model after execution.",
+                    category=DriverWarning,
+                )
             self._problem().model.set_val(var, val, units, idxs)
 
         if self._prev_sample_vars and sample_vars != self._prev_sample_vars:
             new_vars = self._prev_sample_vars - sample_vars
             missing_vars = sample_vars - self._prev_sample_vars
-            info = f'Missing variables: {missing_vars}\n' if missing_vars else ''
-            info += f'New variables: {new_vars}\n' if new_vars else ''
-            issue_warning(msg=f'The variables in sample {sample_num} differ from\n'
-                          f'the previous sample\'s variables.\n{info}',
-                          category=DriverWarning)
+            info = f"Missing variables: {missing_vars}\n" if missing_vars else ""
+            info += f"New variables: {new_vars}\n" if new_vars else ""
+            issue_warning(
+                msg=f"The variables in sample {sample_num} differ from\n"
+                f"the previous sample's variables.\n{info}",
+                category=DriverWarning,
+            )
         self._prev_sample_vars = sample_vars
 
         with RecordingDebugging(self._get_name(), self.iter_count, self):
             try:
                 self._run_solve_nonlinear()
-                metadata['success'] = 1
-                metadata['msg'] = ''
+                metadata["success"] = 1
+                metadata["msg"] = ""
             except AnalysisError:
-                metadata['success'] = 0
-                metadata['msg'] = traceback.format_exc()
+                metadata["success"] = 0
+                metadata["msg"] = traceback.format_exc()
             except Exception:
-                metadata['success'] = 0
-                metadata['msg'] = traceback.format_exc()
-                print(metadata['msg'])
+                metadata["success"] = 0
+                metadata["msg"] = traceback.format_exc()
+                print(metadata["msg"])
 
             # save reference to metadata for use in record_iteration
             self._metadata = metadata
 
-        if self.recording_options['record_derivatives']:
-            self._compute_totals(of=list(self._responses.keys()),
-                                 wrt=list(self._get_sampled_vars()),
-                                 return_format=self._total_jac_format,
-                                 driver_scaling=False)
+        if self.recording_options["record_derivatives"]:
+            self._compute_totals(
+                of=list(self._responses.keys()),
+                wrt=list(self._get_sampled_vars()),
+                return_format=self._total_jac_format,
+                driver_scaling=False,
+            )
 
     def _get_sampled_vars(self):
         """
         Return all of the variables (promoted name) to be sampled by this driver.
         """
-        if hasattr(self._generator, '_get_sampled_vars'):
+        if hasattr(self._generator, "_get_sampled_vars"):
             return set(self._generator._get_sampled_vars())
         elif isinstance(self._generator, (list, tuple)):
             try:
                 return set(self._generator[0].keys())
             except IndexError:
                 pass
-        raise AttributeError('The samples for AnalysisDriver must be a list, tuple, '
-                             'or an AnalysisGenerator that provides a _get_sampled_vars() method')
+        raise AttributeError(
+            "The samples for AnalysisDriver must be a list, tuple, "
+            "or an AnalysisGenerator that provides a _get_sampled_vars() method"
+        )
 
     def _setup_recording(self):
         """
@@ -387,21 +430,23 @@ class AnalysisDriver(Driver):
         # Tee the samples and add the variables defined within to be recorded.
         comm = self._problem_comm
         model = self._problem().model
-        rec_includes = self.recording_options['includes']
-        implicit_outputs = {meta['prom_name'] for _, meta in
-                            model.list_outputs(explicit=False, implicit=True, out_stream=None)}
+        rec_includes = self.recording_options["includes"]
+        implicit_outputs = {
+            meta["prom_name"]
+            for _, meta in model.list_outputs(explicit=False, implicit=True, out_stream=None)
+        }
         resolver = model._resolver
 
         # Responses are recorded by default, add the inputs to be recorded.
         for prom_name in self._get_sampled_vars():
             if prom_name in implicit_outputs and prom_name not in rec_includes:
-                self.recording_options['includes'].append(prom_name)
-            elif resolver.is_prom(prom_name, 'input'):
-                self.recording_options['includes'].append(prom_name)
+                self.recording_options["includes"].append(prom_name)
+            elif resolver.is_prom(prom_name, "input"):
+                self.recording_options["includes"].append(prom_name)
 
         if MPI:
-            run_parallel = self.options['run_parallel']
-            procs_per_model = self.options['procs_per_model']
+            run_parallel = self.options["run_parallel"]
+            procs_per_model = self.options["procs_per_model"]
 
             for recorder in self._rec_mgr:
                 if run_parallel:
@@ -434,5 +479,5 @@ class AnalysisDriver(Driver):
         dict
             Metadata dictionary for the recorder.
         """
-        self._metadata['name'] = case_name
+        self._metadata["name"] = case_name
         return self._metadata

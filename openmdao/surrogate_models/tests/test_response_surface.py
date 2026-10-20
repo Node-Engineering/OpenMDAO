@@ -11,8 +11,11 @@ from openmdao.utils.assert_utils import assert_near_equal
 
 
 def branin(x):
-    y = (x[1] - (5.1 / (4. * pi ** 2.)) * x[0] ** 2. + 5. * x[0] / pi - 6.) ** 2. + 10. * (1. - 1. / (8. * pi)) * cos(
-        x[0]) + 10.
+    y = (
+        (x[1] - (5.1 / (4.0 * pi**2.0)) * x[0] ** 2.0 + 5.0 * x[0] / pi - 6.0) ** 2.0
+        + 10.0 * (1.0 - 1.0 / (8.0 * pi)) * cos(x[0])
+        + 10.0
+    )
     return y
 
 
@@ -21,7 +24,6 @@ def branin_1d(x):
 
 
 class TestResponseSurfaceSurrogate(unittest.TestCase):
-
     def test_1d_training(self):
 
         x = array([[0.0], [2.0], [3.0]])
@@ -47,7 +49,7 @@ class TestResponseSurfaceSurrogate(unittest.TestCase):
 
     def test_1d_ill_conditioned(self):
         # Test for least squares solver utilization when ill-conditioned
-        x = array([[case] for case in linspace(0., 1., 40)])
+        x = array([[case] for case in linspace(0.0, 1.0, 40)])
         y = sin(x)
         surrogate = ResponseSurface()
         surrogate.train(x, y)
@@ -58,7 +60,7 @@ class TestResponseSurfaceSurrogate(unittest.TestCase):
 
     def test_2d(self):
 
-        x = array([[-2., 0.], [-0.5, 1.5], [1., 1.], [0., .25], [.25, 0.], [.66, .33]])
+        x = array([[-2.0, 0.0], [-0.5, 1.5], [1.0, 1.0], [0.0, 0.25], [0.25, 0.0], [0.66, 0.33]])
         y = array([[branin(case)] for case in x])
 
         surrogate = ResponseSurface()
@@ -68,34 +70,35 @@ class TestResponseSurfaceSurrogate(unittest.TestCase):
             mu = surrogate.predict(x0)
             assert_near_equal(mu, y0, 1e-9)
 
-        mu = surrogate.predict(array([.5, .5]))
+        mu = surrogate.predict(array([0.5, 0.5]))
 
-        assert_near_equal(mu, branin([.5, .5]), 1e-1)
+        assert_near_equal(mu, branin([0.5, 0.5]), 1e-1)
 
     def test_no_training_data(self):
         surrogate = ResponseSurface()
 
         try:
-            surrogate.predict([0., 1.])
+            surrogate.predict([0.0, 1.0])
         except RuntimeError as err:
-            self.assertEqual(str(err),
-                             "ResponseSurface has not been trained, so no prediction can be made.")
+            self.assertEqual(
+                str(err), "ResponseSurface has not been trained, so no prediction can be made."
+            )
         else:
             self.fail("RuntimeError Expected")
 
     def test_one_pt(self):
         surrogate = ResponseSurface()
-        x = array([[0.]])
-        y = array([[1.]])
+        x = array([[0.0]])
+        y = array([[1.0]])
 
         surrogate.train(x, y)
-        assert_near_equal(surrogate.betas, array([[1.], [0.], [0.]]), 1e-9)
+        assert_near_equal(surrogate.betas, array([[1.0], [0.0], [0.0]]), 1e-9)
 
     def test_vector_input(self):
         surrogate = ResponseSurface()
 
-        x = array([[0., 0., 0.], [1., 1., 1.]])
-        y = array([[0.], [3.]])
+        x = array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
+        y = array([[0.0], [3.0]])
 
         surrogate.train(x, y)
 
@@ -106,8 +109,8 @@ class TestResponseSurfaceSurrogate(unittest.TestCase):
     def test_vector_output(self):
         surrogate = ResponseSurface()
 
-        x = array([[0.], [2.], [4.]])
-        y = array([[0., 0.], [1., 1.], [2., 0.]])
+        x = array([[0.0], [2.0], [4.0]])
+        y = array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
 
         surrogate.train(x, y)
 
@@ -118,19 +121,18 @@ class TestResponseSurfaceSurrogate(unittest.TestCase):
     def test_scalar_derivs(self):
         surrogate = ResponseSurface()
 
-        x = array([[0.], [1.], [2.], [3.]])
+        x = array([[0.0], [1.0], [2.0], [3.0]])
         y = x.copy()
 
         surrogate.train(x, y)
-        jac = surrogate.linearize(array([[0.]]))
+        jac = surrogate.linearize(array([[0.0]]))
 
-        assert_near_equal(jac[0][0], 1., 1e-3)
+        assert_near_equal(jac[0][0], 1.0, 1e-3)
 
     def test_vector_derivs(self):
         surrogate = ResponseSurface()
 
-        x = array([[a, b] for a, b in
-                   itertools.product(linspace(0, 1, 10), repeat=2)])
+        x = array([[a, b] for a, b in itertools.product(linspace(0, 1, 10), repeat=2)])
         y = array([[a + b, a - b] for a, b in x])
 
         surrogate.train(x, y)

@@ -15,24 +15,24 @@ try:
 except ImportError:
     panel = None
 
+
 @use_tempdirs
 @unittest.skipUnless(panel, "requires 'panel'")
 class TestViewCases(unittest.TestCase):
-
     def setup_sellar_problem(self, problem_recorder_filename=None, driver_recorder_filename=None):
         prob = om.Problem()
         prob.model = SellarDerivativesGrouped()
 
         prob.driver = om.pyOptSparseDriver()
-        prob.driver.options['optimizer'] = "SLSQP"
-        prob.driver.options['print_results'] = False
-        prob.driver.opt_settings['ACC'] = 1e-13
+        prob.driver.options["optimizer"] = "SLSQP"
+        prob.driver.options["print_results"] = False
+        prob.driver.opt_settings["ACC"] = 1e-13
         prob.set_solver_print(level=0)
-        prob.model.add_constraint('con2', upper=0.0)
-        prob.model.add_objective('obj')
-        prob.model.add_design_var('z', lower=np.array([-10.0, 0.0]), upper=np.array([10.0, 4.0]))
-        prob.model.add_design_var('x')
-        prob.model.add_constraint('con1', upper=0.0)
+        prob.model.add_constraint("con2", upper=0.0)
+        prob.model.add_objective("obj")
+        prob.model.add_design_var("z", lower=np.array([-10.0, 0.0]), upper=np.array([10.0, 4.0]))
+        prob.model.add_design_var("x")
+        prob.model.add_constraint("con1", upper=0.0)
 
         if problem_recorder_filename:
             problem_recorder = om.SqliteRecorder(problem_recorder_filename)
@@ -43,27 +43,26 @@ class TestViewCases(unittest.TestCase):
 
         return prob
 
-
-    @require_pyoptsparse('SLSQP')
+    @require_pyoptsparse("SLSQP")
     def test_viewing_problem_case_recorder_file(self):
-        problem_recorder_filename = 'problem_history.db'
+        problem_recorder_filename = "problem_history.db"
         prob = self.setup_sellar_problem(problem_recorder_filename=problem_recorder_filename)
-        prob.setup(check=False, mode='rev')
+        prob.setup(check=False, mode="rev")
         prob.run_driver()
-        
+
         # just see if it has an exception
         view_cases(prob.get_outputs_dir() / problem_recorder_filename, show=False)
 
-    @require_pyoptsparse('SLSQP')
+    @require_pyoptsparse("SLSQP")
     def test_viewing_driver_case_recorder_file(self):
-        driver_recorder_filename = 'driver_history.db'
+        driver_recorder_filename = "driver_history.db"
         prob = self.setup_sellar_problem(driver_recorder_filename=driver_recorder_filename)
-        prob.setup(check=False, mode='rev')
+        prob.setup(check=False, mode="rev")
         prob.run_driver()
-        
+
         # just see if it has an exception
         view_cases(prob.get_outputs_dir() / driver_recorder_filename, show=False)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -24,8 +24,10 @@ class ComponentTester(object):
     out_stream : file
         The stream to write the output to.
     """
-    def __init__(self, comp_class, comp_args=(), comp_kwargs=None, reuse=False,
-                 out_stream=sys.stdout):
+
+    def __init__(
+        self, comp_class, comp_args=(), comp_kwargs=None, reuse=False, out_stream=sys.stdout
+    ):
         self._comp_class = comp_class
         self._comp_args = comp_args
         self._comp_kwargs = comp_kwargs if comp_kwargs is not None else {}
@@ -35,12 +37,12 @@ class ComponentTester(object):
         self._comp = None
 
         self._test_methods = {
-            'partials': self.test_partials,
-            'partials_complex': self.test_partials_complex,
-            'totals': self.test_totals,
-            'totals_complex': self.test_totals_complex,
-            'coloring': self.test_coloring,
-            'sparsity': self.test_sparsity,
+            "partials": self.test_partials,
+            "partials_complex": self.test_partials_complex,
+            "totals": self.test_totals,
+            "totals_complex": self.test_totals_complex,
+            "coloring": self.test_coloring,
+            "sparsity": self.test_sparsity,
             # 'fd': self.test_fd,
             # 'config': self.test_config,
         }
@@ -51,7 +53,7 @@ class ComponentTester(object):
     def wrapped_instance(self, setup_kwargs=None, final_setup=True, run_model=True):
         if not self._reuse or self._p is None:
             p = om.Problem()
-            comp = p.model.add_subsystem('comp', self.instance())
+            comp = p.model.add_subsystem("comp", self.instance())
             if setup_kwargs is None:
                 setup_kwargs = {}
 
@@ -77,54 +79,66 @@ class ComponentTester(object):
 
         for test in tests:
             with indent_context(self._out_stream) as outer_stream:
-                print(f'Running test {test}')
+                print(f"Running test {test}")
                 try:
                     with indent_context(outer_stream) as inner_stream:
                         self._test_methods[test]()
                 except Exception:
-                    print(f'{test} failed:\n{traceback.format_exc()}')
+                    print(f"{test} failed:\n{traceback.format_exc()}")
                     failed.append(test)
 
         if failed:
-            raise Exception(f'{len(failed)} tests failed: {", ".join(failed)}')
+            raise Exception(f"{len(failed)} tests failed: {', '.join(failed)}")
 
         return self
 
     def test_partials(self):
         _, comp = self.wrapped_instance()
-        result, _= comp.check_partials(method='fd', show_only_incorrect=True, compact_print=True,
-                                       out_stream=self._out_stream)
+        result, _ = comp.check_partials(
+            method="fd", show_only_incorrect=True, compact_print=True, out_stream=self._out_stream
+        )
         assert_check_partials(result)
 
     def test_partials_complex(self):
-        _, comp = self.wrapped_instance(setup_kwargs={'force_alloc_complex': True})
-        result, _ = comp.check_partials(method='cs', show_only_incorrect=True, compact_print=True,
-                                        out_stream=self._out_stream)
+        _, comp = self.wrapped_instance(setup_kwargs={"force_alloc_complex": True})
+        result, _ = comp.check_partials(
+            method="cs", show_only_incorrect=True, compact_print=True, out_stream=self._out_stream
+        )
         assert_check_partials(result)
 
     def test_totals(self):
         p, comp = self.wrapped_instance()
-        ofs = ['comp.' + n for n in comp._outputs.keys()]
-        wrts = ['comp.' + n for n in comp._inputs.keys()]
-        result = p.check_totals(of=ofs, wrt=wrts,
-                                method='fd', show_only_incorrect=True, compact_print=True,
-                                out_stream=self._out_stream)
+        ofs = ["comp." + n for n in comp._outputs.keys()]
+        wrts = ["comp." + n for n in comp._inputs.keys()]
+        result = p.check_totals(
+            of=ofs,
+            wrt=wrts,
+            method="fd",
+            show_only_incorrect=True,
+            compact_print=True,
+            out_stream=self._out_stream,
+        )
         assert_check_totals(result)
 
     def test_totals_complex(self):
-        p, comp = self.wrapped_instance(setup_kwargs={'force_alloc_complex': True})
-        ofs = ['comp.' + n for n in comp._outputs.keys()]
-        wrts = ['comp.' + n for n in comp._inputs.keys()]
-        result = p.check_totals(of=ofs, wrt=wrts,
-                                method='cs', show_only_incorrect=True, compact_print=True,
-                                out_stream=self._out_stream)
+        p, comp = self.wrapped_instance(setup_kwargs={"force_alloc_complex": True})
+        ofs = ["comp." + n for n in comp._outputs.keys()]
+        wrts = ["comp." + n for n in comp._inputs.keys()]
+        result = p.check_totals(
+            of=ofs,
+            wrt=wrts,
+            method="cs",
+            show_only_incorrect=True,
+            compact_print=True,
+            out_stream=self._out_stream,
+        )
         assert_check_totals(result)
 
     def test_sparsity(self):
         _, comp = self.wrapped_instance()
         msg = StringIO()
-        comp.check_sparsity(method='fd', out_stream=msg)
-        msg = textwrap.indent(msg.getvalue(), '      ')
+        comp.check_sparsity(method="fd", out_stream=msg)
+        msg = textwrap.indent(msg.getvalue(), "      ")
         print(msg, file=self._out_stream)
 
     def test_coloring(self, nlinearize=2, show_sparsity=False):
@@ -137,14 +151,14 @@ class ComponentTester(object):
             comp_colored._linearize()  # force coloring to be computed
 
             if comp_colored._coloring_info.coloring is None:
-                print(f'{comp_colored.msginfo}: Coloring failed to be computed.')
+                print(f"{comp_colored.msginfo}: Coloring failed to be computed.")
                 return
 
             _, comp = self.wrapped_instance()
             t = timeit(lambda: comp._linearize(), number=nlinearize)
-            print(f'\nuncolored linearize time: {t/nlinearize:10.4e} s')
+            print(f"\nuncolored linearize time: {t / nlinearize:10.4e} s")
             t_colored = timeit(lambda: comp_colored._linearize(), number=nlinearize)
-            print(f'colored linearize time: {t_colored/nlinearize:10.4e} s')
+            print(f"colored linearize time: {t_colored / nlinearize:10.4e} s")
 
         finally:
             self._reuse = save

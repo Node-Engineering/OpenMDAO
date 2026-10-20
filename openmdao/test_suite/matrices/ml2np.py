@@ -21,21 +21,20 @@ def matlab2npy(mlfile):
     else:
         raise RuntimeError("couldn't find the matrix!!!")
 
-
     nrows, ncols = a.shape
 
     print("Nonzeros:", np.count_nonzero(a.data), "of", nrows * ncols)
     print("Max:", a.data.max())
-    print("Min nonzero:", a.data[a.data > 0.].min())
+    print("Min nonzero:", a.data[a.data > 0.0].min())
     print("Shape:", a.shape)
 
     return a
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
     import os
 
     a = matlab2npy(sys.argv[1])
     base = os.path.splitext(sys.argv[1])[0]
-    save_npz('{}.npz'.format(base), a)
+    save_npz("{}.npz".format(base), a)

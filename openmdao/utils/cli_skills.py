@@ -30,8 +30,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 # This file lives at openmdao/utils/cli_skills.py
-_PACKAGE_DIR = Path(__file__).resolve().parent.parent   # .../openmdao/
-_REPO_ROOT = _PACKAGE_DIR.parent                        # repo root (for Editable/source checkout)
+_PACKAGE_DIR = Path(__file__).resolve().parent.parent  # .../openmdao/
+_REPO_ROOT = _PACKAGE_DIR.parent  # repo root (for Editable/source checkout)
 
 # Editable/source checkout has build files at the repo root; a wheel install
 # does not. Used only for an informational message at the end of install.
@@ -43,46 +43,48 @@ OPENMDAO_DOCS_PLACEHOLDER = "{{OPENMDAO_DOCS}}"
 OPENMDAO_EXAMPLES_PLACEHOLDER = "{{OPENMDAO_EXAMPLES}}"
 
 # TOOL.md managed-section markers.
-_TOOL_SECTION_START = (
-    "<!-- OPENMDAO_SECTION_START - Auto-managed by 'openmdao install-skills' -->"
-)
+_TOOL_SECTION_START = "<!-- OPENMDAO_SECTION_START - Auto-managed by 'openmdao install-skills' -->"
 _TOOL_SECTION_END = "<!-- OPENMDAO_SECTION_END -->"
 
 # Skill directory naming convention (only dirs with this prefix are installed).
 _SKILL_PREFIX = "openmdao-builtin-"
 
+
 def get_package_path() -> Path:
     """Return the path to the bundled package."""
     return _PACKAGE_DIR
+
 
 def get_docs_path() -> Path:
     """Return the path to the bundled documentation (Jupyter Book source)."""
     # should work for both editable and wheel installs
     return _PACKAGE_DIR / "docs" / "openmdao_book"
 
+
 def get_examples_path() -> Path:
     """Return the path to runnable example components."""
     # should work for both editable and wheel installs
     return _PACKAGE_DIR / "test_suite" / "test_examples"
+
 
 def get_skills_source_dir() -> Path:
     """Return the directory containing bundled skill sources."""
     src = _PACKAGE_DIR / "skills"
     if not src.exists():
         raise FileNotFoundError(
-            f"OpenMDAO skills not found at {src}. "
-            "Reinstall openmdao or run from a source checkout."
+            f"OpenMDAO skills not found at {src}. Reinstall openmdao or run from a source checkout."
         )
     return src
+
 
 def replace_path_placeholders(content: str) -> str:
     """Replace all path placeholders in *content* with absolute paths."""
     return (
-        content
-        .replace(OPENMDAO_PATH_PLACEHOLDER, str(get_package_path()))
+        content.replace(OPENMDAO_PATH_PLACEHOLDER, str(get_package_path()))
         .replace(OPENMDAO_DOCS_PLACEHOLDER, str(get_docs_path()))
         .replace(OPENMDAO_EXAMPLES_PLACEHOLDER, str(get_examples_path()))
     )
+
 
 def _find_skill_dirs(root: Path) -> list[Path]:
     """
@@ -93,10 +95,9 @@ def _find_skill_dirs(root: Path) -> list[Path]:
     return sorted(
         d
         for d in root.iterdir()
-        if d.is_dir()
-        and d.name.startswith(_SKILL_PREFIX)
-        and (d / "SKILL.md").exists()
+        if d.is_dir() and d.name.startswith(_SKILL_PREFIX) and (d / "SKILL.md").exists()
     )
+
 
 # ---------------------------------------------------------------------------
 # Tool definitions and functions
@@ -144,7 +145,8 @@ class Tool:
             OpenMDAO built-in skill directory.
         """
         return self.install_path.exists() and any(
-            d for d in self.install_path.iterdir()
+            d
+            for d in self.install_path.iterdir()
             if d.is_dir() and d.name.startswith(_SKILL_PREFIX)
         )
 
@@ -198,7 +200,7 @@ class Tool:
         OSError
             If the file cannot be read or written.
         """
-        target_name = f'{_SKILL_PREFIX}{self.key}'
+        target_name = f"{_SKILL_PREFIX}{self.key}"
         matches = [d for d in _find_skill_dirs(get_skills_source_dir()) if d.name == target_name]
         skill_dir = matches[0] if matches else None
         if skill_dir is None:
@@ -231,7 +233,7 @@ class Tool:
                 target.write_text(new_content, encoding="utf-8")
         else:
             # Create a fresh mainfile for the tool.
-            header = '# OpenMDAO Framework Reference\n'
+            header = "# OpenMDAO Framework Reference\n"
             target.write_text(header + wrapped.lstrip("\n"), encoding="utf-8")
 
     def uninstall_main_file_md(self) -> None:
@@ -262,8 +264,7 @@ class Tool:
                 f"Malformed OpenMDAO section in {self.main_filename}: "
                 "END marker appears before START marker"
             )
-        new_content = (existing[:start].rstrip("\n") + "\n"
-                    + existing[end:].lstrip("\n")).strip()
+        new_content = (existing[:start].rstrip("\n") + "\n" + existing[end:].lstrip("\n")).strip()
         new_content = (new_content + "\n") if new_content else ""
         target.write_text(new_content, encoding="utf-8")
 
@@ -291,6 +292,7 @@ class Tool:
             if d.is_dir() and d.name.startswith(_SKILL_PREFIX):
                 shutil.rmtree(d)
 
+
 class ClaudeTool(Tool):
     """
     Represents the Claude Code tool and how to install skills into it.
@@ -309,13 +311,13 @@ class ClaudeTool(Tool):
 
     def __init__(self, use_global: bool = False):
         super().__init__(use_global)
-        self.key = 'claude'
-        self.name = 'Claude Code'
-        self.main_filename = 'CLAUDE.md'
+        self.key = "claude"
+        self.name = "Claude Code"
+        self.main_filename = "CLAUDE.md"
         if use_global:
-            self.install_path = Path.home() / '.claude' / 'skills'
+            self.install_path = Path.home() / ".claude" / "skills"
         else:
-            self.install_path = Path.cwd() / '.claude' / 'skills'
+            self.install_path = Path.cwd() / ".claude" / "skills"
 
     def detected(self) -> bool:
         """
@@ -326,7 +328,7 @@ class ClaudeTool(Tool):
         bool
             True if the tool is present, False otherwise.
         """
-        return bool(shutil.which('claude'))
+        return bool(shutil.which("claude"))
 
 
 def _make_tools(use_global: bool) -> dict[str, Tool]:
@@ -348,6 +350,7 @@ def _make_tools(use_global: bool) -> dict[str, Tool]:
         ClaudeTool(use_global),
     ]
     return {t.key: t for t in tools}
+
 
 # ---------------------------------------------------------------------------
 # Command execution and parser setup functions
@@ -382,14 +385,14 @@ def cmd_skills_install(args, user_args) -> int:
         print(f"Tool '{tool_key}' is not supported by OpenMDAO skills installer.", file=sys.stderr)
         return 1
 
-    target_name = f'{_SKILL_PREFIX}{args.tool}'
+    target_name = f"{_SKILL_PREFIX}{args.tool}"
     matches = [d for d in _find_skill_dirs(get_skills_source_dir()) if d.name == target_name]
     skill_dir = matches[0] if matches else None
     if not skill_dir:
         print(f"No OpenMDAO skills found in {get_skills_source_dir()}", file=sys.stderr)
         return 1
 
-    scope = 'global (home directory)' if args.use_global else 'project (current directory)'
+    scope = "global (home directory)" if args.use_global else "project (current directory)"
     print(f"Installing OpenMDAO skill — scope: {scope}\n")
 
     print(f"Installing {tool.name} into ({tool.install_path})")
@@ -415,6 +418,7 @@ def cmd_skills_install(args, user_args) -> int:
         print("\n  (Detected editable/source install)")
 
     return 0
+
 
 def cmd_skills_list(args, user_args) -> int:
     """
@@ -484,6 +488,7 @@ def cmd_skills_list(args, user_args) -> int:
     print()
     return 0
 
+
 def cmd_skills_uninstall(args, user_args) -> int:
     """
     Execute the ``uninstall-skills`` subcommand.
@@ -520,6 +525,7 @@ def cmd_skills_uninstall(args, user_args) -> int:
     print("\nUninstall complete.")
     return 0
 
+
 def _setup_skills_install(parser):
     """
     Configure the argument parser for the ``install-skills`` subcommand.
@@ -529,13 +535,14 @@ def _setup_skills_install(parser):
     parser : argparse.ArgumentParser
         The subcommand parser to configure.
     """
-    parser.add_argument('tool', type=str, help='AI coding tool to install skills for (e.g. claude)')
+    parser.add_argument("tool", type=str, help="AI coding tool to install skills for (e.g. claude)")
     parser.add_argument(
         "--global",
         dest="use_global",
         action="store_true",
         help="Use global (home-directory) paths instead of the current project",
     )
+
 
 def _setup_skills_uninstall(parser):
     """
@@ -546,14 +553,16 @@ def _setup_skills_uninstall(parser):
     parser : argparse.ArgumentParser
         The subcommand parser to configure.
     """
-    parser.add_argument('tool', type=str,
-                        help='AI coding tool to uninstall skills for (e.g. claude)')
+    parser.add_argument(
+        "tool", type=str, help="AI coding tool to uninstall skills for (e.g. claude)"
+    )
     parser.add_argument(
         "--global",
         dest="use_global",
         action="store_true",
         help="Use global (home-directory) paths instead of the current project",
     )
+
 
 def _setup_skills_list(parser):
     """
@@ -570,4 +579,3 @@ def _setup_skills_list(parser):
         action="store_true",
         help="Use global (home-directory) paths instead of the current project",
     )
-

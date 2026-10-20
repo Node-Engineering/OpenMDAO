@@ -41,8 +41,8 @@ def check_err_on_singular(name, value):
     if not value:
         raise ValueError(
             f'The PETScDirectSolver must always have its "{name}" option set to '
-            'True. This option is only maintained for compatibility with parent '
-            'solver methods.'
+            "True. This option is only maintained for compatibility with parent "
+            "solver methods."
         )
 
 
@@ -77,20 +77,21 @@ class PETScLU:
         Lazily imported petsc4py.PETSc module.
     """
 
-    def __init__(self, A: scipy.sparse.spmatrix, sparse_solver_name: str = None,
-                 comm=None):
+    def __init__(self, A: scipy.sparse.spmatrix, sparse_solver_name: str = None, comm=None):
         """
         Initialize and setup the PETSc LU Direct Solver object.
         """
         # Lazy import of PETSc
         try:
             from petsc4py import PETSc
+
             self._PETSc = PETSc
         except ImportError:
             self._PETSc = None
 
         if comm is None:
             from openmdao.utils.mpi import MPI, FakeComm
+
             if MPI is None:
                 self.comm = FakeComm()
             else:
@@ -118,7 +119,7 @@ class PETScLU:
                 # Parallel: build local CSR
                 self.A = self._PETSc.Mat().create(comm=comm)
                 self.A.setSizes(A.shape)
-                self.A.setType('aij')
+                self.A.setType("aij")
                 self.A.setUp()
 
                 rstart, rend = self.A.getOwnershipRange()
@@ -130,8 +131,8 @@ class PETScLU:
                 for i in range(rstart, rend):
                     row_start = indptr[i]
                     row_end = indptr[i + 1]
-                    cols = indices[row_start: row_end]
-                    vals = data[row_start: row_end]
+                    cols = indices[row_start:row_end]
+                    vals = data[row_start:row_end]
                     self.A.setValues(i, cols, vals)
 
             else:
@@ -151,11 +152,11 @@ class PETScLU:
         self.ksp.setOperators(self.A)
         # Use only the preconditioner (e.g. direct LU solve) and skip the
         # iterative solve
-        self.ksp.setType('preonly')
+        self.ksp.setType("preonly")
         pc = self.ksp.getPC()
         # In practice, majority of OpenMDAO applications use general, unsymmetric
         # Jacobians, so LU is usually the only practical choice.
-        pc.setType('lu')
+        pc.setType("lu")
 
         # Backends are only for sparse matrices. For dense matrix should by
         # default use LAPACK
@@ -163,8 +164,8 @@ class PETScLU:
             if sparse_solver_name in PC_DISTRIBUTED_TYPES and not self.running_mpi:
                 issue_warning(
                     f'The "{sparse_solver_name}" solver is meant to be run '
-                    'distributed, but it is currently being run sequentially.',
-                    category=SolverWarning
+                    "distributed, but it is currently being run sequentially.",
+                    category=SolverWarning,
                 )
             pc.setFactorSolverType(sparse_solver_name)
 
@@ -198,7 +199,7 @@ class PETScLU:
         """
         b_petsc = self.A.createVecRight()
         rstart, rend = b_petsc.getOwnershipRange()
-        b_petsc.setValues(range(rstart, rend), b[rstart: rend])
+        b_petsc.setValues(range(rstart, rend), b[rstart:rend])
         b_petsc.assemble()
 
         if transpose:
@@ -222,8 +223,12 @@ class PETScLU:
             # Have to call scatter on all ranks or MPI will error out (each
             # rank is a process being run in the MPI)
             scatter, _ = self._PETSc.Scatter.toZero(self._x)
-            scatter.scatter(self._x, x_seq, addv=self._PETSc.InsertMode.INSERT,
-                            mode=self._PETSc.ScatterMode.FORWARD)
+            scatter.scatter(
+                self._x,
+                x_seq,
+                addv=self._PETSc.InsertMode.INSERT,
+                mode=self._PETSc.ScatterMode.FORWARD,
+            )
             scatter.destroy()
 
             # Rank 0 owns x, broadcast (or send a copy of) it to the other ranks
@@ -255,7 +260,7 @@ class PETScDirectSolver(DirectSolver):
         A lazily imported petsc4py.PETSc module.
     """
 
-    SOLVER = 'LN: PETScDirect'
+    SOLVER = "LN: PETScDirect"
 
     def __init__(self, **kwargs):
         """
@@ -265,6 +270,7 @@ class PETScDirectSolver(DirectSolver):
 
         try:
             from petsc4py import PETSc
+
             self._PETSc = PETSc
         except ImportError:
             self._PETSc = None
@@ -276,13 +282,13 @@ class PETScDirectSolver(DirectSolver):
         super()._declare_options()
 
         self.options.declare(
-            'sparse_solver_name',
+            "sparse_solver_name",
             values=PC_SERIAL_TYPES + PC_DISTRIBUTED_TYPES,
-            default='superlu',
+            default="superlu",
             desc="Direct solver algorithm from PETSc that will be used for the "
-                 "LU factorization and solve if the matrix is sparse. For a "
-                 "dense matrix, this option will be ignored and LAPACK will "
-                 "be automatically used."
+            "LU factorization and solve if the matrix is sparse. For a "
+            "dense matrix, this option will be ignored and LAPACK will "
+            "be automatically used.",
         )
 
         # Undeclare and redeclare the "err_on_singular" option so that it's
@@ -290,13 +296,13 @@ class PETScDirectSolver(DirectSolver):
         # because during factorization solvers will always error with a singular.
         self.options.undeclare("err_on_singular")
         self.options.declare(
-            'err_on_singular',
+            "err_on_singular",
             default=True,
             types=bool,
             check_valid=check_err_on_singular,
             desc="Raise an error if LU decomposition is singular. Must always "
-                 "be 'True' for the PETScDirectSolver. This option is only "
-                 "maintained for compatibility with parent solver methods."
+            "be 'True' for the PETScDirectSolver. This option is only "
+            "maintained for compatibility with parent solver methods.",
         )
 
     def check_config(self, logger):
@@ -308,7 +314,7 @@ class PETScDirectSolver(DirectSolver):
         logger : object
             The object that manages logging output.
         """
-        if self.options['rhs_checking'] is False:
+        if self.options["rhs_checking"] is False:
             system = self._system()
             redundant_adj = system.pathname in system._relevance.get_redundant_adjoint_systems()
             if redundant_adj:
@@ -331,10 +337,11 @@ class PETScDirectSolver(DirectSolver):
             depth of the current system (already incremented).
         """
         super(DirectSolver, self)._setup_solvers(system, depth)
-        if self.options['sparse_solver_name'] in PC_SERIAL_TYPES:
+        if self.options["sparse_solver_name"] in PC_SERIAL_TYPES:
             self._disallow_distrib_solve()
-        self._lin_rhs_checker = LinearRHSChecker.create(self._system(),
-                                                        self.options['rhs_checking'])
+        self._lin_rhs_checker = LinearRHSChecker.create(
+            self._system(), self.options["rhs_checking"]
+        )
 
     def raise_petsc_error(self, e, system, matrix):
         """
@@ -355,9 +362,11 @@ class PETScDirectSolver(DirectSolver):
             raise RuntimeError(format_singular_error(system, matrix)) from e
 
         elif "Could not locate solver type" in str(e):
-            raise RuntimeError("Specified PETSc sparse solver, "
-                               f"'{self.options['sparse_solver_name']}', "
-                               "is not installed.") from e
+            raise RuntimeError(
+                "Specified PETSc sparse solver, "
+                f"'{self.options['sparse_solver_name']}', "
+                "is not installed."
+            ) from e
 
         else:
             # Just raise the original exception
@@ -380,8 +389,7 @@ class PETScDirectSolver(DirectSolver):
             # Perform dense or sparse lu factorization.
             elif isinstance(matrix, (scipy.sparse.csc_matrix, scipy.sparse.csr_matrix)):
                 try:
-                    self._lu = PETScLU(matrix, self.options['sparse_solver_name'],
-                                       comm=system.comm)
+                    self._lu = PETScLU(matrix, self.options["sparse_solver_name"], comm=system.comm)
                 except self._PETSc.Error as e:
                     self.raise_petsc_error(e, system, matrix)
 
@@ -394,12 +402,16 @@ class PETScDirectSolver(DirectSolver):
             # Note: calling scipy.sparse.linalg.splu on a COO actually transposes
             # the matrix during conversion to csc prior to LU decomp, so we can't use COO.
             else:
-                raise RuntimeError("Direct solver not implemented for matrix type %s"
-                                   " in %s." % (type(matrix), system.msginfo))
+                raise RuntimeError(
+                    "Direct solver not implemented for matrix type %s"
+                    " in %s." % (type(matrix), system.msginfo)
+                )
         else:
             if nproc > 1:
-                raise RuntimeError("DirectSolvers without an assembled jacobian are not supported "
-                                   "when running under MPI if comm.size > 1.")
+                raise RuntimeError(
+                    "DirectSolvers without an assembled jacobian are not supported "
+                    "when running under MPI if comm.size > 1."
+                )
 
             matrix = self._build_mtx()
             try:
@@ -427,11 +439,12 @@ class PETScDirectSolver(DirectSolver):
         d_outputs = system._doutputs
 
         if system.under_complex_step:
-            raise RuntimeError('{}: PETScDirectSolver is not supported under '
-                               'complex step.'.format(self.msginfo))
+            raise RuntimeError(
+                "{}: PETScDirectSolver is not supported under complex step.".format(self.msginfo)
+            )
 
         # assign x and b vectors based on mode
-        if mode == 'fwd':
+        if mode == "fwd":
             x_vec = d_outputs.asarray()
             b_vec = d_residuals.asarray()
             transpose = False
@@ -473,7 +486,7 @@ class PETScDirectSolver(DirectSolver):
         if np.isinf(x_vec).any() or np.isnan(x_vec).any():
             raise RuntimeError(format_singular_error(system, matrix))
 
-        if not system.under_complex_step and self._lin_rhs_checker is not None and mode == 'rev':
+        if not system.under_complex_step and self._lin_rhs_checker is not None and mode == "rev":
             self._lin_rhs_checker.add_solution(b_vec, sol_array, system, copy=True)
 
     def preferred_sparse_format(self):
@@ -485,4 +498,4 @@ class PETScDirectSolver(DirectSolver):
         str
             The preferred sparse format for the dr/do matrix of a split jacobian.
         """
-        return 'csr'
+        return "csr"

@@ -5,6 +5,7 @@ pyoptsparse is based on pyOpt, which is an object-oriented framework for
 formulating and solving nonlinear constrained optimization problems, with
 additional MPI capability.
 """
+
 from importlib.util import find_spec
 import importlib.metadata as ilmd
 import os
@@ -25,31 +26,32 @@ from openmdao.utils.mpi import FakeComm, MPI
 from openmdao.utils.om_warnings import issue_warning, warn_deprecation
 
 # what version of pyoptspare are we working with
-if find_spec('pyoptsparse') is not None:
-    pyoptsparse_version = Version(ilmd.version('pyoptsparse'))
+if find_spec("pyoptsparse") is not None:
+    pyoptsparse_version = Version(ilmd.version("pyoptsparse"))
 else:
     pyoptsparse_version = None
 
 # All optimizers in pyoptsparse
-optlist = {'ALPSO', 'CONMIN', 'IPOPT', 'NLPQLP', 'NSGA2', 'ParOpt', 'PSQP', 'SLSQP', 'SNOPT', 'Uno'}
+optlist = {"ALPSO", "CONMIN", "IPOPT", "NLPQLP", "NSGA2", "ParOpt", "PSQP", "SLSQP", "SNOPT", "Uno"}
 
-if pyoptsparse_version is None or pyoptsparse_version < Version('2.6.0'):
-    optlist.add('NOMAD')
+if pyoptsparse_version is None or pyoptsparse_version < Version("2.6.0"):
+    optlist.add("NOMAD")
 
-if pyoptsparse_version is None or pyoptsparse_version < Version('2.1.2'):
-    optlist.update({'FSQP', 'NLPY_AUGLAG'})
+if pyoptsparse_version is None or pyoptsparse_version < Version("2.1.2"):
+    optlist.update({"FSQP", "NLPY_AUGLAG"})
 
 # names of optimizers that use gradients
-grad_drivers = optlist.intersection({'CONMIN', 'FSQP', 'IPOPT', 'NLPQLP', 'PSQP',
-                                     'SLSQP', 'SNOPT', 'NLPY_AUGLAG', 'ParOpt', 'Uno'})
+grad_drivers = optlist.intersection(
+    {"CONMIN", "FSQP", "IPOPT", "NLPQLP", "PSQP", "SLSQP", "SNOPT", "NLPY_AUGLAG", "ParOpt", "Uno"}
+)
 
 # names of optimizers that allow multiple objectives
-multi_obj_drivers = {'NSGA2'}
+multi_obj_drivers = {"NSGA2"}
 
 # All optimizers that require an initial run
-run_required = {'NSGA2'}
-if pyoptsparse_version is None or pyoptsparse_version < Version('2.9.4'):
-    run_required.add('ALPSO')  # ALPSO bug fixed in v2.9.4
+run_required = {"NSGA2"}
+if pyoptsparse_version is None or pyoptsparse_version < Version("2.9.4"):
+    run_required.add("ALPSO")  # ALPSO bug fixed in v2.9.4
 
 # The pyoptsparse API provides for an optional 'fail' flag in the return value of
 # objective and gradient functions, but this flag is only used by a subset of the
@@ -57,26 +59,26 @@ if pyoptsparse_version is None or pyoptsparse_version < Version('2.9.4'):
 # return NaN values to indicate a bad evaluation.
 respects_fail_flag = {
     # Currently supported optimizers (v2.9.0)
-    'ALPSO': False,
-    'CONMIN': False,
-    'IPOPT': False,
-    'NLPQLP': False,
-    'NSGA2': False,
-    'PSQP': False,
-    'ParOpt': True,
-    'SLSQP': False,
-    'SNOPT': True,           # as of v2.0.0, requires SNOPT 7.7
-    'FSQP': False,           # no longer supported as of v2.1.2
-    'NLPY_AUGLAG': False,    # no longer supported as of v2.1.2
-    'NOMAD': False,          # no longer supported as of v2.6.0
-    'Uno': False             # Uno needs NaN values to handle analysis errors
+    "ALPSO": False,
+    "CONMIN": False,
+    "IPOPT": False,
+    "NLPQLP": False,
+    "NSGA2": False,
+    "PSQP": False,
+    "ParOpt": True,
+    "SLSQP": False,
+    "SNOPT": True,  # as of v2.0.0, requires SNOPT 7.7
+    "FSQP": False,  # no longer supported as of v2.1.2
+    "NLPY_AUGLAG": False,  # no longer supported as of v2.1.2
+    "NOMAD": False,  # no longer supported as of v2.6.0
+    "Uno": False,  # Uno needs NaN values to handle analysis errors
 }
 
 DEFAULT_OPT_SETTINGS = {}
-DEFAULT_OPT_SETTINGS['IPOPT'] = {
-    'hessian_approximation': 'limited-memory',
-    'nlp_scaling_method': 'user-scaling',
-    'linear_solver': 'mumps'
+DEFAULT_OPT_SETTINGS["IPOPT"] = {
+    "hessian_approximation": "limited-memory",
+    "nlp_scaling_method": "user-scaling",
+    "linear_solver": "mumps",
 }
 
 CITATIONS = """@article{Wu_pyoptsparse_2020,
@@ -188,6 +190,7 @@ class pyOptSparseDriver(Driver):
         """
         try:
             import pyoptsparse
+
             self._Optimization = pyoptsparse.Optimization
         except ImportError:
             pyoptsparse = None
@@ -196,7 +199,7 @@ class pyOptSparseDriver(Driver):
 
         if pyoptsparse is None:
             # pyoptsparse is not installed
-            raise ImportError('pyOptSparseDriver is not available, pyOptsparse is not installed.')
+            raise ImportError("pyOptSparseDriver is not available, pyOptsparse is not installed.")
 
         if isinstance(pyoptsparse, Exception):
             # there is some other issue with the pyoptsparse installation
@@ -205,20 +208,20 @@ class pyOptSparseDriver(Driver):
         super().__init__(**kwargs)
 
         # What we support
-        self.supports['optimization'] = True
-        self.supports['inequality_constraints'] = True
-        self.supports['equality_constraints'] = True
-        self.supports['multiple_objectives'] = True
-        self.supports['two_sided_constraints'] = True
-        self.supports['linear_constraints'] = True
-        self.supports['linear_only_designvars'] = True
-        self.supports['simultaneous_derivatives'] = True
-        self.supports['total_jac_sparsity'] = True
+        self.supports["optimization"] = True
+        self.supports["inequality_constraints"] = True
+        self.supports["equality_constraints"] = True
+        self.supports["multiple_objectives"] = True
+        self.supports["two_sided_constraints"] = True
+        self.supports["linear_constraints"] = True
+        self.supports["linear_only_designvars"] = True
+        self.supports["simultaneous_derivatives"] = True
+        self.supports["total_jac_sparsity"] = True
 
         # What we don't support yet
-        self.supports['active_set'] = False
-        self.supports['integer_design_vars'] = False
-        self.supports['distributed_design_vars'] = False
+        self.supports["active_set"] = False
+        self.supports["integer_design_vars"] = False
+        self.supports["distributed_design_vars"] = False
         self.supports._read_only = True
 
         # The user places optimizer-specific settings in here.
@@ -237,7 +240,7 @@ class pyOptSparseDriver(Driver):
         self._user_termination_flag = False
         self._in_user_function = False
         self._check_jac = False
-        self._total_jac_format = 'dict'
+        self._total_jac_format = "dict"
         self._total_jac_sparsity = None
         self._model_ran = False
 
@@ -247,75 +250,113 @@ class pyOptSparseDriver(Driver):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare('optimizer', default='SLSQP', values=optlist,
-                             desc='Name of optimizers to use')
-        self.options.declare('title', default='Optimization using pyOpt_sparse',
-                             desc='Title of this optimization run')
-        self.options.declare('print_opt_prob', types=bool, default=False,
-                             desc='Print the opt problem summary before running the optimization')
-        self.options.declare('print_results', types=(bool, str), default=True,
-                             desc='Print pyOpt results if True')
-        self.options.declare('gradient_method', default='openmdao',
-                             values={'openmdao', 'pyopt_fd', 'snopt_fd'},
-                             desc='Finite difference implementation to use')
-        self.options.declare('user_terminate_signal', default=DEFAULT_SIGNAL, allow_none=True,
-                             desc='OS signal that triggers a clean user-termination. '
-                                  'Only SNOPT supports this option.')
-        self.options.declare('singular_jac_behavior', default='warn',
-                             values=['error', 'warn', 'ignore'],
-                             desc='Defines behavior of a zero row/col check after first call to'
-                                  'compute_totals:'
-                                  'error - raise an error.'
-                                  'warn - raise a warning.'
-                                  "ignore - don't perform check.")
-        self.options.declare('singular_jac_tol', default=1e-16,
-                             desc='Tolerance for zero row/column check.')
-        self.options.declare('hist_file', types=str, default=None, allow_none=True,
-                             desc='File location for saving pyopt_sparse optimization history. '
-                                  'Default is None for no output.')
-        self.options.declare('hotstart_file', types=str, default=None, allow_none=True,
-                             desc='File location of a pyopt_sparse optimization history to use '
-                                  'to hot start the optimization. Default is None.')
-        self.options.declare('output_dir', types=(str, _ReprClass), default=_DEFAULT_REPORTS_DIR,
-                             allow_none=True,
-                             desc='Directory location of pyopt_sparse output files.'
-                             'Default is {prob_name}_out/reports.')
+        self.options.declare(
+            "optimizer", default="SLSQP", values=optlist, desc="Name of optimizers to use"
+        )
+        self.options.declare(
+            "title",
+            default="Optimization using pyOpt_sparse",
+            desc="Title of this optimization run",
+        )
+        self.options.declare(
+            "print_opt_prob",
+            types=bool,
+            default=False,
+            desc="Print the opt problem summary before running the optimization",
+        )
+        self.options.declare(
+            "print_results", types=(bool, str), default=True, desc="Print pyOpt results if True"
+        )
+        self.options.declare(
+            "gradient_method",
+            default="openmdao",
+            values={"openmdao", "pyopt_fd", "snopt_fd"},
+            desc="Finite difference implementation to use",
+        )
+        self.options.declare(
+            "user_terminate_signal",
+            default=DEFAULT_SIGNAL,
+            allow_none=True,
+            desc="OS signal that triggers a clean user-termination. "
+            "Only SNOPT supports this option.",
+        )
+        self.options.declare(
+            "singular_jac_behavior",
+            default="warn",
+            values=["error", "warn", "ignore"],
+            desc="Defines behavior of a zero row/col check after first call to"
+            "compute_totals:"
+            "error - raise an error."
+            "warn - raise a warning."
+            "ignore - don't perform check.",
+        )
+        self.options.declare(
+            "singular_jac_tol", default=1e-16, desc="Tolerance for zero row/column check."
+        )
+        self.options.declare(
+            "hist_file",
+            types=str,
+            default=None,
+            allow_none=True,
+            desc="File location for saving pyopt_sparse optimization history. "
+            "Default is None for no output.",
+        )
+        self.options.declare(
+            "hotstart_file",
+            types=str,
+            default=None,
+            allow_none=True,
+            desc="File location of a pyopt_sparse optimization history to use "
+            "to hot start the optimization. Default is None.",
+        )
+        self.options.declare(
+            "output_dir",
+            types=(str, _ReprClass),
+            default=_DEFAULT_REPORTS_DIR,
+            allow_none=True,
+            desc="Directory location of pyopt_sparse output files."
+            "Default is {prob_name}_out/reports.",
+        )
 
     @property
     def hist_file(self):
         """
         Get the 'hist_file' option for this driver.
         """
-        warn_deprecation("The 'hist_file' attribute is deprecated. "
-                         "Use the 'hist_file' option instead.")
-        return self.options['hist_file']
+        warn_deprecation(
+            "The 'hist_file' attribute is deprecated. Use the 'hist_file' option instead."
+        )
+        return self.options["hist_file"]
 
     @hist_file.setter
     def hist_file(self, file_name):
         """
         Set the 'hist_file' option for this driver.
         """
-        warn_deprecation("The 'hist_file' attribute is deprecated. "
-                         "Use the 'hist_file' option instead.")
-        self.options['hist_file'] = file_name
+        warn_deprecation(
+            "The 'hist_file' attribute is deprecated. Use the 'hist_file' option instead."
+        )
+        self.options["hist_file"] = file_name
 
     @property
     def hotstart_file(self):
         """
         Get the 'hotstart_file' option for this driver.
         """
-        warn_deprecation("The 'hotstart_file' attribute is deprecated. "
-                         "Use the 'hotstart_file' option instead.")
-        return self.options['hotstart_file']
+        warn_deprecation(
+            "The 'hotstart_file' attribute is deprecated. Use the 'hotstart_file' option instead."
+        )
+        return self.options["hotstart_file"]
 
     @hotstart_file.setter
     def hotstart_file(self, file_name):
         """
         Set the 'hotstart_file' option for this driver.
         """
-        warn_deprecation("The 'hotstart_file' attribute is deprecated. "
-                         "Use the 'hotstart_file' option instead.")
-        self.options['hotstart_file'] = file_name
+        warn_deprecation(
+            "The 'hotstart_file' attribute is deprecated. Use the 'hotstart_file' option instead."
+        )
+        self.options["hotstart_file"] = file_name
 
     def _setup_driver(self, problem):
         """
@@ -331,13 +372,15 @@ class pyOptSparseDriver(Driver):
         super()._setup_driver(problem)
 
         self.supports._read_only = False
-        self.supports['gradients'] = self.options['optimizer'] in grad_drivers
+        self.supports["gradients"] = self.options["optimizer"] in grad_drivers
         self.supports._read_only = True
 
-        if len(self._objs) > 1 and self.options['optimizer'] not in multi_obj_drivers:
-            raise RuntimeError('Multiple objectives have been added to pyOptSparseDriver'
-                               ' but the selected optimizer ({0}) does not support'
-                               ' multiple objectives.'.format(self.options['optimizer']))
+        if len(self._objs) > 1 and self.options["optimizer"] not in multi_obj_drivers:
+            raise RuntimeError(
+                "Multiple objectives have been added to pyOptSparseDriver"
+                " but the selected optimizer ({0}) does not support"
+                " multiple objectives.".format(self.options["optimizer"])
+            )
 
         self._setup_tot_jac_sparsity()
 
@@ -364,15 +407,15 @@ class pyOptSparseDriver(Driver):
         self.iter_count = 0
         self._nl_responses = []
 
-        optimizer = self.options['optimizer']
+        optimizer = self.options["optimizer"]
 
-        self._fill_NANs = not respects_fail_flag[self.options['optimizer']]
+        self._fill_NANs = not respects_fail_flag[self.options["optimizer"]]
 
         self._check_for_missing_objective()
         self._check_for_invalid_desvar_values()
-        self._check_jac = self.options['singular_jac_behavior'] in ['error', 'warn']
+        self._check_jac = self.options["singular_jac_behavior"] in ["error", "warn"]
 
-        linear_constraints = [key for key, con in self._cons.items() if con['linear']]
+        linear_constraints = [key for key, con in self._cons.items() if con["linear"]]
 
         # Only need initial run if we have linear constraints or if we are using an optimizer that
         # doesn't perform one initially. If hotstarting from an existing file, pyOpt will replay
@@ -380,9 +423,8 @@ class pyOptSparseDriver(Driver):
         # linear constraints always require an initial run regardless of hotstarting, because
         # their y-intercept is computed from the current model outputs, which the hotstart file
         # has no bearing on.
-        hotstart_file = self.options['hotstart_file']
-        model_ran = (bool(hotstart_file) and os.path.isfile(hotstart_file)
-                     and not linear_constraints)
+        hotstart_file = self.options["hotstart_file"]
+        model_ran = bool(hotstart_file) and os.path.isfile(hotstart_file) and not linear_constraints
         if not model_ran and (optimizer in run_required or linear_constraints):
             with RecordingDebugging(self._get_name(), self.iter_count, self) as rec:
                 self._run_solve_nonlinear()
@@ -395,29 +437,30 @@ class pyOptSparseDriver(Driver):
         self._coloring_info.run_model = not model_ran
 
         comm = None if isinstance(problem.comm, FakeComm) else problem.comm
-        opt_prob = self._Optimization(self.options['title'], WeakMethodWrapper(self, '_objfunc'),
-                                      comm=comm)
+        opt_prob = self._Optimization(
+            self.options["title"], WeakMethodWrapper(self, "_objfunc"), comm=comm
+        )
 
         input_vals = self.get_design_var_values()
 
         # Get scaled design variable bounds from autoscaler
-        dv_bounds = self._autoscaler.get_bounds_scaling('design_var')
+        dv_bounds = self._autoscaler.get_bounds_scaling("design_var")
 
         for name, meta in self._designvars.items():
             # translate absolute var names to promoted names for pyoptsparse
-            size = meta['global_size'] if meta['distributed'] else meta['size']
+            size = meta["global_size"] if meta["distributed"] else meta["size"]
             lb = self._to_driver_bound(dv_bounds[name].lower)
             ub = self._to_driver_bound(dv_bounds[name].upper)
-            if pyoptsparse_version is None or pyoptsparse_version < Version('2.6.1'):
-                opt_prob.addVarGroup(name, size, type='c',
-                                     value=input_vals[name],
-                                     lower=lb, upper=ub)
+            if pyoptsparse_version is None or pyoptsparse_version < Version("2.6.1"):
+                opt_prob.addVarGroup(
+                    name, size, type="c", value=input_vals[name], lower=lb, upper=ub
+                )
             else:
-                opt_prob.addVarGroup(name, size, varType='c',
-                                     value=input_vals[name],
-                                     lower=lb, upper=ub)
+                opt_prob.addVarGroup(
+                    name, size, varType="c", value=input_vals[name], lower=lb, upper=ub
+                )
 
-        if pyoptsparse_version is None or pyoptsparse_version < Version('2.5.1'):
+        if pyoptsparse_version is None or pyoptsparse_version < Version("2.5.1"):
             opt_prob.finalizeDesignVariables()
         else:
             opt_prob.finalize()
@@ -436,9 +479,10 @@ class pyOptSparseDriver(Driver):
 
         # Calculate and save derivatives for any linear constraints.
         if linear_constraints:
-            _lin_jacs = self._compute_totals(of=linear_constraints, wrt=list(lin_dvs),
-                                             return_format=self._total_jac_format)
-            _con_vals = self.get_constraint_values(lintype='linear')
+            _lin_jacs = self._compute_totals(
+                of=linear_constraints, wrt=list(lin_dvs), return_format=self._total_jac_format
+            )
+            _con_vals = self.get_constraint_values(lintype="linear")
             # convert all of our linear constraint jacs to COO format. Otherwise pyoptsparse will
             # do it for us and we'll end up with a fully dense COO matrix and very slow evaluation
             # of linear constraints!
@@ -455,44 +499,48 @@ class pyOptSparseDriver(Driver):
                         if mat.row.size > 0:
                             # convert to 'coo' format here to avoid an emphatic warning
                             # by pyoptsparse.
-                            jacdct[n] = {'coo': [mat.row, mat.col, mat.data], 'shape': mat.shape}
+                            jacdct[n] = {"coo": [mat.row, mat.col, mat.data], "shape": mat.shape}
 
         bad_resps = [n for n in relevance._no_dv_responses if n in self._cons]
-        bad_cons = [n for n, m in self._cons.items() if m['source'] in bad_resps]
+        bad_cons = [n for n, m in self._cons.items() if m["source"] in bad_resps]
 
         if bad_cons:
-            issue_warning(f"Equality constraint(s) {sorted(bad_cons)} do not depend on any design "
-                          "variables and were not added to the optimization.")
+            issue_warning(
+                f"Equality constraint(s) {sorted(bad_cons)} do not depend on any design "
+                "variables and were not added to the optimization."
+            )
 
             for name in bad_cons:
                 del self._cons[name]
                 del self._responses[name]
 
         # Get scaled constraint bounds from autoscaler
-        con_bounds = self._autoscaler.get_bounds_scaling('constraint')
+        con_bounds = self._autoscaler.get_bounds_scaling("constraint")
 
-        eqcons = {n: m for n, m in self._cons.items() if m['equals'] is not None}
+        eqcons = {n: m for n, m in self._cons.items() if m["equals"] is not None}
         if eqcons:
             # Add all equality constraints
             for name, meta in eqcons.items():
-                size = meta['global_size'] if meta['distributed'] else meta['size']
+                size = meta["global_size"] if meta["distributed"] else meta["size"]
                 lower = upper = self._to_driver_bound(con_bounds[name].equals)
 
                 # set equality constraints as reverse seeds to see what dvs are relevant
-                with relevance.seeds_active(rev_seeds=meta['source']):
-
-                    if meta['linear']:
-                        wrts = [v for v in lin_dvs
-                                if relevance.is_relevant(lin_dvs[v]['source'])]
+                with relevance.seeds_active(rev_seeds=meta["source"]):
+                    if meta["linear"]:
+                        wrts = [v for v in lin_dvs if relevance.is_relevant(lin_dvs[v]["source"])]
                         jac = {w: _lin_jacs[name][w] for w in wrts}
                         yi = _y_intercepts[name]
-                        opt_prob.addConGroup(name, size,
-                                             lower=None if lower is None else lower - yi,
-                                             upper=None if upper is None else upper - yi,
-                                             linear=True, wrt=wrts, jac=jac)
+                        opt_prob.addConGroup(
+                            name,
+                            size,
+                            lower=None if lower is None else lower - yi,
+                            upper=None if upper is None else upper - yi,
+                            linear=True,
+                            wrt=wrts,
+                            jac=jac,
+                        )
                     else:
-                        wrts = [v for v in nl_dvs
-                                if relevance.is_relevant(nl_dvs[v]['source'])]
+                        wrts = [v for v in nl_dvs if relevance.is_relevant(nl_dvs[v]["source"])]
 
                         if name in self._con_subjacs:
                             resjac = self._con_subjacs[name]
@@ -500,48 +548,58 @@ class pyOptSparseDriver(Driver):
                         else:
                             jac = None
 
-                        opt_prob.addConGroup(name, size, lower=lower, upper=upper, wrt=wrts,
-                                             jac=jac)
+                        opt_prob.addConGroup(
+                            name, size, lower=lower, upper=upper, wrt=wrts, jac=jac
+                        )
                         self._nl_responses.append(name)
 
-        ineqcons = {n: m for n, m in self._cons.items() if m['equals'] is None}
+        ineqcons = {n: m for n, m in self._cons.items() if m["equals"] is None}
         if ineqcons:
             # Add all inequality constraints
             for name, meta in ineqcons.items():
-                size = meta['global_size'] if meta['distributed'] else meta['size']
+                size = meta["global_size"] if meta["distributed"] else meta["size"]
 
                 # Bounds - double sided is supported (scaled bounds from autoscaler)
                 lower = self._to_driver_bound(con_bounds[name].lower)
                 upper = self._to_driver_bound(con_bounds[name].upper)
 
                 # set inequality constraints as reverse seeds to see what dvs are relevant
-                with relevance.seeds_active(rev_seeds=(meta['source'],)):
-
-                    if meta['linear']:
-                        wrts = [n for n, meta in lin_dvs.items()
-                                if relevance.is_relevant(meta['source'])]
+                with relevance.seeds_active(rev_seeds=(meta["source"],)):
+                    if meta["linear"]:
+                        wrts = [
+                            n
+                            for n, meta in lin_dvs.items()
+                            if relevance.is_relevant(meta["source"])
+                        ]
                         jac = {w: _lin_jacs[name][w] for w in wrts}
                         yi = _y_intercepts[name]
-                        opt_prob.addConGroup(name, size,
-                                             lower=None if lower is None else lower - yi,
-                                             upper=None if upper is None else upper - yi,
-                                             linear=True, wrt=wrts, jac=jac)
+                        opt_prob.addConGroup(
+                            name,
+                            size,
+                            lower=None if lower is None else lower - yi,
+                            upper=None if upper is None else upper - yi,
+                            linear=True,
+                            wrt=wrts,
+                            jac=jac,
+                        )
                     else:
-                        wrts = [n for n, meta in nl_dvs.items()
-                                if relevance.is_relevant(meta['source'])]
+                        wrts = [
+                            n for n, meta in nl_dvs.items() if relevance.is_relevant(meta["source"])
+                        ]
                         if name in self._con_subjacs:
                             resjac = self._con_subjacs[name]
                             jac = {n: resjac[n] for n in wrts}
                         else:
                             jac = None
 
-                        opt_prob.addConGroup(name, size, upper=upper, lower=lower,
-                                             wrt=wrts, jac=jac)
+                        opt_prob.addConGroup(
+                            name, size, upper=upper, lower=lower, wrt=wrts, jac=jac
+                        )
                         self._nl_responses.append(name)
 
         # Instantiate the requested optimizer
         try:
-            _tmp = __import__('pyoptsparse', globals(), locals(), [optimizer], 0)
+            _tmp = __import__("pyoptsparse", globals(), locals(), [optimizer], 0)
             opt = getattr(_tmp, optimizer)()
 
         except Exception:
@@ -551,24 +609,24 @@ class pyOptSparseDriver(Driver):
             raise ImportError(msg)
 
         # Need to tell optimizer where to put its .out files
-        if self.options['output_dir'] in (None, _DEFAULT_REPORTS_DIR):
+        if self.options["output_dir"] in (None, _DEFAULT_REPORTS_DIR):
             output_dir = str(self._problem().get_outputs_dir(mkdir=True))
         else:
-            output_dir = str(self.options['output_dir'])
+            output_dir = str(self.options["output_dir"])
 
         optimizers_and_output_files = {
             # ALPSO uses a single option `filename` to determine name of both output files
-            'ALPSO': [('filename', 'ALPSO.out')],
-            'CONMIN': [('IFILE', 'CONMIN.out')],
-            'IPOPT': [('output_file', 'IPOPT.out')],
-            'PSQP': [('IFILE', 'PSQP.out')],
-            'SLSQP': [('IFILE', 'SLSQP.out')],
-            'SNOPT': [('Print file', 'SNOPT_print.out'), ('Summary file', 'SNOPT_summary.out')]
+            "ALPSO": [("filename", "ALPSO.out")],
+            "CONMIN": [("IFILE", "CONMIN.out")],
+            "IPOPT": [("output_file", "IPOPT.out")],
+            "PSQP": [("IFILE", "PSQP.out")],
+            "SLSQP": [("IFILE", "SLSQP.out")],
+            "SNOPT": [("Print file", "SNOPT_print.out"), ("Summary file", "SNOPT_summary.out")],
         }
 
         if optimizer in optimizers_and_output_files:
             for opt_setting_name, output_file_name in optimizers_and_output_files[optimizer]:
-                self.opt_settings[opt_setting_name] = f'{output_dir}/{output_file_name}'
+                self.opt_settings[opt_setting_name] = f"{output_dir}/{output_file_name}"
 
         # Process any default optimizer-specific settings.
         if optimizer in DEFAULT_OPT_SETTINGS:
@@ -582,7 +640,7 @@ class pyOptSparseDriver(Driver):
 
         # Print the pyoptsparse optimization problem summary before running the optimization.
         # This allows users to confirm their optimization setup.
-        if self.options['print_opt_prob']:
+        if self.options["print_opt_prob"]:
             if not MPI or model.comm.rank == 0:
                 print(opt_prob)
 
@@ -592,43 +650,50 @@ class pyOptSparseDriver(Driver):
         # (e.g. Uno). When Ctrl+C arrives between Python callbacks, this sets the termination
         # flag so the next callback entry returns fail=2 instead of crashing.
         _sigint_cache = None
-        if optimizer not in ('SNOPT',) and self.options['user_terminate_signal'] is None:
+        if optimizer not in ("SNOPT",) and self.options["user_terminate_signal"] is None:
             _sigint_cache = signal.getsignal(signal.SIGINT)
             signal.signal(signal.SIGINT, self._signal_handler)
 
         try:
-
             # Execute the optimization problem
-            if self.options['gradient_method'] == 'pyopt_fd':
-
+            if self.options["gradient_method"] == "pyopt_fd":
                 # Use pyOpt's internal finite difference
                 # TODO: Need to get this from OpenMDAO
                 # fd_step = problem.model.deriv_options['step_size']
                 fd_step = 1e-6
-                sol = opt(opt_prob, sens='FD', sensStep=fd_step,
-                          storeHistory=self.options['hist_file'],
-                          hotStart=self.options['hotstart_file'])
+                sol = opt(
+                    opt_prob,
+                    sens="FD",
+                    sensStep=fd_step,
+                    storeHistory=self.options["hist_file"],
+                    hotStart=self.options["hotstart_file"],
+                )
 
-            elif self.options['gradient_method'] == 'snopt_fd':
-                if self.options['optimizer'] == 'SNOPT':
-
+            elif self.options["gradient_method"] == "snopt_fd":
+                if self.options["optimizer"] == "SNOPT":
                     # Use SNOPT's internal finite difference
                     # TODO: Need to get this from OpenMDAO
                     # fd_step = problem.model.deriv_options['step_size']
                     fd_step = 1e-6
-                    sol = opt(opt_prob, sens=None, sensStep=fd_step,
-                              storeHistory=self.options['hist_file'],
-                              hotStart=self.options['hotstart_file'])
+                    sol = opt(
+                        opt_prob,
+                        sens=None,
+                        sensStep=fd_step,
+                        storeHistory=self.options["hist_file"],
+                        hotStart=self.options["hotstart_file"],
+                    )
 
                 else:
                     msg = "SNOPT's internal finite difference can only be used with SNOPT"
                     self._exc_info = (Exception, Exception(msg), None)
             else:
-
                 # Use OpenMDAO's differentiator for the gradient
-                sol = opt(opt_prob, sens=WeakMethodWrapper(self, '_gradfunc'),
-                          storeHistory=self.options['hist_file'],
-                          hotStart=self.options['hotstart_file'])
+                sol = opt(
+                    opt_prob,
+                    sens=WeakMethodWrapper(self, "_gradfunc"),
+                    storeHistory=self.options["hist_file"],
+                    hotStart=self.options["hotstart_file"],
+                )
 
         except Exception:
             if self._exc_info is None:
@@ -642,20 +707,20 @@ class pyOptSparseDriver(Driver):
             raise exc_info[1].with_traceback(exc_info[2])
 
         # Print results
-        if self.options['print_results']:
+        if self.options["print_results"]:
             if not MPI or model.comm.rank == 0:
-                if self.options['print_results'] == 'minimal':
-                    if hasattr(sol, 'summary_str'):
+                if self.options["print_results"] == "minimal":
+                    if hasattr(sol, "summary_str"):
                         print(sol.summary_str(minimal_print=True))
                     else:
-                        print('minimal_print is not available for this solution')
+                        print("minimal_print is not available for this solution")
                         print(sol)
                 else:
                     print(sol)
 
         # Set the design variable vector with scaled values, then use _set_design_vars to
         # properly unscale and set them in the model
-        self._vectors['design_var'].set_data(sol.getDVs(), driver_scaling=True)
+        self._vectors["design_var"].set_data(sol.getDVs(), driver_scaling=True)
         self._set_design_vars(driver_scaling=True)
 
         with RecordingDebugging(self._get_name(), self.iter_count, self) as rec:
@@ -673,19 +738,19 @@ class pyOptSparseDriver(Driver):
 
         try:
             if sol.optInform is not None:
-                exit_status = sol.optInform['value']
+                exit_status = sol.optInform["value"]
             else:
                 # For optimimizers that don't provide inform
                 # in newer versions of pyoptsparse.
-                exit_status = ''
+                exit_status = ""
 
             self.fail = False
 
             # These are various failed statuses.
-            if optimizer == 'IPOPT':
+            if optimizer == "IPOPT":
                 if exit_status not in {0, 1}:
                     self.fail = True
-            elif optimizer == 'PSQP':
+            elif optimizer == "PSQP":
                 if exit_status not in {1, 2, 3, 4}:
                     self.fail = True
             else:
@@ -699,10 +764,10 @@ class pyOptSparseDriver(Driver):
             pass
 
         # revert signal handler to cached version
-        sigusr = self.options['user_terminate_signal']
+        sigusr = self.options["user_terminate_signal"]
         if sigusr is not None:
             signal.signal(sigusr, self._signal_cache)
-            self._signal_cache = None   # to prevent memory leak test from failing
+            self._signal_cache = None  # to prevent memory leak test from failing
 
         if _sigint_cache is not None:
             signal.signal(signal.SIGINT, _sigint_cache)
@@ -730,13 +795,13 @@ class pyOptSparseDriver(Driver):
             0 for successful function evaluation
             1 for unsuccessful function evaluation
         """
-        dv_vec = self._vectors['design_var']
+        dv_vec = self._vectors["design_var"]
         model = self._problem().model
         fail = 0
 
         # Note: we place our handler as late as possible so that codes that run in the
         # workflow can place their own handlers.
-        sigusr = self.options['user_terminate_signal']
+        sigusr = self.options["user_terminate_signal"]
         if sigusr is not None and self._signal_cache is None:
             self._signal_cache = signal.getsignal(sigusr)
             signal.signal(sigusr, self._signal_handler)
@@ -748,7 +813,7 @@ class pyOptSparseDriver(Driver):
             # Check if we caught a termination signal while SNOPT was running.
             if self._user_termination_flag:
                 func_dict = self.get_objective_values()
-                func_dict.update(self.get_constraint_values(lintype='nonlinear'))
+                func_dict.update(self.get_constraint_values(lintype="nonlinear"))
                 return func_dict, 2
 
             # Execute the model
@@ -758,7 +823,7 @@ class pyOptSparseDriver(Driver):
                     self._in_user_function = True
                     # if coloring is enabled, pre and iter have run.
                     # if coloring is disabled, pre has run.
-                    with model._relevance.nonlinear_active('iter'):
+                    with model._relevance.nonlinear_active("iter"):
                         self._run_solve_nonlinear()
                         self._model_ran = True
 
@@ -794,7 +859,7 @@ class pyOptSparseDriver(Driver):
             fail = 1
 
         func_dict = self.get_objective_values(driver_scaling=True)
-        func_dict.update(self.get_constraint_values(lintype='nonlinear', driver_scaling=True))
+        func_dict.update(self.get_constraint_values(lintype="nonlinear", driver_scaling=True))
 
         if fail > 0 and self._fill_NANs:
             for name in func_dict:
@@ -838,15 +903,15 @@ class pyOptSparseDriver(Driver):
         nl_dvs = self._get_nl_dvs()
 
         try:
-
             # Check if we caught a termination signal while SNOPT was running.
             if self._user_termination_flag:
                 return {}, 2
 
             try:
                 self._in_user_function = True
-                sens_dict = self._compute_totals(of=self._nl_responses, wrt=nl_dvs,
-                                                 return_format=self._total_jac_format)
+                sens_dict = self._compute_totals(
+                    of=self._nl_responses, wrt=nl_dvs, return_format=self._total_jac_format
+                )
 
                 # First time through, check for zero row/col.
                 if self._check_jac and self._total_jac is not None:
@@ -854,9 +919,10 @@ class pyOptSparseDriver(Driver):
                         if subsys._has_approx:
                             break
                     else:
-                        raise_error = self.options['singular_jac_behavior'] == 'error'
-                        self._total_jac.check_total_jac(raise_error=raise_error,
-                                                        tol=self.options['singular_jac_tol'])
+                        raise_error = self.options["singular_jac_behavior"] == "error"
+                        self._total_jac.check_total_jac(
+                            raise_error=raise_error, tol=self.options["singular_jac_tol"]
+                        )
                     self._check_jac = False
 
             # Let the optimizer try to handle the error
@@ -890,8 +956,8 @@ class pyOptSparseDriver(Driver):
                             if ikey in con_outs:
                                 arr = sens_dict[okey][ikey]
                                 coo = con_outs[ikey]
-                                row, col, _ = coo['coo']
-                                coo['coo'][2] = arr[row, col].flatten()
+                                row, col, _ = coo["coo"]
+                                coo["coo"][2] = arr[row, col].flatten()
                                 newdv[ikey] = coo
                     elif okey in sens_dict:
                         for ikey in nl_dvs:
@@ -938,7 +1004,7 @@ class pyOptSparseDriver(Driver):
         str
             The name of the current optimizer.
         """
-        return "pyOptSparse_" + self.options['optimizer']
+        return "pyOptSparse_" + self.options["optimizer"]
 
     def _get_ordered_nl_responses(self):
         """
@@ -955,8 +1021,8 @@ class pyOptSparseDriver(Driver):
         nl_order = list(self._objs)
         neq_order = []
         for n, meta in self._cons.items():
-            if 'linear' not in meta or not meta['linear']:
-                if meta['equals'] is not None:
+            if "linear" not in meta or not meta["linear"]:
+                if meta["equals"] is not None:
                     nl_order.append(n)
                 else:
                     neq_order.append(n)
@@ -980,11 +1046,13 @@ class pyOptSparseDriver(Driver):
         if coloring is not None:
             total_sparsity = coloring.get_subjac_sparsity()
             if self._total_jac_sparsity is not None:
-                raise RuntimeError("Total jac sparsity was set in both _total_coloring"
-                                   " and _setup_tot_jac_sparsity.")
+                raise RuntimeError(
+                    "Total jac sparsity was set in both _total_coloring"
+                    " and _setup_tot_jac_sparsity."
+                )
         elif self._total_jac_sparsity is not None:
             if isinstance(self._total_jac_sparsity, str):
-                with open(self._total_jac_sparsity, 'r') as f:
+                with open(self._total_jac_sparsity, "r") as f:
                     self._total_jac_sparsity = json.load(f)
             total_sparsity = self._total_jac_sparsity
 
@@ -996,18 +1064,18 @@ class pyOptSparseDriver(Driver):
         nl_dvs = self._get_nl_dvs()
 
         # exclude linear cons and dvs that only impact linear cons
-        for con, conmeta in filter_by_meta(self._cons.items(), 'linear', exclude=True):
+        for con, conmeta in filter_by_meta(self._cons.items(), "linear", exclude=True):
             self._con_subjacs[con] = {}
-            consrc = conmeta['source']
+            consrc = conmeta["source"]
             for dv, dvmeta in nl_dvs.items():
                 if use_approx:
-                    dvsrc = dvmeta['source']
+                    dvsrc = dvmeta["source"]
                     rows, cols, shape = total_sparsity[consrc][dvsrc]
                 else:
                     rows, cols, shape = total_sparsity[con][dv]
                 self._con_subjacs[con][dv] = {
-                    'coo': [rows, cols, np.zeros(rows.size)],
-                    'shape': shape,
+                    "coo": [rows, cols, np.zeros(rows.size)],
+                    "shape": shape,
                 }
 
     def _signal_handler(self, signum, frame):
@@ -1018,4 +1086,4 @@ class pyOptSparseDriver(Driver):
 
         self._user_termination_flag = True
         if self._in_user_function:
-            raise UserRequestedException('User requested termination.')
+            raise UserRequestedException("User requested termination.")

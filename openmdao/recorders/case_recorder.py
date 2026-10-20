@@ -1,6 +1,7 @@
 """
 Class definition for CaseRecorder, the base class for all recorders.
 """
+
 from openmdao.core.system import System
 from openmdao.core.driver import Driver
 from openmdao.solvers.solver import Solver
@@ -164,6 +165,7 @@ class CaseRecorder(object):
         """
         # Cannot handle PETScVector yet
         from openmdao.api import PETScVector
+
         if PETScVector and isinstance(system._outputs, PETScVector):
             return None, None  # Cannot handle PETScVector yet
 
@@ -179,7 +181,7 @@ class CaseRecorder(object):
                     scaling[vecname] = None
 
         # create a copy of the system's metadata excluding what is in 'options_excludes'
-        excludes = system.recording_options['options_excludes']
+        excludes = system.recording_options["options_excludes"]
 
         if excludes:
             user_options = OptionsDictionary()
@@ -239,8 +241,9 @@ class CaseRecorder(object):
         if not self._parallel or self._record_on_proc:
             self._counter += 1
 
-            self._iteration_coordinate = \
+            self._iteration_coordinate = (
                 recording_requester._recording_iter.get_formatted_iteration_coordinate()
+            )
 
             if isinstance(recording_requester, Driver):
                 self.record_iteration_driver(recording_requester, data, metadata)
@@ -328,8 +331,9 @@ class CaseRecorder(object):
         **kwargs : keyword args
             Some implementations of record_derivatives need additional args.
         """
-        self._iteration_coordinate = \
+        self._iteration_coordinate = (
             recording_requester._recording_iter.get_formatted_iteration_coordinate()
+        )
 
         self.record_derivatives_driver(recording_requester, data, metadata)
 

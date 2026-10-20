@@ -11,11 +11,11 @@ class Plus(om.ExplicitComponent):
         self.adder = float(adder)
 
     def setup(self):
-        self.add_input('x', np.random.random())
-        self.add_output('f1', shape=1)
+        self.add_input("x", np.random.random())
+        self.add_output("f1", shape=1)
 
     def compute(self, inputs, outputs):
-        outputs['f1'] = inputs['x'] + self.adder
+        outputs["f1"] = inputs["x"] + self.adder
 
 
 class Times(om.ExplicitComponent):
@@ -24,46 +24,43 @@ class Times(om.ExplicitComponent):
         self.scalar = float(scalar)
 
     def setup(self):
-        self.add_input('f1', np.random.random())
-        self.add_output('f2', shape=1)
+        self.add_input("f1", np.random.random())
+        self.add_output("f2", shape=1)
 
     def compute(self, inputs, outputs):
-        outputs['f2'] = inputs['f1'] + self.scalar
+        outputs["f2"] = inputs["f1"] + self.scalar
 
 
 class Point(om.Group):
-
     def __init__(self, adder, scalar):
         super(Point, self).__init__()
         self.adder = adder
         self.scalar = scalar
 
     def setup(self):
-        self.add_subsystem('plus', Plus(self.adder), promotes=['*'])
-        self.add_subsystem('times', Times(self.scalar), promotes=['*'])
+        self.add_subsystem("plus", Plus(self.adder), promotes=["*"])
+        self.add_subsystem("times", Times(self.scalar), promotes=["*"])
 
 
 class Summer(om.ExplicitComponent):
-
     def __init__(self, size):
         super(Summer, self).__init__()
         self.size = size
 
     def setup(self):
         for i in range(self.size):
-            self.add_input('y%d'%i, 0.)
+            self.add_input("y%d" % i, 0.0)
 
-        self.add_output('total', shape=1)
+        self.add_output("total", shape=1)
 
     def compute(self, inputs, outputs):
         tot = 0
         for i in range(self.size):
-            tot += inputs['y%d'%i]
-        outputs['total'] = tot
+            tot += inputs["y%d" % i]
+        outputs["total"] = tot
 
 
 class MultiPoint(om.Group):
-
     def __init__(self, adders, scalars):
         super(MultiPoint, self).__init__()
         self.adders = adders
@@ -73,12 +70,12 @@ class MultiPoint(om.Group):
 
         size = len(self.adders)
 
-        for i,(a,s) in enumerate(zip(self.adders, self.scalars)):
-            c_name = 'p%d'%i
-            self.add_subsystem(c_name, Point(a,s))
-            self.connect(c_name+'.f2','aggregate.y%d'%i)
+        for i, (a, s) in enumerate(zip(self.adders, self.scalars)):
+            c_name = "p%d" % i
+            self.add_subsystem(c_name, Point(a, s))
+            self.connect(c_name + ".f2", "aggregate.y%d" % i)
 
-        self.add_subsystem('aggregate', Summer(size))
+        self.add_subsystem("aggregate", Summer(size))
 
 
 class BM(unittest.TestCase):
@@ -87,7 +84,7 @@ class BM(unittest.TestCase):
     def _setup_bm(self, npts):
 
         size = npts
-        adders =  np.random.random(size)
+        adders = np.random.random(size)
         scalars = np.random.random(size)
 
         prob = om.Problem(MultiPoint(adders, scalars))

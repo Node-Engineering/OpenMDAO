@@ -1,4 +1,5 @@
 """Define the NonlinearBlockJac class."""
+
 from openmdao.recorders.recording_iteration_stack import Recording
 from openmdao.solvers.solver import NonlinearSolver
 from openmdao.utils.mpi import multi_proc_fail_check
@@ -14,7 +15,7 @@ class NonlinearBlockJac(NonlinearSolver):
         Options dictionary.
     """
 
-    SOLVER = 'NL: NLBJ'
+    SOLVER = "NL: NLBJ"
 
     def _single_iteration(self):
         """
@@ -22,10 +23,9 @@ class NonlinearBlockJac(NonlinearSolver):
         """
         system = self._system()
         self._solver_info.append_subsolver()
-        system._transfer('nonlinear', 'fwd')
+        system._transfer("nonlinear", "fwd")
 
-        with Recording('NonlinearBlockJac', 0, self) as rec:
-
+        with Recording("NonlinearBlockJac", 0, self) as rec:
             # If this is a parallel group, check for analysis errors and reraise.
             if len(system._subsystems_myproc) != len(system._subsystems_allprocs):
                 with multi_proc_fail_check(system.comm):

@@ -1,4 +1,5 @@
 """Define the LinearInterpolator class."""
+
 import numpy as np
 
 from openmdao.surrogate_models.nn_interpolators.nn_base import NNBase
@@ -43,12 +44,16 @@ class LinearInterpolator(NNBase):
         nppts = neighbor_idx.shape[0]
 
         # Preallocate storage
-        pc = np.empty((nppts, dep_dims), dtype='float')
-        normal = np.empty((nppts, indep_dims + 1, dep_dims), dtype='float')
-        nvect = np.empty((nppts, indep_dims, indep_dims + 1), dtype='float')
-        trnd = np.concatenate((self._tp[neighbor_idx, :],
-                               self._tv[neighbor_idx, 0].reshape(nppts, indep_dims + 1, 1)),
-                              axis=2)
+        pc = np.empty((nppts, dep_dims), dtype="float")
+        normal = np.empty((nppts, indep_dims + 1, dep_dims), dtype="float")
+        nvect = np.empty((nppts, indep_dims, indep_dims + 1), dtype="float")
+        trnd = np.concatenate(
+            (
+                self._tp[neighbor_idx, :],
+                self._tv[neighbor_idx, 0].reshape(nppts, indep_dims + 1, 1),
+            ),
+            axis=2,
+        )
         nvect[:, :, :-1] = trnd[:, 1:, :-1] - trnd[:, :-1, :-1]
 
         for i in range(dep_dims):
@@ -67,7 +72,7 @@ class LinearInterpolator(NNBase):
 
             # Use the point of the closest neighbor to
             # solve for pc - the constant of the n-dimensional plane.
-            pc[:, i] = np.einsum('ij,ij->i', trnd[:, 0, :], normal[:, :, i])
+            pc[:, i] = np.einsum("ij,ij->i", trnd[:, 0, :], normal[:, :, i])
 
         return normal, pc
 
@@ -101,8 +106,7 @@ class LinearInterpolator(NNBase):
         normal, pc = self._find_hyperplane(nloc)
 
         # Set all predictions from values on plane
-        predictions = np.einsum('ij,ijk->ik', normalized_pts,
-                                normal[:, :self._indep_dims, :]) - pc
+        predictions = np.einsum("ij,ijk->ik", normalized_pts, normal[:, : self._indep_dims, :]) - pc
 
         # Check to see if there are any collinear points and replace them
         n0 = np.where(normal[:, -1, :] == 0)
@@ -145,8 +149,7 @@ class LinearInterpolator(NNBase):
         dims = self._indep_dims + 1
 
         # Find the neighbors
-        if self._pt_cache is not None and \
-                np.allclose(self._pt_cache[0], normPredPts):
+        if self._pt_cache is not None and np.allclose(self._pt_cache[0], normPredPts):
             ndist, nloc = self._pt_cache[1:]
         else:
             ndist, nloc = self._KData.query(normPredPts.real, dims)

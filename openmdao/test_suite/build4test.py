@@ -19,12 +19,12 @@ class FloatFactory(object):
 
     def __call__(self, iotype, idx):
         if self.shape:
-            if iotype == 'input':
+            if iotype == "input":
                 return np.ones(self.shape)
             else:
                 return np.zeros(self.shape)
         else:
-            if iotype == 'input':
+            if iotype == "input":
                 return float(1.0)
             else:
                 return float(0.0)
@@ -34,9 +34,10 @@ class DynComp(ExplicitComponent):
     """
     A component with a settable number of params and outputs.
     """
-    def __init__(self, ninputs, noutputs,
-                 nl_sleep=0.001, ln_sleep=0.001,
-                 var_factory=float, vf_args=()):
+
+    def __init__(
+        self, ninputs, noutputs, nl_sleep=0.001, ln_sleep=0.001, var_factory=float, vf_args=()
+    ):
         super().__init__()
 
         self.ninputs = ninputs
@@ -48,10 +49,10 @@ class DynComp(ExplicitComponent):
 
     def setup(self):
         for i in range(self.ninputs):
-            self.add_input(f'i{i}', self.var_factory(*self.vf_args))
+            self.add_input(f"i{i}", self.var_factory(*self.vf_args))
 
         for i in range(self.noutputs):
-            self.add_output(f'o{i}', self.var_factory(*self.vf_args))
+            self.add_output(f"o{i}", self.var_factory(*self.vf_args))
 
     def compute(self, inputs, outputs):
         time.sleep(self.nl_sleep)
@@ -67,6 +68,7 @@ class DynComp2(ExplicitComponent):
     """
     A component with a settable number of params and outputs.
     """
+
     def __init__(self, ninputs, noutputs, mult, var_factory):
         super().__init__()
 
@@ -77,14 +79,14 @@ class DynComp2(ExplicitComponent):
 
     def setup(self):
         for i in range(self.ninputs):
-            self.add_input(f'i{i}', self.var_factory('input', i))
+            self.add_input(f"i{i}", self.var_factory("input", i))
 
         for i in range(self.noutputs):
-            self.add_output(f'o{i}', self.var_factory('output', i))
+            self.add_output(f"o{i}", self.var_factory("output", i))
 
-        self.declare_partials('*', '*',
-                              rows=np.arange(self.var_factory.size),
-                              cols=np.arange(self.var_factory.size))
+        self.declare_partials(
+            "*", "*", rows=np.arange(self.var_factory.size), cols=np.arange(self.var_factory.size)
+        )
 
     def compute(self, inputs, outputs):
         outputs.set_val(inputs.asarray() * self.mult)
@@ -93,7 +95,7 @@ class DynComp2(ExplicitComponent):
         for o in range(self.noutputs):
             for i in range(self.ninputs):
                 if o == i:
-                    partials[f'o{o}', f'i{i}'] = self.mult
+                    partials[f"o{o}", f"i{i}"] = self.mult
 
 
 class DynComp2Factory(object):
@@ -107,27 +109,30 @@ class DynComp2Factory(object):
         return DynComp2(self.ninputs, self.noutputs, self.mult, self.var_factory)
 
 
-
-def make_subtree(parent, nsubgroups, levels,
-                 ncomps, ninputs, noutputs, nconns, var_factory=float):
+def make_subtree(parent, nsubgroups, levels, ncomps, ninputs, noutputs, nconns, var_factory=float):
     """Construct a system subtree under the given parent group."""
 
     if levels <= 0:
         return
 
     if levels == 1:  # add leaf nodes
-        create_dyncomps(parent, ncomps, ninputs, noutputs, nconns,
-                        var_factory=var_factory)
+        create_dyncomps(parent, ncomps, ninputs, noutputs, nconns, var_factory=var_factory)
     else:  # add more subgroup levels
         for i in range(nsubgroups):
-            g = parent.add_subsystem("G%d"%i, Group())
-            make_subtree(g, nsubgroups, levels-1,
-                         ncomps, ninputs, noutputs, nconns,
-                         var_factory=var_factory)
+            g = parent.add_subsystem("G%d" % i, Group())
+            make_subtree(
+                g,
+                nsubgroups,
+                levels - 1,
+                ncomps,
+                ninputs,
+                noutputs,
+                nconns,
+                var_factory=var_factory,
+            )
 
 
-def create_dyncomps(parent, ncomps, ninputs, noutputs, nconns,
-                    var_factory=float):
+def create_dyncomps(parent, ncomps, ninputs, noutputs, nconns, var_factory=float):
     """Create a specified number of DynComps with a specified number
     of variables (ninputs and noutputs), and add them to the given parent
     and add the number of specified connections.
@@ -137,7 +142,7 @@ def create_dyncomps(parent, ncomps, ninputs, noutputs, nconns,
 
         if i > 0:
             for j in range(nconns):
-                parent.connect("C%d.o%d" % (i-1,j), "C%d.i%d" % (i, j))
+                parent.connect("C%d.o%d" % (i - 1, j), "C%d.i%d" % (i, j))
 
 
 def create_testcomps(ncomps, comp_factory):
@@ -155,7 +160,7 @@ def connect_comps(model, complist, ninputs, noutputs):
     for i in range(len(complist)):
         if i > 0:
             for j in range(min(noutputs, ninputs)):
-                model.connect(f"{complist[i-1][1]}.o{j}", f"{complist[i][1]}.i{j}")
+                model.connect(f"{complist[i - 1][1]}.o{j}", f"{complist[i][1]}.i{j}")
 
 
 def recursive_split(parent, complist, nsplits, max_levels, level=0, path=None):
@@ -181,13 +186,13 @@ def recursive_split(parent, complist, nsplits, max_levels, level=0, path=None):
         path = []
 
     sizes, offsets = evenly_distrib_idxs(nsplits, len(complist))
-    subs = [complist[offset:offset + size] for size, offset in zip(sizes, offsets)]
+    subs = [complist[offset : offset + size] for size, offset in zip(sizes, offsets)]
     for subcomps in subs:
         if not subcomps:
             continue
 
         g = Group()
-        gname = subcomps[0][0].replace('C', f'G_{level}_')
+        gname = subcomps[0][0].replace("C", f"G_{level}_")
         parent.add_subsystem(gname, g)
 
         # if leaf node, add comps
@@ -195,7 +200,7 @@ def recursive_split(parent, complist, nsplits, max_levels, level=0, path=None):
             for i, subcomp in enumerate(subcomps):
                 cname, _, comp = subcomp
                 # set the pathname for connections later
-                subcomp[1] = '.'.join(path + [gname, cname])
+                subcomp[1] = ".".join(path + [gname, cname])
                 g.add_subsystem(cname, comp)
         else:
             recursive_split(g, subcomps, nsplits, max_levels, level + 1, path + [gname])
@@ -227,9 +232,12 @@ def build_test_model(ncomps, ninputs, noutputs, splits_per_group, max_levels, sh
         The model.
     """
     model = Group()
-    complist = [[name, None, comp] for name, comp in
-                create_testcomps(ncomps, DynComp2Factory(ninputs, noutputs, 1.1,
-                                                         FloatFactory(shape)))]
+    complist = [
+        [name, None, comp]
+        for name, comp in create_testcomps(
+            ncomps, DynComp2Factory(ninputs, noutputs, 1.1, FloatFactory(shape))
+        )
+    ]
     recursive_split(model, complist, splits_per_group, max_levels)
     connect_comps(model, complist, ninputs, noutputs)
     for i in range(ninputs):
@@ -242,7 +250,7 @@ def build_test_model(ncomps, ninputs, noutputs, splits_per_group, max_levels, sh
     return model
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
     from openmdao.core.problem import Problem
     from openmdao.devtools.debug import config_summary
@@ -251,30 +259,28 @@ if __name__ == '__main__':
     num_comps = 50
     pts = 2
 
-
     class SubGroup(Group):
         def setup(self):
-            create_dyncomps(self, num_comps, 2, 2, 2,
-                            var_factory=lambda: np.zeros(vec_size))
-            cname = "C%d"%(num_comps-1)
+            create_dyncomps(self, num_comps, 2, 2, 2, var_factory=lambda: np.zeros(vec_size))
+            cname = "C%d" % (num_comps - 1)
             self.add_objective("%s.o0" % cname)
             self.add_constraint("%s.o1" % cname, lower=0.0)
-
 
     p = Problem()
     g = p.model
 
-    if 'gmres' in sys.argv:
+    if "gmres" in sys.argv:
         from openmdao.solvers.linear.scipy_iter_solver import ScipyKrylov
+
         g.linear_solver = ScipyKrylov()
 
-    g.add_subsystem("P", IndepVarComp('x', np.ones(vec_size)))
+    g.add_subsystem("P", IndepVarComp("x", np.ones(vec_size)))
 
     g.add_design_var("P.x")
 
     par = g.add_subsystem("par", ParallelGroup())
     for pt in range(pts):
-        ptname = "G%d"%pt
+        ptname = "G%d" % pt
         ptg = par.add_subsystem(ptname, SubGroup())
         g.connect("P.x", "par.%s.C0.i0" % ptname)
 
@@ -283,6 +289,7 @@ if __name__ == '__main__':
     p.run_model()
     #
     from openmdao.devtools.memory import max_mem_usage
+
     print("mem:", max_mem_usage())
 
     config_summary(p)

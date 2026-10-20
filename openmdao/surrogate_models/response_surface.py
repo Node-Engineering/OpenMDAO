@@ -1,4 +1,3 @@
-
 """
 Surrogate Model based on second order response surface equations.
 """
@@ -63,16 +62,16 @@ class ResponseSurface(SurrogateModel):
         X[:, 0] = 1.0
 
         # Linear Terms
-        X[:, 1:n + 1] = x
+        X[:, 1 : n + 1] = x
 
         # Quadratic Terms
-        X_offset = X[:, n + 1:]
+        X_offset = X[:, n + 1 :]
         for i in range(n):
             # Z = einsum('i,ij->ij', X, Y) is equivalent to, but much faster and
             # memory efficient than, diag(X).dot(Y) for vector X and 2D array Y.
             # I.e. Z[i,j] = X[i]*Y[i,j]
-            X_offset[:, :n - i] = einsum('i,ij->ij', x[:, i], x[:, i:])
-            X_offset = X_offset[:, n - i:]
+            X_offset[:, : n - i] = einsum("i,ij->ij", x[:, i], x[:, i:])
+            X_offset = X_offset[:, n - i :]
 
         # Determine response surface equation coefficients (betas) using least
         # squares
@@ -104,13 +103,13 @@ class ResponseSurface(SurrogateModel):
         X[0] = 1.0
 
         # Linear Terms
-        X[1:n + 1] = x
+        X[1 : n + 1] = x
 
         # Quadratic Terms
-        X_offset = X[n + 1:]
+        X_offset = X[n + 1 :]
         for i in range(n):
-            X_offset[:n - i] = x[i] * x[i:]
-            X_offset = X_offset[n - i:]
+            X_offset[: n - i] = x[i] * x[i:]
+            X_offset = X_offset[n - i :]
 
         # Predict new_y using X and betas
         return X.dot(self.betas)
@@ -134,11 +133,11 @@ class ResponseSurface(SurrogateModel):
 
         x = x.flat
 
-        jac = betas[1:n + 1, :].copy()
-        beta_offset = betas[n + 1:, :]
+        jac = betas[1 : n + 1, :].copy()
+        beta_offset = betas[n + 1 :, :]
         for i in range(n):
-            jac[i, :] += x[i:].dot(beta_offset[:n - i, :])
-            jac[i:, :] += x[i] * beta_offset[:n - i, :]
-            beta_offset = beta_offset[n - i:, :]
+            jac[i, :] += x[i:].dot(beta_offset[: n - i, :])
+            jac[i:, :] += x[i] * beta_offset[: n - i, :]
+            beta_offset = beta_offset[n - i :, :]
 
         return jac.T

@@ -144,36 +144,39 @@ class MetaModelVisualization(object):
 
             # Create reference for untructured component
             self.meta_model = MetaModelUnStructuredComp(
-                default_surrogate=model.options['default_surrogate'])
+                default_surrogate=model.options["default_surrogate"]
+            )
 
         # Surrogate model is structured.
         elif isinstance(model, MetaModelStructuredComp):
             self.mm_type = "struct"
 
-            self.input_names = [name for name in model._var_rel_names['input']]
-            self.output_names = [name for name in model._var_rel_names['output']]
+            self.input_names = [name for name in model._var_rel_names["input"]]
+            self.output_names = [name for name in model._var_rel_names["output"]]
 
             self.meta_model = MetaModelStructuredComp(
-                extrapolate=model.options['extrapolate'],
-                method=model.options['method'],
-                training_data_gradients=model.options['training_data_gradients'],
-                vec_size=1)
+                extrapolate=model.options["extrapolate"],
+                method=model.options["method"],
+                training_data_gradients=model.options["training_data_gradients"],
+                vec_size=1,
+            )
 
         # Surrogate model is semi-structured.
         elif isinstance(model, MetaModelSemiStructuredComp):
             self.mm_type = "semistruct"
 
             self.input_names = model.pnames
-            self.output_names = [name for name in model._var_rel_names['output']]
+            self.output_names = [name for name in model._var_rel_names["output"]]
 
             self.meta_model = MetaModelSemiStructuredComp(
                 extrapolate=True,  # Set to True so that we can evaluate the full space.
-                method=model.options['method'],
-                training_data_gradients=model.options['training_data_gradients'],
-                vec_size=1)
+                method=model.options["method"],
+                training_data_gradients=model.options["training_data_gradients"],
+                vec_size=1,
+            )
 
         if len(self.input_names) < 2:
-            raise ValueError('Must have more than one input value')
+            raise ValueError("Must have more than one input value")
 
         # Pair input list names with their respective data
         self.training_inputs = {}
@@ -181,17 +184,26 @@ class MetaModelVisualization(object):
         self._setup_empty_prob_comp(model)
 
         # Setup dropdown menus for x/y inputs and the output value
-        self.x_input_select = Select(title="X Input:", value=[x for x in self.input_names][0],
-                                     options=[x for x in self.input_names])
-        self.x_input_select.on_change('value', self._x_input_update)
+        self.x_input_select = Select(
+            title="X Input:",
+            value=[x for x in self.input_names][0],
+            options=[x for x in self.input_names],
+        )
+        self.x_input_select.on_change("value", self._x_input_update)
 
-        self.y_input_select = Select(title="Y Input:", value=[x for x in self.input_names][1],
-                                     options=[x for x in self.input_names])
-        self.y_input_select.on_change('value', self._y_input_update)
+        self.y_input_select = Select(
+            title="Y Input:",
+            value=[x for x in self.input_names][1],
+            options=[x for x in self.input_names],
+        )
+        self.y_input_select.on_change("value", self._y_input_update)
 
-        self.output_select = Select(title="Output:", value=[x for x in self.output_names][0],
-                                    options=[x for x in self.output_names])
-        self.output_select.on_change('value', self._output_value_update)
+        self.output_select = Select(
+            title="Output:",
+            value=[x for x in self.output_names][0],
+            options=[x for x in self.output_names],
+        )
+        self.output_select.on_change("value", self._output_value_update)
 
         # Create sliders for each input
         self.slider_dict = {}
@@ -201,8 +213,13 @@ class MetaModelVisualization(object):
             self.predict_inputs[title] = slider_data
             # Calculates the distance between slider ticks
             slider_step = slider_data[1] - slider_data[0]
-            slider_object = Slider(start=min(values), end=max(values), value=min(values),
-                                   step=slider_step, title=str(title))
+            slider_object = Slider(
+                start=min(values),
+                end=max(values),
+                value=min(values),
+                step=slider_step,
+                title=str(title),
+            )
             self.slider_dict[title] = slider_object
 
         self._slider_attrs()
@@ -225,35 +242,45 @@ class MetaModelVisualization(object):
         self.slider_source = ColumnDataSource(data=self.predict_inputs)
 
         # Contour plot Column Data Source
-        self.contour_plot_source = ColumnDataSource(data=dict(
-            z=np.random.rand(self.resolution, self.resolution)))
+        self.contour_plot_source = ColumnDataSource(
+            data=dict(z=np.random.rand(self.resolution, self.resolution))
+        )
         self.contour_training_data_source = ColumnDataSource(
-            data=dict(x=np.repeat(0, self.resolution), y=np.repeat(0, self.resolution)))
+            data=dict(x=np.repeat(0, self.resolution), y=np.repeat(0, self.resolution))
+        )
 
         # Bottom plot Column Data Source
-        self.bottom_plot_source = ColumnDataSource(data=dict(
-            x=np.repeat(0, self.resolution), y=np.repeat(0, self.resolution)))
-        self.bottom_plot_scatter_source = ColumnDataSource(data=dict(
-            bot_slice_x=np.repeat(0, self.resolution), bot_slice_y=np.repeat(0, self.resolution)))
+        self.bottom_plot_source = ColumnDataSource(
+            data=dict(x=np.repeat(0, self.resolution), y=np.repeat(0, self.resolution))
+        )
+        self.bottom_plot_scatter_source = ColumnDataSource(
+            data=dict(
+                bot_slice_x=np.repeat(0, self.resolution), bot_slice_y=np.repeat(0, self.resolution)
+            )
+        )
 
         # Right plot Column Data Source
-        self.right_plot_source = ColumnDataSource(data=dict(
-            x=np.repeat(0, self.resolution), y=np.repeat(0, self.resolution)))
-        self.right_plot_scatter_source = ColumnDataSource(data=dict(
-            right_slice_x=np.repeat(0, self.resolution),
-            right_slice_y=np.repeat(0, self.resolution)))
+        self.right_plot_source = ColumnDataSource(
+            data=dict(x=np.repeat(0, self.resolution), y=np.repeat(0, self.resolution))
+        )
+        self.right_plot_scatter_source = ColumnDataSource(
+            data=dict(
+                right_slice_x=np.repeat(0, self.resolution),
+                right_slice_y=np.repeat(0, self.resolution),
+            )
+        )
 
         # Text input to change the distance of reach when searching for nearest data points
         self.scatter_distance = TextInput(value="0.1", title="Scatter Distance")
-        self.scatter_distance.on_change('value', self._scatter_input)
+        self.scatter_distance.on_change("value", self._scatter_input)
         self.dist_range = float(self.scatter_distance.value)
 
         # Grouping all of the sliders and dropdowns into one column
         sliders = [value for value in self.slider_dict.values()]
         sliders.extend(
-            [self.x_input_select, self.y_input_select, self.output_select, self.scatter_distance])
-        self.sliders_and_selects = row(
-            column(*sliders))
+            [self.x_input_select, self.y_input_select, self.output_select, self.scatter_distance]
+        )
+        self.sliders_and_selects = row(column(*sliders))
 
         # Layout creation
         self.doc_layout = row(self._contour_data(), self._right_plot(), self.sliders_and_selects)
@@ -264,7 +291,7 @@ class MetaModelVisualization(object):
 
         doc.add_root(self.doc_layout)
         doc.add_root(self.doc_layout2)
-        doc.title = 'Meta Model Visualization'
+        doc.title = "Meta Model Visualization"
 
     def _setup_empty_prob_comp(self, metamodel):
         """
@@ -284,8 +311,7 @@ class MetaModelVisualization(object):
                     # Append the input data/titles to a dictionary
                     self.training_inputs[name] = metamodel.inputs[idx]
                     # Also, append the data as an 'add_input' to the model reference
-                    self.meta_model.add_input(name, 0.,
-                                              training_data=metamodel.inputs[idx])
+                    self.meta_model.add_input(name, 0.0, training_data=metamodel.inputs[idx])
                 except TypeError:
                     msg = "No training data present for one or more parameters"
                     raise TypeError(msg)
@@ -293,25 +319,27 @@ class MetaModelVisualization(object):
             # Add the outputs to the model reference
             for idx, name in enumerate(self.output_names):
                 self.meta_model.add_output(
-                    name, 0.,
-                    training_data=metamodel.training_outputs[name])
+                    name, 0.0, training_data=metamodel.training_outputs[name]
+                )
 
-        elif self.mm_type == 'unstruct':
+        elif self.mm_type == "unstruct":
             for name in self.input_names:
                 try:
                     self.training_inputs[name] = {
-                        title for title in metamodel.options['train_' + str(name)]}
-                    tdata = [title for title in metamodel.options['train_' + str(name)]]
-                    self.meta_model.add_input(name, 0., training_data=tdata)
+                        title for title in metamodel.options["train_" + str(name)]
+                    }
+                    tdata = [title for title in metamodel.options["train_" + str(name)]]
+                    self.meta_model.add_input(name, 0.0, training_data=tdata)
                 except TypeError:
                     msg = "No training data present for one or more parameters"
                     raise TypeError(msg)
 
             for name in self.output_names:
                 self.meta_model.add_output(
-                    name, 0.,
-                    training_data=[
-                        title for title in metamodel.options['train_' + str(name)]])
+                    name,
+                    0.0,
+                    training_data=[title for title in metamodel.options["train_" + str(name)]],
+                )
 
         else:  # semi-struct
             for name in self.input_names:
@@ -324,7 +352,7 @@ class MetaModelVisualization(object):
                 self.meta_model.add_output(name, train)
 
         # Add the subsystem and setup
-        self.prob.model.add_subsystem('interp', self.meta_model)
+        self.prob.model.add_subsystem("interp", self.meta_model)
         self.prob.setup()
 
     def _slider_attrs(self):
@@ -345,16 +373,16 @@ class MetaModelVisualization(object):
             if name == self.x_input_select.value:
                 # Set the object and add an event handler
                 self.x_input_slider = slider_object
-                self.x_input_slider.on_change('value', self._scatter_plots_update)
+                self.x_input_slider.on_change("value", self._scatter_plots_update)
 
             # Check if the name matches the 'y input' title
             elif name == self.y_input_select.value:
                 # Set the object and add an event handler
                 self.y_input_slider = slider_object
-                self.y_input_slider.on_change('value', self._scatter_plots_update)
+                self.y_input_slider.on_change("value", self._scatter_plots_update)
             else:
                 # If it is not an x or y input then just assign it the event handler
-                slider_object.on_change('value', self._update)
+                slider_object.on_change("value", self._update)
 
     def _make_predictions(self, data):
         """
@@ -384,21 +412,19 @@ class MetaModelVisualization(object):
             # the name of the input and value.
             for idx, tup in enumerate(inputs):
                 for name, val in zip(data.keys(), tup):
-                    self.prob[self.meta_model.name + '.' + name] = val
+                    self.prob[self.meta_model.name + "." + name] = val
                 self.prob.run_model()
                 # Append the predicted value(s)
                 for title in self.output_names:
-                    outputs[title].append(
-                        np.array(self.prob[self.meta_model.name + '.' + title]))
+                    outputs[title].append(np.array(self.prob[self.meta_model.name + "." + title]))
 
         else:
             for idx, tup in enumerate(inputs):
                 for name, val in zip(data.keys(), tup):
-                    self.prob[self.meta_model.name + '.' + name] = val
+                    self.prob[self.meta_model.name + "." + name] = val
                 self.prob.run_model()
                 for title in self.output_names:
-                    outputs[title].append(
-                        self.prob[self.meta_model.name + '.' + title].item())
+                    outputs[title].append(self.prob[self.meta_model.name + "." + title].item())
 
         return stack_outputs(outputs)
 
@@ -465,7 +491,8 @@ class MetaModelVisualization(object):
         # Pass the dict to make predictions and then reshape the output to
         # (resolution, resolution, number of outputs)
         y_data[:, :, :] = self._make_predictions(self._contour_data_calcs()).reshape(
-            (resolution, resolution, self.num_outputs))
+            (resolution, resolution, self.num_outputs)
+        )
         # Use the output variable to pull the correct column of data from the predicted
         # data (y_data)
         self.Z = y_data[:, :, self.output_variable]
@@ -481,15 +508,22 @@ class MetaModelVisualization(object):
 
         # Color bar formatting
         color_mapper = LinearColorMapper(
-            palette="Viridis11", low=np.amin(self.Z), high=np.amax(self.Z))
-        color_bar = ColorBar(color_mapper=color_mapper, ticker=BasicTicker(), label_standoff=12,
-                             location=(0, 0))
+            palette="Viridis11", low=np.amin(self.Z), high=np.amax(self.Z)
+        )
+        color_bar = ColorBar(
+            color_mapper=color_mapper, ticker=BasicTicker(), label_standoff=12, location=(0, 0)
+        )
 
         # Contour Plot
         self.contour_plot = contour_plot = figure(
             match_aspect=False,
-            tooltips=[(self.x_input_select.value, "$x"), (self.y_input_select.value, "$y"),
-                      (self.output_select.value, "@z")], tools='')
+            tooltips=[
+                (self.x_input_select.value, "$x"),
+                (self.y_input_select.value, "$y"),
+                (self.output_select.value, "@z"),
+            ],
+            tools="",
+        )
         contour_plot.x_range.range_padding = 0
         contour_plot.y_range.range_padding = 0
         contour_plot.width = 600
@@ -497,12 +531,18 @@ class MetaModelVisualization(object):
         contour_plot.xaxis.axis_label = self.x_input_select.value
         contour_plot.yaxis.axis_label = self.y_input_select.value
         contour_plot.min_border_left = 0
-        contour_plot.add_layout(color_bar, 'right')
+        contour_plot.add_layout(color_bar, "right")
         contour_plot.x_range = Range1d(min(xlins), max(xlins))
         contour_plot.y_range = Range1d(min(ylins), max(ylins))
-        contour_plot.image(image='z', source=self.contour_plot_source, x=min(xlins), y=min(ylins),
-                           dh=(max(ylins) - min(ylins)), dw=(max(xlins) - min(xlins)),
-                           palette="Viridis11")
+        contour_plot.image(
+            image="z",
+            source=self.contour_plot_source,
+            x=min(xlins),
+            y=min(ylins),
+            dh=(max(ylins) - min(ylins)),
+            dw=(max(xlins) - min(xlins)),
+            palette="Viridis11",
+        )
 
         # Adding training data points overlay to contour plot
         if self.mm_type == "struct":
@@ -516,26 +556,43 @@ class MetaModelVisualization(object):
             # Add training data points overlay to contour plot
             data = np.array(data)
             if self.mm_type == "struct":
-                self.contour_training_data_source.data = dict(x=data[:, 0], y=data[:, 1],
-                                                              z=self.meta_model.training_outputs[
-                                                              self.output_select.value].flatten())
+                self.contour_training_data_source.data = dict(
+                    x=data[:, 0],
+                    y=data[:, 1],
+                    z=self.meta_model.training_outputs[self.output_select.value].flatten(),
+                )
             elif self.mm_type == "unstruct":
-                self.contour_training_data_source.data = dict(x=data[:, 0], y=data[:, 1],
-                                                              z=self.meta_model._training_output[
-                                                              self.output_select.value])
+                self.contour_training_data_source.data = dict(
+                    x=data[:, 0],
+                    y=data[:, 1],
+                    z=self.meta_model._training_output[self.output_select.value],
+                )
             else:  # semi-struct
-                self.contour_training_data_source.data = dict(x=data[:, 0], y=data[:, 1],
-                                                              z=self.meta_model.training_outputs[
-                                                              self.output_select.value])
+                self.contour_training_data_source.data = dict(
+                    x=data[:, 0],
+                    y=data[:, 1],
+                    z=self.meta_model.training_outputs[self.output_select.value],
+                )
 
             training_data_renderer = self.contour_plot.circle(
-                x='x', y='y', source=self.contour_training_data_source,
-                size=5, color='white', alpha=0.50)
+                x="x",
+                y="y",
+                source=self.contour_training_data_source,
+                size=5,
+                color="white",
+                alpha=0.50,
+            )
 
-            self.contour_plot.add_tools(HoverTool(renderers=[training_data_renderer], tooltips=[
-                (self.x_input_select.value + " (train)", '@x'),
-                (self.y_input_select.value + " (train)", '@y'),
-                (self.output_select.value + " (train)", '@z'), ]))
+            self.contour_plot.add_tools(
+                HoverTool(
+                    renderers=[training_data_renderer],
+                    tooltips=[
+                        (self.x_input_select.value + " (train)", "@x"),
+                        (self.y_input_select.value + " (train)", "@y"),
+                        (self.output_select.value + " (train)", "@z"),
+                    ],
+                )
+            )
 
         return self.contour_plot
 
@@ -562,8 +619,8 @@ class MetaModelVisualization(object):
 
         # Rounds the x_data to match the predict_inputs value
         subplot_value_index = np.where(
-            np.around(self.predict_inputs[self.x_input_select.value], 5) ==
-            np.around(x_value, 5))[0]
+            np.around(self.predict_inputs[self.x_input_select.value], 5) == np.around(x_value, 5)
+        )[0]
 
         # Make slice in Z data at the point calculated before and add it to the data source
         z_data = self.Z[:, subplot_value_index].flatten()
@@ -576,54 +633,87 @@ class MetaModelVisualization(object):
 
         # Create and format figure
         self.right_plot_fig = right_plot_fig = figure(
-            width=250, height=500,
-            title="{} vs {}".format(y_idx, self.output_select.value), tools="pan")
+            width=250,
+            height=500,
+            title="{} vs {}".format(y_idx, self.output_select.value),
+            tools="pan",
+        )
         right_plot_fig.xaxis.axis_label = self.output_select.value
         right_plot_fig.yaxis.axis_label = y_idx
         right_plot_fig.xaxis.major_label_orientation = math.pi / 9
-        right_plot_fig.line(x='x', y='y', source=self.right_plot_source)
+        right_plot_fig.line(x="x", y="y", source=self.right_plot_source)
         right_plot_fig.x_range.range_padding = 0.1
         right_plot_fig.y_range.range_padding = 0.02
 
         # Determine distance and alpha opacity of training points
         if self.mm_type == "struct":
-            data = self._structured_training_points(compute_distance=True, source='right')
+            data = self._structured_training_points(compute_distance=True, source="right")
         elif self.mm_type == "unstruct":
-            data = self._unstructured_training_points(compute_distance=True, source='right')
+            data = self._unstructured_training_points(compute_distance=True, source="right")
         else:
-            data = self._semi_structured_training_points(compute_distance=True, source='right')
+            data = self._semi_structured_training_points(compute_distance=True, source="right")
 
         self.right_alphas = 1.0 - data[:, 2] / self.dist_range
 
         # Training data scatter plot
-        scatter_renderer = right_plot_fig.scatter(x=data[:, 3], y=data[:, 1], line_color=None,
-                                                  fill_color='#000000',
-                                                  fill_alpha=self.right_alphas.tolist())
+        scatter_renderer = right_plot_fig.scatter(
+            x=data[:, 3],
+            y=data[:, 1],
+            line_color=None,
+            fill_color="#000000",
+            fill_alpha=self.right_alphas.tolist(),
+        )
 
-        right_plot_fig.add_tools(HoverTool(renderers=[scatter_renderer], tooltips=[
-            (self.output_select.value + " (train)", '@x'),
-            (y_idx + " (train)", '@y'),
-        ]))
-        right_plot_fig.scatter(x=data[:, 3], y=data[:, 1], line_color=None, fill_color='#000000',
-                               fill_alpha=self.right_alphas.tolist())
+        right_plot_fig.add_tools(
+            HoverTool(
+                renderers=[scatter_renderer],
+                tooltips=[
+                    (self.output_select.value + " (train)", "@x"),
+                    (y_idx + " (train)", "@y"),
+                ],
+            )
+        )
+        right_plot_fig.scatter(
+            x=data[:, 3],
+            y=data[:, 1],
+            line_color=None,
+            fill_color="#000000",
+            fill_alpha=self.right_alphas.tolist(),
+        )
 
         span_width = self.dist_range * (max(y_data) - min(y_data))
 
         # Set the right_plot data source to new values
         self.right_plot_scatter_source.data = dict(
-            right_slice_x=np.repeat(x_value, self.resolution), right_slice_y=y_data,
+            right_slice_x=np.repeat(x_value, self.resolution),
+            right_slice_y=y_data,
             left_dashed=[i - span_width for i in np.repeat(x_value, self.resolution)],
-            right_dashed=[i + span_width for i in np.repeat(x_value, self.resolution)])
+            right_dashed=[i + span_width for i in np.repeat(x_value, self.resolution)],
+        )
 
         self.contour_plot.line(
-            'right_slice_x', 'right_slice_y', source=self.right_plot_scatter_source,
-            color='black', line_width=2)
+            "right_slice_x",
+            "right_slice_y",
+            source=self.right_plot_scatter_source,
+            color="black",
+            line_width=2,
+        )
         self.contour_plot.line(
-            'left_dashed', 'right_slice_y', line_dash='dashed',
-            source=self.right_plot_scatter_source, color='black', line_width=2)
+            "left_dashed",
+            "right_slice_y",
+            line_dash="dashed",
+            source=self.right_plot_scatter_source,
+            color="black",
+            line_width=2,
+        )
         self.contour_plot.line(
-            'right_dashed', 'right_slice_y', line_dash='dashed',
-            source=self.right_plot_scatter_source, color='black', line_width=2)
+            "right_dashed",
+            "right_slice_y",
+            line_dash="dashed",
+            source=self.right_plot_scatter_source,
+            color="black",
+            line_width=2,
+        )
 
         return self.right_plot_fig
 
@@ -650,8 +740,8 @@ class MetaModelVisualization(object):
 
         # Rounds the y_data to match the predict_inputs value
         subplot_value_index = np.where(
-            np.around(self.predict_inputs[self.y_input_select.value], 5) ==
-            np.around(y_value, 5))[0]
+            np.around(self.predict_inputs[self.y_input_select.value], 5) == np.around(y_value, 5)
+        )[0]
 
         # Make slice in Z data at the point calculated before and add it to the data source
         z_data = self.Z[subplot_value_index, :].flatten()
@@ -664,11 +754,14 @@ class MetaModelVisualization(object):
 
         # Create and format figure
         self.bottom_plot_fig = bottom_plot_fig = figure(
-            width=550, height=250,
-            title="{} vs {}".format(x_idx, self.output_select.value), tools="")
+            width=550,
+            height=250,
+            title="{} vs {}".format(x_idx, self.output_select.value),
+            tools="",
+        )
         bottom_plot_fig.xaxis.axis_label = x_idx
         bottom_plot_fig.yaxis.axis_label = self.output_select.value
-        bottom_plot_fig.line(x='x', y='y', source=self.bottom_plot_source)
+        bottom_plot_fig.line(x="x", y="y", source=self.bottom_plot_source)
         bottom_plot_fig.x_range.range_padding = 0.02
         bottom_plot_fig.y_range.range_padding = 0.1
 
@@ -683,36 +776,61 @@ class MetaModelVisualization(object):
         self.bottom_alphas = 1.0 - data[:, 2] / self.dist_range
 
         # Training data scatter plot
-        scatter_renderer = bottom_plot_fig.scatter(x=data[:, 0], y=data[:, 3], line_color=None,
-                                                   fill_color='#000000',
-                                                   fill_alpha=self.bottom_alphas.tolist())
+        scatter_renderer = bottom_plot_fig.scatter(
+            x=data[:, 0],
+            y=data[:, 3],
+            line_color=None,
+            fill_color="#000000",
+            fill_alpha=self.bottom_alphas.tolist(),
+        )
 
-        bottom_plot_fig.add_tools(HoverTool(renderers=[scatter_renderer], tooltips=[
-            (x_idx + " (train)", '@x'),
-            (self.output_select.value + " (train)", '@y'),
-        ]))
+        bottom_plot_fig.add_tools(
+            HoverTool(
+                renderers=[scatter_renderer],
+                tooltips=[
+                    (x_idx + " (train)", "@x"),
+                    (self.output_select.value + " (train)", "@y"),
+                ],
+            )
+        )
 
         span_width = self.dist_range * (max(x_data) - min(x_data))
 
         # Set the right_plot data source to new values
         self.bottom_plot_scatter_source.data = dict(
-            bot_slice_x=x_data, bot_slice_y=np.repeat(y_value, self.resolution),
+            bot_slice_x=x_data,
+            bot_slice_y=np.repeat(y_value, self.resolution),
             upper_dashed=[i + span_width for i in np.repeat(y_value, self.resolution)],
-            lower_dashed=[i - span_width for i in np.repeat(y_value, self.resolution)])
+            lower_dashed=[i - span_width for i in np.repeat(y_value, self.resolution)],
+        )
 
         self.contour_plot.line(
-            'bot_slice_x', 'bot_slice_y', source=self.bottom_plot_scatter_source, color='black',
-            line_width=2)
+            "bot_slice_x",
+            "bot_slice_y",
+            source=self.bottom_plot_scatter_source,
+            color="black",
+            line_width=2,
+        )
         self.contour_plot.line(
-            'bot_slice_x', 'upper_dashed', line_dash='dashed',
-            source=self.bottom_plot_scatter_source, color='black', line_width=2)
+            "bot_slice_x",
+            "upper_dashed",
+            line_dash="dashed",
+            source=self.bottom_plot_scatter_source,
+            color="black",
+            line_width=2,
+        )
         self.contour_plot.line(
-            'bot_slice_x', 'lower_dashed', line_dash='dashed',
-            source=self.bottom_plot_scatter_source, color='black', line_width=2)
+            "bot_slice_x",
+            "lower_dashed",
+            line_dash="dashed",
+            source=self.bottom_plot_scatter_source,
+            color="black",
+            line_width=2,
+        )
 
         return self.bottom_plot_fig
 
-    def _unstructured_training_points(self, compute_distance=False, source='bottom'):
+    def _unstructured_training_points(self, compute_distance=False, source="bottom"):
         """
         Calculate the training points and returns and array containing the position and alpha.
 
@@ -752,11 +870,11 @@ class MetaModelVisualization(object):
         # Query the nearest neighbors tree for the closest points to the scaled x0 array
         # Nearest points to x slice
         if x_training.shape[1] < 3:
-
             tree = cKDTree(points)
             # Query the nearest neighbors tree for the closest points to the scaled x0 array
             dists, idxs = tree.query(
-                scaled_x0, k=len(x_training), distance_upper_bound=self.dist_range)
+                scaled_x0, k=len(x_training), distance_upper_bound=self.dist_range
+            )
 
             # kdtree query always returns requested k even if there are not enough valid points
             idx_finite = np.where(np.isfinite(dists))
@@ -777,7 +895,7 @@ class MetaModelVisualization(object):
 
         return data
 
-    def _semi_structured_training_points(self, compute_distance=False, source='bottom'):
+    def _semi_structured_training_points(self, compute_distance=False, source="bottom"):
         """
         Calculate the training points and returns and array containing the position and alpha.
 
@@ -817,11 +935,11 @@ class MetaModelVisualization(object):
         # Query the nearest neighbors tree for the closest points to the scaled x0 array
         # Nearest points to x slice
         if x_training.shape[1] < 3:
-
             tree = cKDTree(points)
             # Query the nearest neighbors tree for the closest points to the scaled x0 array
             dists, idxs = tree.query(
-                scaled_x0, k=len(x_training), distance_upper_bound=self.dist_range)
+                scaled_x0, k=len(x_training), distance_upper_bound=self.dist_range
+            )
 
             # kdtree query always returns requested k even if there are not enough valid points
             idx_finite = np.where(np.isfinite(dists))
@@ -842,7 +960,7 @@ class MetaModelVisualization(object):
 
         return data
 
-    def _structured_training_points(self, compute_distance=False, source='bottom'):
+    def _structured_training_points(self, compute_distance=False, source="bottom"):
         """
         Calculate the training points and return an array containing the position and alpha.
 
@@ -900,7 +1018,7 @@ class MetaModelVisualization(object):
 
         return data
 
-    def _two_dimension_input(self, scaled_points, training_points, source='bottom'):
+    def _two_dimension_input(self, scaled_points, training_points, source="bottom"):
         """
         Calculate the distance of training points to the surrogate line.
 
@@ -921,7 +1039,7 @@ class MetaModelVisualization(object):
             One dimentional array of points that are within the dist range.
         """
         # Column of the input
-        if source == 'right':
+        if source == "right":
             col_idx = self.y_input_select.options.index(self.y_input_select.value)
         else:
             col_idx = self.x_input_select.options.index(self.x_input_select.value)
@@ -938,7 +1056,7 @@ class MetaModelVisualization(object):
         x_tree = x_tree[idx]
         return x_tree, idx[0]
 
-    def _multidimension_input(self, scaled_points, training_points, source='bottom'):
+    def _multidimension_input(self, scaled_points, training_points, source="bottom"):
         """
         Calculate the distance of training points to the surrogate line.
 
@@ -959,7 +1077,7 @@ class MetaModelVisualization(object):
             Array of points that are within the dist range.
         """
         # Column of the input
-        if source == 'right':
+        if source == "right":
             col_idx = self.y_input_select.options.index(self.y_input_select.value)
 
         else:
@@ -973,8 +1091,7 @@ class MetaModelVisualization(object):
         x_tree = cKDTree(x_training_points)
 
         # Query the nearest neighbors tree for the closest points to the scaled array
-        dists, idx = x_tree.query(x, k=len(x_training_points),
-                                  distance_upper_bound=self.dist_range)
+        dists, idx = x_tree.query(x, k=len(x_training_points), distance_upper_bound=self.dist_range)
 
         # kdtree query always returns requested k even if there are not enough valid points
         idx_finite = np.where(np.isfinite(dists))
@@ -1045,10 +1162,10 @@ def view_metamodel(meta_model_comp, resolution, port_number, browser):
     def make_doc(doc):
         MetaModelVisualization(meta_model_comp, resolution, doc=doc)
 
-    server = Server({'/': Application(FunctionHandler(make_doc))}, port=int(port_number))
+    server = Server({"/": Application(FunctionHandler(make_doc))}, port=int(port_number))
     if browser:
         server.io_loop.add_callback(server.show, "/")
     else:
-        print('Server started, to view go to http://localhost:{}/'.format(port_number))
+        print("Server started, to view go to http://localhost:{}/".format(port_number))
 
     server.io_loop.start()

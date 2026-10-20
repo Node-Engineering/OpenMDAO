@@ -15,107 +15,107 @@ class TestOptimizerVector(unittest.TestCase):
         """Set up test data."""
         self.data = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], dtype=float)
         self.metadata = {
-            'x': {'slice': slice(0, 2), 'size': 2},
-            'y': {'slice': slice(2, 4), 'size': 2},
-            'z': {'slice': slice(4, 6), 'size': 2},
+            "x": {"slice": slice(0, 2), "size": 2},
+            "y": {"slice": slice(2, 4), "size": 2},
+            "z": {"slice": slice(4, 6), "size": 2},
         }
 
     def test_getitem_scalar(self):
         """Test getting a scalar variable."""
         data = np.array([1.5, 2.5, 3.5])
-        metadata = {'x': {'slice': slice(0, 1), 'size': 1}}
-        vec = OptimizerVector('design_var', data, metadata)
+        metadata = {"x": {"slice": slice(0, 1), "size": 1}}
+        vec = OptimizerVector("design_var", data, metadata)
 
-        result = vec['x']
+        result = vec["x"]
         assert_near_equal(result, np.array([1.5]))
 
     def test_getitem_vector(self):
         """Test getting a vector variable."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
-        result = vec['x']
+        result = vec["x"]
         assert_near_equal(result, np.array([1.0, 2.0]))
 
-        result = vec['y']
+        result = vec["y"]
         assert_near_equal(result, np.array([3.0, 4.0]))
 
     def test_getitem_nonexistent(self):
         """Test KeyError for nonexistent variable."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
         with self.assertRaises(KeyError) as cm:
-            vec['nonexistent']
+            vec["nonexistent"]
 
-        self.assertIn('not found', str(cm.exception))
+        self.assertIn("not found", str(cm.exception))
 
     def test_setitem_scalar(self):
         """Test setting a scalar variable."""
         data = np.array([1.5, 2.5, 3.5])
-        metadata = {'x': {'slice': slice(0, 1), 'size': 1}}
-        vec = OptimizerVector('design_var', data, metadata)
+        metadata = {"x": {"slice": slice(0, 1), "size": 1}}
+        vec = OptimizerVector("design_var", data, metadata)
 
-        vec['x'] = 10.0
+        vec["x"] = 10.0
         assert_near_equal(data[0], 10.0)
 
     def test_setitem_vector(self):
         """Test setting a vector variable."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
-        vec['x'] = [10.0, 20.0]
+        vec["x"] = [10.0, 20.0]
         assert_near_equal(self.data[:2], np.array([10.0, 20.0]))
 
-        vec['y'] = np.array([30.0, 40.0])
+        vec["y"] = np.array([30.0, 40.0])
         assert_near_equal(self.data[2:4], np.array([30.0, 40.0]))
 
     def test_setitem_scalar_from_array(self):
         """Test setting a scalar variable from an array."""
         data = np.array([1.5, 2.5, 3.5])
-        metadata = {'x': {'slice': slice(0, 1), 'size': 1}}
-        vec = OptimizerVector('design_var', data, metadata)
+        metadata = {"x": {"slice": slice(0, 1), "size": 1}}
+        vec = OptimizerVector("design_var", data, metadata)
 
-        vec['x'] = np.array([99.0])
+        vec["x"] = np.array([99.0])
         assert_near_equal(data[0], 99.0)
 
     def test_setitem_nonexistent(self):
         """Test KeyError when setting nonexistent variable."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
         with self.assertRaises(KeyError) as cm:
-            vec['nonexistent'] = 5.0
+            vec["nonexistent"] = 5.0
 
-        self.assertIn('not found', str(cm.exception))
+        self.assertIn("not found", str(cm.exception))
 
     def test_contains(self):
         """Test __contains__ method."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
-        self.assertIn('x', vec)
-        self.assertIn('y', vec)
-        self.assertIn('z', vec)
-        self.assertNotIn('nonexistent', vec)
+        self.assertIn("x", vec)
+        self.assertIn("y", vec)
+        self.assertIn("z", vec)
+        self.assertNotIn("nonexistent", vec)
 
     def test_len(self):
         """Test __len__ method."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
         self.assertEqual(len(vec), 3)
 
     def test_iter(self):
         """Test __iter__ method."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
         names = list(vec)
-        self.assertEqual(names, ['x', 'y', 'z'])
+        self.assertEqual(names, ["x", "y", "z"])
 
     def test_keys(self):
         """Test keys method."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
         keys = list(vec.keys())
-        self.assertEqual(keys, ['x', 'y', 'z'])
+        self.assertEqual(keys, ["x", "y", "z"])
 
     def test_values(self):
         """Test values method."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
         values = list(vec.values())
         self.assertEqual(len(values), 3)
@@ -125,30 +125,30 @@ class TestOptimizerVector(unittest.TestCase):
 
     def test_items(self):
         """Test items method."""
-        vec = OptimizerVector('design_var', self.data, self.metadata)
+        vec = OptimizerVector("design_var", self.data, self.metadata)
 
         items = list(vec.items())
         self.assertEqual(len(items), 3)
 
-        self.assertEqual(items[0][0], 'x')
+        self.assertEqual(items[0][0], "x")
         assert_near_equal(items[0][1], np.array([1.0, 2.0]))
 
-        self.assertEqual(items[1][0], 'y')
+        self.assertEqual(items[1][0], "y")
         assert_near_equal(items[1][1], np.array([3.0, 4.0]))
 
-        self.assertEqual(items[2][0], 'z')
+        self.assertEqual(items[2][0], "z")
         assert_near_equal(items[2][1], np.array([5.0, 6.0]))
 
     def test_voi_type(self):
         """Test voi_type attribute."""
-        vec1 = OptimizerVector('design_var', self.data, self.metadata)
-        self.assertEqual(vec1.voi_type, 'design_var')
+        vec1 = OptimizerVector("design_var", self.data, self.metadata)
+        self.assertEqual(vec1.voi_type, "design_var")
 
-        vec2 = OptimizerVector('constraint', self.data, self.metadata)
-        self.assertEqual(vec2.voi_type, 'constraint')
+        vec2 = OptimizerVector("constraint", self.data, self.metadata)
+        self.assertEqual(vec2.voi_type, "constraint")
 
-        vec3 = OptimizerVector('objective', self.data, self.metadata)
-        self.assertEqual(vec3.voi_type, 'objective')
+        vec3 = OptimizerVector("objective", self.data, self.metadata)
+        self.assertEqual(vec3.voi_type, "objective")
 
 
 class TestOptimizerVectorAsarray(unittest.TestCase):
@@ -158,16 +158,16 @@ class TestOptimizerVectorAsarray(unittest.TestCase):
         """Set up test data with metadata for filtering."""
         self.data = np.arange(10, dtype=float)
         self.metadata = {
-            'linear_eq1': {'slice': slice(0, 2), 'size': 2, 'linear': True, 'equals': 5.0},
-            'linear_ineq1': {'slice': slice(2, 4), 'size': 2, 'linear': True, 'equals': None},
-            'nonlinear_eq1': {'slice': slice(4, 6), 'size': 2, 'linear': False, 'equals': 3.0},
-            'nonlinear_ineq1': {'slice': slice(6, 8), 'size': 2, 'linear': False, 'equals': None},
-            'nonlinear_ineq2': {'slice': slice(8, 10), 'size': 2, 'linear': False, 'equals': None},
+            "linear_eq1": {"slice": slice(0, 2), "size": 2, "linear": True, "equals": 5.0},
+            "linear_ineq1": {"slice": slice(2, 4), "size": 2, "linear": True, "equals": None},
+            "nonlinear_eq1": {"slice": slice(4, 6), "size": 2, "linear": False, "equals": 3.0},
+            "nonlinear_ineq1": {"slice": slice(6, 8), "size": 2, "linear": False, "equals": None},
+            "nonlinear_ineq2": {"slice": slice(8, 10), "size": 2, "linear": False, "equals": None},
         }
 
     def test_asarray_no_filter(self):
         """Test asarray without filters returns full array view."""
-        vec = OptimizerVector('constraint', self.data, self.metadata)
+        vec = OptimizerVector("constraint", self.data, self.metadata)
 
         result = vec.asarray()
         assert_near_equal(result, self.data)
@@ -180,7 +180,7 @@ class TestOptimizerVectorAsarray(unittest.TestCase):
         """Test asarray with single filter criterion."""
         # Reset data
         self.data = np.arange(10, dtype=float)
-        vec = OptimizerVector('constraint', self.data, self.metadata)
+        vec = OptimizerVector("constraint", self.data, self.metadata)
 
         # Filter for linear constraints only
         result = vec.asarray(linear=True)
@@ -191,7 +191,7 @@ class TestOptimizerVectorAsarray(unittest.TestCase):
         """Test asarray filtering for nonlinear constraints."""
         # Reset data
         self.data = np.arange(10, dtype=float)
-        vec = OptimizerVector('constraint', self.data, self.metadata)
+        vec = OptimizerVector("constraint", self.data, self.metadata)
 
         # Filter for nonlinear constraints only
         result = vec.asarray(linear=False)
@@ -202,7 +202,7 @@ class TestOptimizerVectorAsarray(unittest.TestCase):
         """Test asarray with multiple filter criteria (AND logic)."""
         # Reset data
         self.data = np.arange(10, dtype=float)
-        vec = OptimizerVector('constraint', self.data, self.metadata)
+        vec = OptimizerVector("constraint", self.data, self.metadata)
 
         # Filter for nonlinear equality constraints
         result = vec.asarray(linear=False, equals=3.0)
@@ -213,7 +213,7 @@ class TestOptimizerVectorAsarray(unittest.TestCase):
         """Test asarray filtering for inequality constraints."""
         # Reset data
         self.data = np.arange(10, dtype=float)
-        vec = OptimizerVector('constraint', self.data, self.metadata)
+        vec = OptimizerVector("constraint", self.data, self.metadata)
 
         # Filter for inequalities (equals=None)
         result = vec.asarray(equals=None)
@@ -222,7 +222,7 @@ class TestOptimizerVectorAsarray(unittest.TestCase):
 
     def test_asarray_no_match(self):
         """Test asarray when no variables match filters."""
-        vec = OptimizerVector('constraint', self.data, self.metadata)
+        vec = OptimizerVector("constraint", self.data, self.metadata)
 
         # Filter for something that doesn't exist
         result = vec.asarray(linear=True, equals=999.0)
@@ -230,13 +230,13 @@ class TestOptimizerVectorAsarray(unittest.TestCase):
 
     def test_asarray_filter_caching(self):
         """Test that filter results are cached."""
-        vec = OptimizerVector('constraint', self.data, self.metadata)
+        vec = OptimizerVector("constraint", self.data, self.metadata)
 
         # First call computes filter
         result1 = vec.asarray(linear=True)
 
         # Check that cache key exists
-        cache_key = tuple(sorted({'linear': True}.items()))
+        cache_key = tuple(sorted({"linear": True}.items()))
         self.assertIn(cache_key, vec._filters)
 
         # Second call should use cache
@@ -245,7 +245,7 @@ class TestOptimizerVectorAsarray(unittest.TestCase):
 
     def test_asarray_filter_result_is_copy(self):
         """Test that filtered result is a copy, not a view."""
-        vec = OptimizerVector('constraint', self.data, self.metadata)
+        vec = OptimizerVector("constraint", self.data, self.metadata)
 
         result = vec.asarray(linear=True)
         original_val = result[0]
@@ -263,12 +263,12 @@ class TestOptimizerVectorMetadata(unittest.TestCase):
     def test_metadata_property(self):
         """Test metadata property returns the metadata dict."""
         data = np.array([1.0, 2.0])
-        metadata = {'x': {'slice': slice(0, 2), 'size': 2}}
-        vec = OptimizerVector('design_var', data, metadata)
+        metadata = {"x": {"slice": slice(0, 2), "size": 2}}
+        vec = OptimizerVector("design_var", data, metadata)
 
         returned_meta = vec.metadata
         self.assertIs(returned_meta, metadata)
-        self.assertEqual(returned_meta['x']['slice'].start, 0)
+        self.assertEqual(returned_meta["x"]["slice"].start, 0)
 
 
 class TestOptimizerVectorEdgeCases(unittest.TestCase):
@@ -278,7 +278,7 @@ class TestOptimizerVectorEdgeCases(unittest.TestCase):
         """Test empty OptimizerVector."""
         data = np.array([], dtype=float)
         metadata = {}
-        vec = OptimizerVector('design_var', data, metadata)
+        vec = OptimizerVector("design_var", data, metadata)
 
         self.assertEqual(len(vec), 0)
         self.assertEqual(list(vec), [])
@@ -287,11 +287,11 @@ class TestOptimizerVectorEdgeCases(unittest.TestCase):
     def test_single_element(self):
         """Test OptimizerVector with single element."""
         data = np.array([42.0])
-        metadata = {'x': {'slice': slice(0, 1), 'size': 1}}
-        vec = OptimizerVector('design_var', data, metadata)
+        metadata = {"x": {"slice": slice(0, 1), "size": 1}}
+        vec = OptimizerVector("design_var", data, metadata)
 
         self.assertEqual(len(vec), 1)
-        assert_near_equal(vec['x'], np.array([42.0]))
+        assert_near_equal(vec["x"], np.array([42.0]))
 
     def test_large_multidimensional_array(self):
         """Test OptimizerVector with large multi-dimensional data."""
@@ -301,45 +301,45 @@ class TestOptimizerVectorEdgeCases(unittest.TestCase):
         data_flat = data.flatten()
 
         metadata = {
-            'tensor': {'slice': slice(0, size), 'size': size},
+            "tensor": {"slice": slice(0, size), "size": size},
         }
 
-        vec = OptimizerVector('design_var', data_flat, metadata)
+        vec = OptimizerVector("design_var", data_flat, metadata)
 
-        result = vec['tensor']
+        result = vec["tensor"]
         assert_near_equal(result, data_flat)
 
     def test_set_with_different_dtypes(self):
         """Test setting values with different dtypes."""
         data = np.array([1.0, 2.0, 3.0, 4.0])
         metadata = {
-            'x': {'slice': slice(0, 2), 'size': 2},
-            'y': {'slice': slice(2, 4), 'size': 2},
+            "x": {"slice": slice(0, 2), "size": 2},
+            "y": {"slice": slice(2, 4), "size": 2},
         }
-        vec = OptimizerVector('design_var', data, metadata)
+        vec = OptimizerVector("design_var", data, metadata)
 
         # Set with integer
-        vec['x'] = 5
-        assert_near_equal(vec['x'], np.array([5.0, 5.0]))
+        vec["x"] = 5
+        assert_near_equal(vec["x"], np.array([5.0, 5.0]))
 
         # Set with float list
-        vec['y'] = [6.5, 7.5]
-        assert_near_equal(vec['y'], np.array([6.5, 7.5]))
+        vec["y"] = [6.5, 7.5]
+        assert_near_equal(vec["y"], np.array([6.5, 7.5]))
 
     def test_multiple_variables_same_size(self):
         """Test multiple variables with same size."""
         data = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
         metadata = {
-            'a': {'slice': slice(0, 2), 'size': 2},
-            'b': {'slice': slice(2, 4), 'size': 2},
-            'c': {'slice': slice(4, 6), 'size': 2},
+            "a": {"slice": slice(0, 2), "size": 2},
+            "b": {"slice": slice(2, 4), "size": 2},
+            "c": {"slice": slice(4, 6), "size": 2},
         }
-        vec = OptimizerVector('design_var', data, metadata)
+        vec = OptimizerVector("design_var", data, metadata)
 
         # All should have same size
-        for name in ['a', 'b', 'c']:
+        for name in ["a", "b", "c"]:
             self.assertEqual(len(vec[name]), 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

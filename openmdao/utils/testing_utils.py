@@ -1,4 +1,5 @@
 """Define utils for use in testing."""
+
 import json
 import functools
 import os
@@ -24,7 +25,7 @@ def _cleanup_workdir(self):
     os.chdir(self.startdir)
 
     if self.old_workdir:
-        os.environ['OPENMDAO_WORKDIR'] = self.old_workdir
+        os.environ["OPENMDAO_WORKDIR"] = self.old_workdir
 
     if MPI is None:
         rank = 0
@@ -34,7 +35,7 @@ def _cleanup_workdir(self):
         rank = MPI.COMM_WORLD.rank
 
     if rank == 0:
-        if not os.environ.get('OPENMDAO_KEEPDIRS'):
+        if not os.environ.get("OPENMDAO_KEEPDIRS"):
             try:
                 shutil.rmtree(self.tempdir)
             except OSError:
@@ -64,17 +65,18 @@ def _new_setup(self):
     import os
 
     from openmdao.utils.mpi import MPI, multi_proc_exception_check
+
     self.startdir = os.getcwd()
-    self.old_workdir = os.environ.get('OPENMDAO_WORKDIR', '')
+    self.old_workdir = os.environ.get("OPENMDAO_WORKDIR", "")
 
     self.tempdir = get_tempdir()
 
     os.chdir(self.tempdir)
     # on mac tempdir is a symlink which messes some things up, so
     # use resolve to get the real directory path
-    os.environ['OPENMDAO_WORKDIR'] = str(Path(self.tempdir).resolve())
+    os.environ["OPENMDAO_WORKDIR"] = str(Path(self.tempdir).resolve())
     try:
-        if hasattr(self, 'original_setUp'):
+        if hasattr(self, "original_setUp"):
             if MPI is not None and MPI.COMM_WORLD.size > 1:
                 with multi_proc_exception_check(MPI.COMM_WORLD):
                     self.original_setUp()
@@ -89,7 +91,7 @@ def _new_teardown(self):
     from openmdao.utils.mpi import MPI, multi_proc_exception_check
 
     try:
-        if hasattr(self, 'original_tearDown'):
+        if hasattr(self, "original_tearDown"):
             if MPI is not None and MPI.COMM_WORLD.size > 1:
                 with multi_proc_exception_check(MPI.COMM_WORLD):
                     self.original_tearDown()
@@ -120,14 +122,14 @@ def use_tempdirs(cls):
     TestCase
         The decorated TestCase class.
     """
-    if env_truthy('USE_TEMPDIRS') or env_none('USE_TEMPDIRS'):
-        if getattr(cls, 'setUp', None):
-            setattr(cls, 'original_setUp', getattr(cls, 'setUp'))
-        setattr(cls, 'setUp', _new_setup)
+    if env_truthy("USE_TEMPDIRS") or env_none("USE_TEMPDIRS"):
+        if getattr(cls, "setUp", None):
+            setattr(cls, "original_setUp", getattr(cls, "setUp"))
+        setattr(cls, "setUp", _new_setup)
 
-        if getattr(cls, 'tearDown', None):
-            setattr(cls, 'original_tearDown', getattr(cls, 'tearDown'))
-        setattr(cls, 'tearDown', _new_teardown)
+        if getattr(cls, "tearDown", None):
+            setattr(cls, "original_tearDown", getattr(cls, "tearDown"))
+        setattr(cls, "tearDown", _new_teardown)
 
     return cls
 
@@ -146,9 +148,11 @@ def require_pyoptsparse(optimizer=None):
     TestCase or TestCase.method
         The decorated TestCase class or method.
     """
+
     def decorator(obj):
 
         import unittest
+
         try:
             from pyoptsparse import OPT
 
@@ -156,9 +160,11 @@ def require_pyoptsparse(optimizer=None):
             msg = "pyoptsparse is not installed."
 
             if not isinstance(obj, type):
+
                 @functools.wraps(obj)
                 def skip_wrapper(*args, **kwargs):
                     raise unittest.SkipTest(msg)
+
                 obj = skip_wrapper
             obj.__unittest_skip__ = True
             obj.__unittest_skip_why__ = msg
@@ -171,18 +177,22 @@ def require_pyoptsparse(optimizer=None):
                 msg = "pyoptsparse is not providing %s" % optimizer
 
                 if not isinstance(obj, type):
+
                     @functools.wraps(obj)
                     def skip_wrapper(*args, **kwargs):
                         raise unittest.SkipTest(msg)
+
                     obj = skip_wrapper
                 obj.__unittest_skip__ = True
                 obj.__unittest_skip_why__ = msg
 
         return obj
+
     return decorator
 
 
 if parameterized:
+
     def parameterized_name(testcase_func, num, param):
         """
         Generate a name for a parameterized test from the parameters.
@@ -239,6 +249,7 @@ class set_env_vars(object):
         fnc : function
             The function being wrapped.
         """
+
         @functools.wraps(fnc)
         def wrap(*args, **kwargs):
             saved = {}
@@ -320,14 +331,22 @@ def _fix_comp_check_data(data):
     data : dict
         Dictionary containing derivative information keyed by subjac.
     """
-    names = ['J_fd', 'tol violation', 'magnitude', 'directional_fd_fwd', 'directional_fd_rev',
-             'vals_at_max_error', 'abs error', 'rel error']
+    names = [
+        "J_fd",
+        "tol violation",
+        "magnitude",
+        "directional_fd_fwd",
+        "directional_fd_rev",
+        "vals_at_max_error",
+        "abs error",
+        "rel error",
+    ]
 
     for name in names:
         if name in data:
             data[name] = data[name][0]
-    if 'steps' in data:
-        del data['steps']
+    if "steps" in data:
+        del data["steps"]
 
 
 def compare_prob_vs_comp_check_partials(probdata, compdata, comp):
@@ -358,30 +377,32 @@ def compare_prob_vs_comp_check_partials(probdata, compdata, comp):
     compdata = compdata[comp.pathname]
 
     # check that the keys are the same
-    assert set(probcompdata.keys()) == set(compdata.keys()), \
+    assert set(probcompdata.keys()) == set(compdata.keys()), (
         f"Subjac keys don't match for {comp.pathname}"
+    )
 
     # check that the values are the same
     for key, probval in probcompdata.items():
         compval = compdata[key]
 
-        if 'steps' not in probval:
+        if "steps" not in probval:
             # if there is only one FD step, 'steps' gets removed from problem data
             compval = compval.copy()
             _fix_comp_check_data(compval)
 
         # check that the keys are the same
-        assert set(probval.keys()) == set(compval.keys()), \
-            f"For subjac key '{key}', inner dict keys don't match: {sorted(probval.keys())} " \
+        assert set(probval.keys()) == set(compval.keys()), (
+            f"For subjac key '{key}', inner dict keys don't match: {sorted(probval.keys())} "
             f"!= {sorted(compval.keys())}."
+        )
 
         for key2 in probval:
             probval2 = probval[key2]
             compval2 = compval[key2]
 
-            if key2 in ('J_fd', 'J_fwd', 'denom_idx'):
+            if key2 in ("J_fd", "J_fwd", "denom_idx"):
                 assert_near_equal(probval2, compval2, 1e-6, 1e-6)
-            elif key2 in ('rows', 'cols'):
+            elif key2 in ("rows", "cols"):
                 if probval2 is None:
                     assert probval2 is compval2
                 else:
@@ -392,8 +413,10 @@ def compare_prob_vs_comp_check_partials(probdata, compdata, comp):
                     c = compval2[i]
                     if p is None and c is None:
                         continue
-                    assert_near_equal(p, c, 1e-6, 1e-6), \
-                        f"For key '{key}/{key2}', {probval2} != {compval2}."
+                    (
+                        assert_near_equal(p, c, 1e-6, 1e-6),
+                        f"For key '{key}/{key2}', {probval2} != {compval2}.",
+                    )
 
 
 class _ModelViewerDataTreeEncoder(json.JSONEncoder):
@@ -470,8 +493,9 @@ def snum_equal(s1, s2, atol=1e-6, rtol=1e-6):
     bool
         True if the strings are equal within the tolerance, False otherwise.
     """
-    for (s1, isnum1), (s2, isnum2) in zip_longest(snum_iter(s1), snum_iter(s2),
-                                                  fillvalue=("", False)):
+    for (s1, isnum1), (s2, isnum2) in zip_longest(
+        snum_iter(s1), snum_iter(s2), fillvalue=("", False)
+    ):
         if isnum1 and isnum2:
             if rtol is None and atol is None:
                 if s1 != s2:
@@ -505,7 +529,7 @@ def rel_num_diff(n1, n2):
     float
         Relative difference between the numbers.
     """
-    if n1 == 0.:
-        return 0. if n2 == 0. else 1.0
+    if n1 == 0.0:
+        return 0.0 if n2 == 0.0 else 1.0
     else:
         return abs(n2 - n1) / abs(n1)

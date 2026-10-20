@@ -20,7 +20,7 @@ except ImportError:
     PETScVector = None
 
 MODELS = {
-    'cycle': CycleGroup,
+    "cycle": CycleGroup,
 }
 
 
@@ -42,11 +42,11 @@ def _test_suite(*args, **kwargs):
         arg=(iterable) will iterate over the given options.
     Arguments that are not specified will have a reasonable default chosen.
     """
-    full_suite = args and args[0] == '*'
-    groups = kwargs.pop('group_type', MODELS.keys())
+    full_suite = args and args[0] == "*"
+    groups = kwargs.pop("group_type", MODELS.keys())
 
     if isinstance(groups, str):
-        groups = (groups, )
+        groups = (groups,)
 
     for group_type in groups:
         opts = {}
@@ -60,10 +60,9 @@ def _test_suite(*args, **kwargs):
             for arg, default_val in default_params.items():
                 if arg in kwargs:
                     arg_value = kwargs.pop(arg)
-                    if arg_value == '*':
+                    if arg_value == "*":
                         opts[arg] = default_val
-                    elif isinstance(arg_value, str) \
-                            or not isinstance(arg_value, Iterable):
+                    elif isinstance(arg_value, str) or not isinstance(arg_value, Iterable):
                         # itertools.product expects iterables, so make 1-item tuple
                         opts[arg] = (arg_value,)
                     else:
@@ -77,7 +76,7 @@ def _test_suite(*args, **kwargs):
                         break
 
             if kwargs:
-                raise ValueError('Unknown options given: {0}'.format(_nice_name(kwargs)))
+                raise ValueError("Unknown options given: {0}".format(_nice_name(kwargs)))
 
         for options in _cartesian_dict_product(opts):
             yield (ParameterizedInstance(group_type, **options),)
@@ -90,15 +89,18 @@ def _cartesian_dict_product(dicts):
 
 def _test_name(run_by_default):
     if run_by_default:
-        test_prefix = 'test'
+        test_prefix = "test"
     else:
-        test_prefix = 'ptest'
+        test_prefix = "ptest"
 
     def namer(testcase_fun, param_num, params):
-        return '_'.join([
-            test_prefix,
-            str(params.args[0]),
-        ])
+        return "_".join(
+            [
+                test_prefix,
+                str(params.args[0]),
+            ]
+        )
+
     return namer
 
 
@@ -115,7 +117,7 @@ def parametric_suite(*args, **kwargs):
 
     Arguments that are not specified will have a reasonable default chosen.
     """
-    run_by_default = kwargs.pop('run_by_default', False)
+    run_by_default = kwargs.pop("run_by_default", False)
     test_cases = _test_suite(*args, **kwargs)
     return parameterized.expand(test_cases, name_func=_test_name(run_by_default))
 
@@ -152,23 +154,21 @@ class ParameterizedInstance(object):
         self._group_type = group_type
         self.args = kwargs.copy()
 
-        self.name = '_'.join(
-            '{0}_{1}'.format(key, _nice_name(value)) for key, value in self.args.items()
+        self.name = "_".join(
+            "{0}_{1}".format(key, _nice_name(value)) for key, value in self.args.items()
         )
 
         self.problem = None
         self.solver_class = NewtonSolver
-        self.solver_options = {
-            'maxiter': 100,
-            'solve_subsystems': False
-        }
+        self.solver_options = {"maxiter": 100, "solve_subsystems": False}
 
         self.linear_solver_class = ScipyKrylov
-        self.linear_solver_options = {'maxiter': 200,
-                                      'atol': 1e-10,
-                                      'rtol': 1e-10,
-                                      'assemble_jac': False,
-                                      }
+        self.linear_solver_options = {
+            "maxiter": 200,
+            "atol": 1e-10,
+            "rtol": 1e-10,
+            "assemble_jac": False,
+        }
 
     def setup(self, check=False):
         """
@@ -183,28 +183,28 @@ class ParameterizedInstance(object):
 
         group = MODELS[self._group_type](**args)
 
-        local_vec_class = args.get('local_vector_class', 'default')
-        if local_vec_class == 'default':
+        local_vec_class = args.get("local_vector_class", "default")
+        if local_vec_class == "default":
             vec_class = DefaultVector
-        elif local_vec_class == 'petsc':
+        elif local_vec_class == "petsc":
             vec_class = PETScVector
             if PETScVector is None:
-                raise SkipTest('PETSc not available.')
+                raise SkipTest("PETSc not available.")
         else:
             raise RuntimeError("Unrecognized local_vector_class '%s'" % local_vec_class)
 
         self.problem = prob = Problem(group)
 
-        if args['assembled_jac']:
-            jacobian_type = args.get('jacobian_type', 'dense')
+        if args["assembled_jac"]:
+            jacobian_type = args.get("jacobian_type", "dense")
 
-            if jacobian_type == 'dense':
-                self.linear_solver_options['assemble_jac'] = True
-                prob.model.options['assembled_jac_type'] = 'dense'
-            elif jacobian_type == 'sparse-csc':
-                self.linear_solver_options['assemble_jac'] = True
-                prob.model.options['assembled_jac_type'] = 'csc'
-            elif jacobian_type != 'matvec':
+            if jacobian_type == "dense":
+                self.linear_solver_options["assemble_jac"] = True
+                prob.model.options["assembled_jac_type"] = "dense"
+            elif jacobian_type == "sparse-csc":
+                self.linear_solver_options["assemble_jac"] = True
+                prob.model.options["assembled_jac_type"] = "csc"
+            elif jacobian_type != "matvec":
                 raise RuntimeError("Invalid assembled_jac: '%s'." % jacobian_type)
 
         prob.model.linear_solver = self.linear_solver_class(**self.linear_solver_options)
@@ -217,7 +217,7 @@ class ParameterizedInstance(object):
 
         prob.run_model()
 
-    def compute_totals(self, mode='fwd'):
+    def compute_totals(self, mode="fwd"):
         """
         Computes the total derivatives across the model.
 

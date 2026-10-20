@@ -1,4 +1,3 @@
-
 import unittest
 import itertools
 
@@ -34,33 +33,33 @@ def _test_func_name(func, num, param):
             except Exception:
                 arg = str(item)
             args.append(arg)
-    return func.__name__ + '_' + '_'.join(args)
+    return func.__name__ + "_" + "_".join(args)
 
 
 @unittest.skipUnless(MPI and PETScVector, "MPI and PETSc are required.")
 class TestParallelGroups(unittest.TestCase):
-
     N_PROCS = 2
 
-    @parameterized.expand(itertools.product(['fwd', 'rev'], [True, False]),
-                          name_func=_test_func_name)
+    @parameterized.expand(
+        itertools.product(["fwd", "rev"], [True, False]), name_func=_test_func_name
+    )
     def test_dup_dup(self, mode, auto):
         # non-distributed vars on both ends
         prob = om.Problem()
         model = prob.model
 
         if not auto:
-            model.add_subsystem('indep', om.IndepVarComp('x', 1.0))
+            model.add_subsystem("indep", om.IndepVarComp("x", 1.0))
 
-        model.add_subsystem('C1', om.ExecComp('y = 2.5 * x'))
+        model.add_subsystem("C1", om.ExecComp("y = 2.5 * x"))
 
         if auto:
-            wrt = ['C1.x']
+            wrt = ["C1.x"]
         else:
-            model.connect('indep.x', 'C1.x')
-            wrt=['indep.x']
+            model.connect("indep.x", "C1.x")
+            wrt = ["indep.x"]
 
-        of=['C1.y']
+        of = ["C1.y"]
 
         prob.model.linear_solver = om.LinearRunOnce()
 
@@ -70,26 +69,27 @@ class TestParallelGroups(unittest.TestCase):
 
         J = prob.compute_totals(of=of, wrt=wrt)
 
-        assert_near_equal(J['C1.y', wrt[0]][0][0], 2.5, 1e-6)
-        assert_near_equal(prob['C1.y'], 2.5, 1e-6)
+        assert_near_equal(J["C1.y", wrt[0]][0][0], 2.5, 1e-6)
+        assert_near_equal(prob["C1.y"], 2.5, 1e-6)
 
-    @parameterized.expand(itertools.product(['fwd', 'rev'], [True, False]),
-                          name_func=_test_func_name)
+    @parameterized.expand(
+        itertools.product(["fwd", "rev"], [True, False]), name_func=_test_func_name
+    )
     def test_dup_par(self, mode, auto):
         # non-distributed output, parallel input
         prob = om.Problem()
         model = prob.model
 
         if not auto:
-            model.add_subsystem('indep', om.IndepVarComp('x', 1.0), promotes=['x'])
+            model.add_subsystem("indep", om.IndepVarComp("x", 1.0), promotes=["x"])
 
-        par = model.add_subsystem('par', om.ParallelGroup(), promotes=['x'])
-        par.add_subsystem('C1', om.ExecComp('y = 2.5 * x'), promotes=['x'])
-        par.add_subsystem('C2', om.ExecComp('y = 7 * x'), promotes=['x'])
+        par = model.add_subsystem("par", om.ParallelGroup(), promotes=["x"])
+        par.add_subsystem("C1", om.ExecComp("y = 2.5 * x"), promotes=["x"])
+        par.add_subsystem("C2", om.ExecComp("y = 7 * x"), promotes=["x"])
 
-        wrt = ['x']
+        wrt = ["x"]
 
-        of=['par.C1.y', 'par.C2.y']
+        of = ["par.C1.y", "par.C2.y"]
 
         prob.model.linear_solver = om.LinearRunOnce()
 
@@ -97,34 +97,35 @@ class TestParallelGroups(unittest.TestCase):
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        assert_near_equal(prob.get_val('par.C1.y', get_remote=True), 2.5, 1e-6)
-        assert_near_equal(prob.get_val('par.C2.y', get_remote=True), 7., 1e-6)
+        assert_near_equal(prob.get_val("par.C1.y", get_remote=True), 2.5, 1e-6)
+        assert_near_equal(prob.get_val("par.C2.y", get_remote=True), 7.0, 1e-6)
 
         J = prob.compute_totals(of=of, wrt=wrt)
 
-        assert_near_equal(J['par.C1.y', 'x'][0][0], 2.5, 1e-6)
-        assert_near_equal(J['par.C2.y', 'x'][0][0], 7., 1e-6)
+        assert_near_equal(J["par.C1.y", "x"][0][0], 2.5, 1e-6)
+        assert_near_equal(J["par.C2.y", "x"][0][0], 7.0, 1e-6)
 
-        assert_near_equal(prob.get_val('par.C1.y', get_remote=True), 2.5, 1e-6)
-        assert_near_equal(prob.get_val('par.C2.y', get_remote=True), 7., 1e-6)
+        assert_near_equal(prob.get_val("par.C1.y", get_remote=True), 2.5, 1e-6)
+        assert_near_equal(prob.get_val("par.C2.y", get_remote=True), 7.0, 1e-6)
 
-    @parameterized.expand(itertools.product(['fwd', 'rev'], [True, False]),
-                          name_func=_test_func_name)
+    @parameterized.expand(
+        itertools.product(["fwd", "rev"], [True, False]), name_func=_test_func_name
+    )
     def test_dup_dup_and_par(self, mode, auto):
         # duplicated and parallel outputs, dup input
         prob = om.Problem()
         model = prob.model
 
         if not auto:
-            model.add_subsystem('indep', om.IndepVarComp('x', 1.0), promotes=['x'])
+            model.add_subsystem("indep", om.IndepVarComp("x", 1.0), promotes=["x"])
 
-        model.add_subsystem('dup', om.ExecComp('y = 1.5 * x'), promotes=['x'])
-        par = model.add_subsystem('par', om.ParallelGroup(), promotes=['x'])
-        par.add_subsystem('C1', om.ExecComp('y = 2.5 * x'), promotes=['x'])
-        par.add_subsystem('C2', om.ExecComp('y = 7 * x'), promotes=['x'])
+        model.add_subsystem("dup", om.ExecComp("y = 1.5 * x"), promotes=["x"])
+        par = model.add_subsystem("par", om.ParallelGroup(), promotes=["x"])
+        par.add_subsystem("C1", om.ExecComp("y = 2.5 * x"), promotes=["x"])
+        par.add_subsystem("C2", om.ExecComp("y = 7 * x"), promotes=["x"])
 
-        of=['par.C1.y', 'par.C2.y', 'dup.y']
-        wrt=['x']
+        of = ["par.C1.y", "par.C2.y", "dup.y"]
+        wrt = ["x"]
 
         prob.model.linear_solver = om.LinearRunOnce()
 
@@ -132,53 +133,52 @@ class TestParallelGroups(unittest.TestCase):
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        assert_near_equal(prob.get_val('par.C1.y', get_remote=True), 2.5, 1e-6)
-        assert_near_equal(prob.get_val('par.C2.y', get_remote=True), 7., 1e-6)
-        assert_near_equal(prob.get_val('dup.y', get_remote=True), 1.5, 1e-6)
+        assert_near_equal(prob.get_val("par.C1.y", get_remote=True), 2.5, 1e-6)
+        assert_near_equal(prob.get_val("par.C2.y", get_remote=True), 7.0, 1e-6)
+        assert_near_equal(prob.get_val("dup.y", get_remote=True), 1.5, 1e-6)
 
         J = prob.compute_totals(of=of, wrt=wrt)
 
-        assert_near_equal(J['par.C1.y', 'x'][0][0], 2.5, 1e-6)
-        assert_near_equal(prob.get_val('par.C1.y', get_remote=True), 2.5, 1e-6)
-        assert_near_equal(J['par.C2.y', 'x'][0][0], 7., 1e-6)
-        assert_near_equal(prob.get_val('par.C2.y', get_remote=True), 7., 1e-6)
-        assert_near_equal(J['dup.y', 'x'][0][0], 1.5, 1e-6)
-        assert_near_equal(prob.get_val('dup.y', get_remote=True), 1.5, 1e-6)
+        assert_near_equal(J["par.C1.y", "x"][0][0], 2.5, 1e-6)
+        assert_near_equal(prob.get_val("par.C1.y", get_remote=True), 2.5, 1e-6)
+        assert_near_equal(J["par.C2.y", "x"][0][0], 7.0, 1e-6)
+        assert_near_equal(prob.get_val("par.C2.y", get_remote=True), 7.0, 1e-6)
+        assert_near_equal(J["dup.y", "x"][0][0], 1.5, 1e-6)
+        assert_near_equal(prob.get_val("dup.y", get_remote=True), 1.5, 1e-6)
 
     def test_dup_par_par_derivs(self):
         # non-distributed output, parallel input
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('indep', om.IndepVarComp('x', 1.0), promotes=['x'])
+        model.add_subsystem("indep", om.IndepVarComp("x", 1.0), promotes=["x"])
 
-        par = model.add_subsystem('par', om.ParallelGroup(), promotes=['x'])
-        par.add_subsystem('C1', om.ExecComp('y = 2.5 * x'), promotes=['x'])
-        par.add_subsystem('C2', om.ExecComp('y = 7 * x'), promotes=['x'])
+        par = model.add_subsystem("par", om.ParallelGroup(), promotes=["x"])
+        par.add_subsystem("C1", om.ExecComp("y = 2.5 * x"), promotes=["x"])
+        par.add_subsystem("C2", om.ExecComp("y = 7 * x"), promotes=["x"])
 
-        model.add_design_var('x')
+        model.add_design_var("x")
 
-        model.add_constraint('par.C1.y', upper=0.0, parallel_deriv_color='parc')
-        model.add_constraint('par.C2.y', upper=0.0, parallel_deriv_color='parc')
+        model.add_constraint("par.C1.y", upper=0.0, parallel_deriv_color="parc")
+        model.add_constraint("par.C2.y", upper=0.0, parallel_deriv_color="parc")
 
         prob.model.linear_solver = om.LinearBlockGS()
 
-        prob.setup(check=False, mode='rev')
+        prob.setup(check=False, mode="rev")
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        assert_near_equal(prob.get_val('par.C1.y', get_remote=True), 2.5, 1e-6)
-        assert_near_equal(prob.get_val('par.C2.y', get_remote=True), 7., 1e-6)
+        assert_near_equal(prob.get_val("par.C1.y", get_remote=True), 2.5, 1e-6)
+        assert_near_equal(prob.get_val("par.C2.y", get_remote=True), 7.0, 1e-6)
 
         J = prob.driver._compute_totals()
 
-        assert_near_equal(J['par.C1.y', 'x'][0][0], 2.5, 1e-6)
-        assert_near_equal(prob.get_val('par.C1.y', get_remote=True), 2.5, 1e-6)
-        assert_near_equal(J['par.C2.y', 'x'][0][0], 7., 1e-6)
-        assert_near_equal(prob.get_val('par.C2.y', get_remote=True), 7., 1e-6)
+        assert_near_equal(J["par.C1.y", "x"][0][0], 2.5, 1e-6)
+        assert_near_equal(prob.get_val("par.C1.y", get_remote=True), 2.5, 1e-6)
+        assert_near_equal(J["par.C2.y", "x"][0][0], 7.0, 1e-6)
+        assert_near_equal(prob.get_val("par.C2.y", get_remote=True), 7.0, 1e-6)
 
-    @parameterized.expand(itertools.product(['fwd', 'rev'], [False]),
-                          name_func=_test_func_name)
+    @parameterized.expand(itertools.product(["fwd", "rev"], [False]), name_func=_test_func_name)
     def test_dup_dist(self, mode, auto):
         # Note: Auto-ivc not supported for distributed inputs.
 
@@ -186,7 +186,7 @@ class TestParallelGroups(unittest.TestCase):
             def __init__(self, arr_size=11, **kwargs):
                 super().__init__(**kwargs)
                 self.arr_size = arr_size
-                self.options['distributed'] = True
+                self.options["distributed"] = True
 
             def setup(self):
                 comm = self.comm
@@ -194,16 +194,16 @@ class TestParallelGroups(unittest.TestCase):
 
                 sizes, _ = evenly_distrib_idxs(comm.size, self.arr_size)
 
-                self.add_input('x', np.ones(sizes[rank]))
-                self.add_output('y', np.ones(sizes[rank]))
+                self.add_input("x", np.ones(sizes[rank]))
+                self.add_output("y", np.ones(sizes[rank]))
 
-                self.declare_partials(of='y', wrt='x', method='cs')
+                self.declare_partials(of="y", wrt="x", method="cs")
 
             def compute(self, inputs, outputs):
                 if self.comm.rank == 0:
-                    outputs['y'] = 2.5 * inputs['x']
+                    outputs["y"] = 2.5 * inputs["x"]
                 else:
-                    outputs['y'] = 3.5 * inputs['x']
+                    outputs["y"] = 3.5 * inputs["x"]
 
         # non-distributed output, parallel input
         prob = om.Problem()
@@ -211,12 +211,12 @@ class TestParallelGroups(unittest.TestCase):
         size = 3
 
         if not auto:
-            model.add_subsystem('indep', om.IndepVarComp('x', np.ones(size)), promotes=['x'])
+            model.add_subsystem("indep", om.IndepVarComp("x", np.ones(size)), promotes=["x"])
 
-        model.add_subsystem('C1', DistribComp(arr_size=size), promotes=['x'])
+        model.add_subsystem("C1", DistribComp(arr_size=size), promotes=["x"])
 
-        of=['C1.y']
-        wrt=['x']
+        of = ["C1.y"]
+        wrt = ["x"]
 
         prob.model.linear_solver = om.LinearRunOnce()
 
@@ -224,33 +224,34 @@ class TestParallelGroups(unittest.TestCase):
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        assert_near_equal(prob.get_val('C1.y', get_remote=True),
-                         np.array([2.5,2.5,3.5], dtype=float), 1e-6)
+        assert_near_equal(
+            prob.get_val("C1.y", get_remote=True), np.array([2.5, 2.5, 3.5], dtype=float), 1e-6
+        )
 
         J = prob.compute_totals(of=of, wrt=wrt)
 
-        expected = np.array([[2.5, 0, 0], [0, 2.5, 0], [0,0,3.5]], dtype=float)
+        expected = np.array([[2.5, 0, 0], [0, 2.5, 0], [0, 0, 3.5]], dtype=float)
 
-        assert_near_equal(J['C1.y', 'x'], expected, 1e-6)
-        assert_near_equal(prob.get_val('C1.y', get_remote=True),
-                          np.array([2.5,2.5,3.5], dtype=float), 1e-6)
+        assert_near_equal(J["C1.y", "x"], expected, 1e-6)
+        assert_near_equal(
+            prob.get_val("C1.y", get_remote=True), np.array([2.5, 2.5, 3.5], dtype=float), 1e-6
+        )
 
-    @parameterized.expand(itertools.product(['fwd', 'rev']),
-                          name_func=_test_func_name)
+    @parameterized.expand(itertools.product(["fwd", "rev"]), name_func=_test_func_name)
     def test_par_dup(self, mode):
         # non-distributed output, parallel input
         prob = om.Problem()
         model = prob.model
 
-        par = model.add_subsystem('par', om.ParallelGroup())
-        par.add_subsystem('indep1', om.IndepVarComp('x', 1.0))
-        par.add_subsystem('indep2', om.IndepVarComp('x', 1.0))
-        model.add_subsystem('C1', om.ExecComp('y = 2.5 * x1 + 3.5 * x2'))
-        model.connect('par.indep1.x', 'C1.x1')
-        model.connect('par.indep2.x', 'C1.x2')
+        par = model.add_subsystem("par", om.ParallelGroup())
+        par.add_subsystem("indep1", om.IndepVarComp("x", 1.0))
+        par.add_subsystem("indep2", om.IndepVarComp("x", 1.0))
+        model.add_subsystem("C1", om.ExecComp("y = 2.5 * x1 + 3.5 * x2"))
+        model.connect("par.indep1.x", "C1.x1")
+        model.connect("par.indep2.x", "C1.x2")
 
-        of=['C1.y']
-        wrt=['par.indep1.x', 'par.indep2.x']
+        of = ["C1.y"]
+        wrt = ["par.indep1.x", "par.indep2.x"]
 
         prob.model.linear_solver = om.LinearRunOnce()
 
@@ -258,23 +259,22 @@ class TestParallelGroups(unittest.TestCase):
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        assert_near_equal(prob['C1.y'], 6., 1e-6)
+        assert_near_equal(prob["C1.y"], 6.0, 1e-6)
 
         J = prob.compute_totals(of=of, wrt=wrt)
 
-        assert_near_equal(J['C1.y', 'par.indep1.x'][0][0], 2.5, 1e-6)
-        assert_near_equal(J['C1.y', 'par.indep2.x'][0][0], 3.5, 1e-6)
-        assert_near_equal(prob['C1.y'], 6., 1e-6)
+        assert_near_equal(J["C1.y", "par.indep1.x"][0][0], 2.5, 1e-6)
+        assert_near_equal(J["C1.y", "par.indep2.x"][0][0], 3.5, 1e-6)
+        assert_near_equal(prob["C1.y"], 6.0, 1e-6)
 
-    @parameterized.expand(itertools.product(['fwd', 'rev'], [False]),
-                          name_func=_test_func_name)
+    @parameterized.expand(itertools.product(["fwd", "rev"], [False]), name_func=_test_func_name)
     def test_dist_dup(self, mode, auto):
 
         class DistribComp(om.ExplicitComponent):
             def __init__(self, arr_size=11, **kwargs):
                 super().__init__(**kwargs)
                 self.arr_size = arr_size
-                self.options['distributed'] = True
+                self.options["distributed"] = True
 
             def setup(self):
                 comm = self.comm
@@ -282,16 +282,16 @@ class TestParallelGroups(unittest.TestCase):
 
                 sizes, _ = evenly_distrib_idxs(comm.size, self.arr_size)
 
-                self.add_input('x', np.ones(sizes[rank]))
-                self.add_output('y', np.ones(sizes[rank]))
+                self.add_input("x", np.ones(sizes[rank]))
+                self.add_output("y", np.ones(sizes[rank]))
 
-                self.declare_partials(of='y', wrt='x', method='cs')
+                self.declare_partials(of="y", wrt="x", method="cs")
 
             def compute(self, inputs, outputs):
                 if self.comm.rank == 0:
-                    outputs['y'] = 2.5 * inputs['x']
+                    outputs["y"] = 2.5 * inputs["x"]
                 else:
-                    outputs['y'] = 3.5 * inputs['x']
+                    outputs["y"] = 3.5 * inputs["x"]
 
         # non-distributed output, parallel input
         # Note: Auto-ivc not supported for distributed inputs.
@@ -300,15 +300,15 @@ class TestParallelGroups(unittest.TestCase):
         size = 3
 
         if not auto:
-            model.add_subsystem('indep', om.IndepVarComp('x', np.ones(size)), promotes=['x'])
+            model.add_subsystem("indep", om.IndepVarComp("x", np.ones(size)), promotes=["x"])
 
-        model.add_subsystem('C1', DistribComp(arr_size=size), promotes=['x'])
-        model.add_subsystem('sink', om.ExecComp('y=-1.5 * x', x=np.zeros(size), y=np.zeros(size)))
+        model.add_subsystem("C1", DistribComp(arr_size=size), promotes=["x"])
+        model.add_subsystem("sink", om.ExecComp("y=-1.5 * x", x=np.zeros(size), y=np.zeros(size)))
 
-        model.connect('C1.y', 'sink.x', src_indices=om.slicer[:])
+        model.connect("C1.y", "sink.x", src_indices=om.slicer[:])
 
-        of=['sink.y']
-        wrt=['x']
+        of = ["sink.y"]
+        wrt = ["x"]
 
         prob.model.linear_solver = om.LinearRunOnce()
 
@@ -316,26 +316,33 @@ class TestParallelGroups(unittest.TestCase):
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        assert_near_equal(prob.get_val('sink.y', get_remote=True),
-                         np.array([-3.75,-3.75,-5.25], dtype=float), 1e-6)
+        assert_near_equal(
+            prob.get_val("sink.y", get_remote=True),
+            np.array([-3.75, -3.75, -5.25], dtype=float),
+            1e-6,
+        )
 
         J = prob.compute_totals(of=of, wrt=wrt)
 
-        expected = np.array([[-3.75, 0, 0], [0, -3.75, 0], [0,0,-5.25]], dtype=float)
+        expected = np.array([[-3.75, 0, 0], [0, -3.75, 0], [0, 0, -5.25]], dtype=float)
 
-        assert_near_equal(J['sink.y', 'x'], expected, 1e-6)
-        assert_near_equal(prob.get_val('sink.y', get_remote=True),
-                         np.array([-3.75,-3.75,-5.25], dtype=float), 1e-6)
+        assert_near_equal(J["sink.y", "x"], expected, 1e-6)
+        assert_near_equal(
+            prob.get_val("sink.y", get_remote=True),
+            np.array([-3.75, -3.75, -5.25], dtype=float),
+            1e-6,
+        )
 
-    @parameterized.expand(itertools.product(['fwd', 'rev'], [True, False]),
-                          name_func=_test_func_name)
+    @parameterized.expand(
+        itertools.product(["fwd", "rev"], [True, False]), name_func=_test_func_name
+    )
     def test_par_dist(self, mode, auto):
 
         class DistribComp(om.ExplicitComponent):
             def __init__(self, arr_size=11, **kwargs):
                 super().__init__(**kwargs)
                 self.arr_size = arr_size
-                self.options['distributed'] = True
+                self.options["distributed"] = True
 
             def setup(self):
                 comm = self.comm
@@ -343,36 +350,36 @@ class TestParallelGroups(unittest.TestCase):
 
                 sizes, _ = evenly_distrib_idxs(comm.size, self.arr_size)
 
-                self.add_input('x1', np.ones(sizes[rank]))
-                self.add_input('x2', np.ones(sizes[rank]))
-                self.add_output('y', np.ones(sizes[rank]))
+                self.add_input("x1", np.ones(sizes[rank]))
+                self.add_input("x2", np.ones(sizes[rank]))
+                self.add_output("y", np.ones(sizes[rank]))
 
-                self.declare_partials(of='y', wrt='x*', method='cs')
+                self.declare_partials(of="y", wrt="x*", method="cs")
 
             def compute(self, inputs, outputs):
                 if self.comm.rank == 0:
-                    outputs['y'] = 1.5 * inputs['x1'] + 2.5 * inputs['x2']
+                    outputs["y"] = 1.5 * inputs["x1"] + 2.5 * inputs["x2"]
                 else:
-                    outputs['y'] = 2.5 * inputs['x1'] - .5 * inputs['x2']
+                    outputs["y"] = 2.5 * inputs["x1"] - 0.5 * inputs["x2"]
 
         # non-distributed output, parallel input
         prob = om.Problem()
         model = prob.model
         size = 3
 
-        model.add_subsystem('indep', om.IndepVarComp('x', np.ones(size)))
-        par = model.add_subsystem('par', om.ParallelGroup())
-        par.add_subsystem('C1', om.ExecComp('y = 3 * x', x=np.zeros(size), y=np.zeros(size)))
-        par.add_subsystem('C2', om.ExecComp('y = 5 * x', x=np.zeros(size), y=np.zeros(size)))
-        model.add_subsystem('C3', DistribComp(arr_size=size))
+        model.add_subsystem("indep", om.IndepVarComp("x", np.ones(size)))
+        par = model.add_subsystem("par", om.ParallelGroup())
+        par.add_subsystem("C1", om.ExecComp("y = 3 * x", x=np.zeros(size), y=np.zeros(size)))
+        par.add_subsystem("C2", om.ExecComp("y = 5 * x", x=np.zeros(size), y=np.zeros(size)))
+        model.add_subsystem("C3", DistribComp(arr_size=size))
 
-        model.connect('indep.x', 'par.C1.x')
-        model.connect('indep.x', 'par.C2.x')
-        model.connect('par.C1.y', 'C3.x1')
-        model.connect('par.C2.y', 'C3.x2')
+        model.connect("indep.x", "par.C1.x")
+        model.connect("indep.x", "par.C2.x")
+        model.connect("par.C1.y", "C3.x1")
+        model.connect("par.C2.y", "C3.x2")
 
-        of=['C3.y']
-        wrt=['indep.x']
+        of = ["C3.y"]
+        wrt = ["indep.x"]
 
         prob.model.linear_solver = om.LinearRunOnce()
 
@@ -380,97 +387,96 @@ class TestParallelGroups(unittest.TestCase):
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        assert_near_equal(prob.get_val('C3.y', get_remote=True),
-                         np.array([17,17,5], dtype=float), 1e-6)
+        assert_near_equal(
+            prob.get_val("C3.y", get_remote=True), np.array([17, 17, 5], dtype=float), 1e-6
+        )
 
         J = prob.compute_totals(of=of, wrt=wrt)
 
-        expected = np.array([[17, 0, 0], [0, 17, 0], [0,0,5]], dtype=float)
+        expected = np.array([[17, 0, 0], [0, 17, 0], [0, 0, 5]], dtype=float)
 
-        assert_near_equal(J['C3.y', 'indep.x'], expected, 1e-6)
-        assert_near_equal(prob.get_val('C3.y', get_remote=True),
-                         np.array([17,17,5], dtype=float), 1e-6)
+        assert_near_equal(J["C3.y", "indep.x"], expected, 1e-6)
+        assert_near_equal(
+            prob.get_val("C3.y", get_remote=True), np.array([17, 17, 5], dtype=float), 1e-6
+        )
 
-    @parameterized.expand(itertools.product(['fwd', 'rev'], [True, False]),
-                          name_func=_test_func_name)
+    @parameterized.expand(
+        itertools.product(["fwd", "rev"], [True, False]), name_func=_test_func_name
+    )
     def test_crossover(self, mode, auto):
         # multiple crossovers in fwd and rev
         prob = om.Problem()
         model = prob.model
 
-        model.add_subsystem('ivc', om.IndepVarComp('x'))
+        model.add_subsystem("ivc", om.IndepVarComp("x"))
 
-        par1 = model.add_subsystem('par1', om.ParallelGroup())
-        par1.add_subsystem('C1', om.ExecComp('y = 1.5 * x'))
-        par1.add_subsystem('C2', om.ExecComp('y = 2.5 * x'))
+        par1 = model.add_subsystem("par1", om.ParallelGroup())
+        par1.add_subsystem("C1", om.ExecComp("y = 1.5 * x"))
+        par1.add_subsystem("C2", om.ExecComp("y = 2.5 * x"))
 
-        model.add_subsystem('C3', om.ExecComp('y = 3.5 * x1 - .5 * x2'))
+        model.add_subsystem("C3", om.ExecComp("y = 3.5 * x1 - .5 * x2"))
 
-        par2 = model.add_subsystem('par2', om.ParallelGroup())
-        par2.add_subsystem('C4', om.ExecComp('y = 4.5 * x'))
-        par2.add_subsystem('C5', om.ExecComp('y = 5.5 * x'))
+        par2 = model.add_subsystem("par2", om.ParallelGroup())
+        par2.add_subsystem("C4", om.ExecComp("y = 4.5 * x"))
+        par2.add_subsystem("C5", om.ExecComp("y = 5.5 * x"))
 
-        model.add_subsystem('C6', om.ExecComp('y = 6.5 * x1 + 1.1 * x2'))
+        model.add_subsystem("C6", om.ExecComp("y = 6.5 * x1 + 1.1 * x2"))
 
-        model.connect('ivc.x', 'par1.C1.x')
-        model.connect('ivc.x', 'par1.C2.x')
-        model.connect('par1.C1.y', 'C3.x1')
-        model.connect('par1.C2.y', 'C3.x2')
-        model.connect('C3.y', 'par2.C4.x')
-        model.connect('C3.y', 'par2.C5.x')
-        model.connect('par2.C4.y', 'C6.x1')
-        model.connect('par2.C5.y', 'C6.x2')
+        model.connect("ivc.x", "par1.C1.x")
+        model.connect("ivc.x", "par1.C2.x")
+        model.connect("par1.C1.y", "C3.x1")
+        model.connect("par1.C2.y", "C3.x2")
+        model.connect("C3.y", "par2.C4.x")
+        model.connect("C3.y", "par2.C5.x")
+        model.connect("par2.C4.y", "C6.x1")
+        model.connect("par2.C5.y", "C6.x2")
 
-        of = ['C6.y']
-        wrt = ['ivc.x']
+        of = ["C6.y"]
+        wrt = ["ivc.x"]
 
         prob.setup(check=False, mode=mode)
         prob.set_solver_print(level=0)
         prob.run_model()
 
-        np.testing.assert_allclose(prob.get_val('C6.y', get_remote=True),
-                                   141.2)
+        np.testing.assert_allclose(prob.get_val("C6.y", get_remote=True), 141.2)
 
         J = prob.compute_totals(of=of, wrt=wrt)
         print(J)
 
-        np.testing.assert_allclose(J['C6.y', 'ivc.x'][0][0], 141.2)
-        np.testing.assert_allclose(prob.get_val('C6.y', get_remote=True),
-                                   141.2)
+        np.testing.assert_allclose(J["C6.y", "ivc.x"][0][0], 141.2)
+        np.testing.assert_allclose(prob.get_val("C6.y", get_remote=True), 141.2)
 
 
 @unittest.skipUnless(MPI and PETScVector, "MPI and PETSc are required.")
 class TestParallelNorm(unittest.TestCase):
-
     N_PROCS = 3
 
     def test_mpi_norm(self):
         class Norm(om.ExplicitComponent):
-
             def setup(self):
-                self.add_input('x', shape_by_conn=True, distributed=True)
-                self.add_output('n', val=0.0)
+                self.add_input("x", shape_by_conn=True, distributed=True)
+                self.add_output("n", val=0.0)
 
             def compute(self, inputs, outputs):
-                outputs['n'][:] = self.compute_norm(inputs['x'])
+                outputs["n"][:] = self.compute_norm(inputs["x"])
 
             def compute_jacvec_product(self, inputs, d_inputs, d_outputs, mode):
-                x = inputs['x']
-                dx = d_inputs['x']
+                x = inputs["x"]
+                dx = d_inputs["x"]
                 norm = self.compute_norm(x)
                 if norm == 0:
                     jac = np.ones(x.shape)
                 else:
                     jac = self.comm.size * x / norm
 
-                if mode == 'fwd':
-                    if 'n' in d_outputs:
-                        if 'x' in d_inputs:
-                            d_outputs['n'][:] = np.sum(jac * dx)
+                if mode == "fwd":
+                    if "n" in d_outputs:
+                        if "x" in d_inputs:
+                            d_outputs["n"][:] = np.sum(jac * dx)
                 else:
-                    if 'n' in d_outputs:
-                        if 'x' in d_inputs:
-                            dx[:] = jac * d_outputs['n']
+                    if "n" in d_outputs:
+                        if "x" in d_inputs:
+                            dx[:] = jac * d_outputs["n"]
 
             def compute_norm(self, x):
                 local_norm = np.linalg.norm(x) ** 2
@@ -483,10 +489,14 @@ class TestParallelNorm(unittest.TestCase):
         prob = om.Problem()
         model = prob.model
         ivc = om.IndepVarComp()
-        ivc.add_output('x', np.arange(offsets[comm.rank], offsets[comm.rank] + sizes[comm.rank]), distributed=True)
-        model.add_subsystem('ivc', ivc)
-        model.add_subsystem('norm', Norm())
-        model.connect('ivc.x', 'norm.x')
+        ivc.add_output(
+            "x",
+            np.arange(offsets[comm.rank], offsets[comm.rank] + sizes[comm.rank]),
+            distributed=True,
+        )
+        model.add_subsystem("ivc", ivc)
+        model.add_subsystem("norm", Norm())
+        model.connect("ivc.x", "norm.x")
         model.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
         prob.setup()
         prob.run_model()

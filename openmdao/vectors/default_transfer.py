@@ -89,9 +89,13 @@ def _setup_index_arrays(tot_size, in_xfers, out_xfers, vectors, scaled_in_set):
     xfer_in, xfer_out = _setup_index_views(tot_size, in_xfers, out_xfers)
 
     if tot_size > 0:
-        xfer_all = DefaultTransfer(vectors['input']['nonlinear'],
-                                   vectors['output']['nonlinear'], xfer_in, xfer_out,
-                                   len(scaled_in_set) > 0)
+        xfer_all = DefaultTransfer(
+            vectors["input"]["nonlinear"],
+            vectors["output"]["nonlinear"],
+            xfer_in,
+            xfer_out,
+            len(scaled_in_set) > 0,
+        )
     else:
         xfer_all = None
 
@@ -99,10 +103,13 @@ def _setup_index_arrays(tot_size, in_xfers, out_xfers, vectors, scaled_in_set):
 
     for sname, inds in in_xfers.items():
         if inds.size > 0:
-            xfer_dict[sname] = DefaultTransfer(vectors['input']['nonlinear'],
-                                               vectors['output']['nonlinear'],
-                                               inds, out_xfers[sname],
-                                               sname in scaled_in_set)
+            xfer_dict[sname] = DefaultTransfer(
+                vectors["input"]["nonlinear"],
+                vectors["output"]["nonlinear"],
+                inds,
+                out_xfers[sname],
+                sname in scaled_in_set,
+            )
         else:
             xfer_dict[sname] = None
 
@@ -138,14 +145,14 @@ class DefaultTransfer(Transfer):
             Parent group.
         """
         iproc = group.comm.rank
-        rev = group._orig_mode != 'fwd'
+        rev = group._orig_mode != "fwd"
 
         abs2meta = group._var_abs2meta
 
         group._transfers = transfers = {}
         vectors = group._vectors
         offsets = _global2local_offsets(group._get_var_offsets())
-        mypathlen = len(group.pathname + '.' if group.pathname else '')
+        mypathlen = len(group.pathname + "." if group.pathname else "")
 
         # Initialize empty lists for the transfer indices
         fwd_xfer_in = defaultdict(list)
@@ -155,28 +162,27 @@ class DefaultTransfer(Transfer):
             rev_xfer_out = defaultdict(list)
 
         allprocs_abs2idx = group._var_allprocs_abs2idx
-        sizes_in = group._var_sizes['input']
-        offsets_in = offsets['input']
+        sizes_in = group._var_sizes["input"]
+        offsets_in = offsets["input"]
         if sizes_in.size > 0:
             sizes_in = sizes_in[iproc]
             offsets_in = offsets_in[iproc]
-        offsets_out = offsets['output']
+        offsets_out = offsets["output"]
         if offsets_out.size > 0:
             offsets_out = offsets_out[iproc]
 
         tot_size = 0
 
         scaled_in_set = set()
-        scale_factors = group._problem_meta['model_ref']()._scale_factors
+        scale_factors = group._problem_meta["model_ref"]()._scale_factors
         conn_graph = group.get_conn_graph()
 
         # Loop through all connections owned by this group
         for abs_in, abs_out in group._conn_abs_in2out.items():
             # This weeds out discrete vars (all vars are local if using this Transfer)
-            if abs_in in abs2meta['input']:
-
+            if abs_in in abs2meta["input"]:
                 # Get meta
-                meta_in = abs2meta['input'][abs_in]
+                meta_in = abs2meta["input"][abs_in]
 
                 idx_in = allprocs_abs2idx[abs_in]
                 idx_out = allprocs_abs2idx[abs_out]
@@ -187,7 +193,7 @@ class DefaultTransfer(Transfer):
                 # 1. Compute the output indices
                 offset = offsets_out[idx_out]
                 if src_indices is None:
-                    output_inds = range(offset, offset + meta_in['size'])
+                    output_inds = range(offset, offset + meta_in["size"])
                 else:
                     output_inds = src_indices + offset
 
@@ -196,29 +202,31 @@ class DefaultTransfer(Transfer):
                 input_inds = range(offsets_in[idx_in], offsets_in[idx_in] + sizes_in[idx_in])
                 tot_size += sizes_in[idx_in]
 
-                sub_in = abs_in[mypathlen:].split('.', 1)[0]
+                sub_in = abs_in[mypathlen:].split(".", 1)[0]
 
                 if scale_factors is not None and abs_in in scale_factors:
                     factors = scale_factors[abs_in]
-                    if 'input' in factors:
+                    if "input" in factors:
                         scaled_in_set.add(sub_in)
 
                 # Now the indices are ready - input_inds, output_inds
                 fwd_xfer_in[sub_in].append(input_inds)
                 fwd_xfer_out[sub_in].append(output_inds)
 
-                if rev and abs_out in abs2meta['output']:
-                    sub_out = abs_out[mypathlen:].split('.', 1)[0]
+                if rev and abs_out in abs2meta["output"]:
+                    sub_out = abs_out[mypathlen:].split(".", 1)[0]
                     if sub_in in scaled_in_set:
                         scaled_in_set.add(sub_out)
                     rev_xfer_in[sub_out].append(input_inds)
                     rev_xfer_out[sub_out].append(output_inds)
 
-        transfers['fwd'] = _setup_index_arrays(tot_size, fwd_xfer_in, fwd_xfer_out, vectors,
-                                               scaled_in_set)
+        transfers["fwd"] = _setup_index_arrays(
+            tot_size, fwd_xfer_in, fwd_xfer_out, vectors, scaled_in_set
+        )
         if rev:
-            transfers['rev'] = _setup_index_arrays(tot_size, rev_xfer_in, rev_xfer_out, vectors,
-                                                   scaled_in_set)
+            transfers["rev"] = _setup_index_arrays(
+                tot_size, rev_xfer_in, rev_xfer_out, vectors, scaled_in_set
+            )
 
     @staticmethod
     def _setup_discrete_transfers(group):
@@ -237,16 +245,16 @@ class DefaultTransfer(Transfer):
         owns = group._owning_rank
 
         for tgt, src in group._conn_discrete_in2out.items():
-            src_sys, src_var = src[name_offset:].split('.', 1)
-            tgt_sys, tgt_var = tgt[name_offset:].split('.', 1)
+            src_sys, src_var = src[name_offset:].split(".", 1)
+            tgt_sys, tgt_var = tgt[name_offset:].split(".", 1)
             xfer = (src_sys, src_var, tgt_sys, tgt_var)
             transfers[tgt_sys].append(xfer)
 
         if group.comm.size > 1:
             # collect all xfers for each tgt system
             for tgt, src in group._conn_discrete_in2out.items():
-                src_sys, src_var = src[name_offset:].split('.', 1)
-                tgt_sys, tgt_var = tgt[name_offset:].split('.', 1)
+                src_sys, src_var = src[name_offset:].split(".", 1)
+                tgt_sys, tgt_var = tgt[name_offset:].split(".", 1)
                 xfer = (src_sys, src_var, tgt_sys, tgt_var)
                 transfers[tgt_sys].append(xfer)
 
@@ -259,16 +267,18 @@ class DefaultTransfer(Transfer):
                 recv = []
                 for src_sys, src_var, tgt_sys, tgt_var in xfers:
                     if group.pathname:
-                        src_abs = '.'.join([group.pathname, src_sys, src_var])
+                        src_abs = ".".join([group.pathname, src_sys, src_var])
                     else:
-                        src_abs = '.'.join([src_sys, src_var])
-                    tgt_rel = '.'.join((tgt_sys, tgt_var))
-                    src_rel = '.'.join((src_sys, src_var))
+                        src_abs = ".".join([src_sys, src_var])
+                    tgt_rel = ".".join((tgt_sys, tgt_var))
+                    src_rel = ".".join((src_sys, src_var))
                     if iproc == owns[src_abs]:
                         # we own this var, so we'll send it out to others
                         send.add(src_rel)
-                    if (tgt_rel in group._var_discrete['input'] and
-                            src_rel not in group._var_discrete['output']):
+                    if (
+                        tgt_rel in group._var_discrete["input"]
+                        and src_rel not in group._var_discrete["output"]
+                    ):
                         # we have the target locally, but not the source, so we need someone
                         # to send it to us.
                         recv.append(src_rel)
@@ -299,7 +309,7 @@ class DefaultTransfer(Transfer):
                 # and get rid of recv list because allprocs_recv has the necessary info.
                 transfers[tgt_sys] = (xfers, send.intersection(allprocs_recv[tgt_sys]))
 
-    def _transfer(self, in_vec, out_vec, mode='fwd'):
+    def _transfer(self, in_vec, out_vec, mode="fwd"):
         """
         Perform transfer.
 
@@ -313,10 +323,13 @@ class DefaultTransfer(Transfer):
             'fwd' or 'rev'.
 
         """
-        if mode == 'fwd':
+        if mode == "fwd":
             # this works whether the vecs have multi columns or not due to broadcasting
             in_vec.set_val(out_vec.asarray()[self._out_inds.flat], self._in_inds)
 
         else:  # rev
-            out_vec.iadd(np.bincount(self._out_inds, in_vec._get_data()[self._in_inds],
-                                     minlength=out_vec._data.size))
+            out_vec.iadd(
+                np.bincount(
+                    self._out_inds, in_vec._get_data()[self._in_inds], minlength=out_vec._data.size
+                )
+            )

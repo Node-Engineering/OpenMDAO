@@ -30,14 +30,14 @@ def index_to_varname(system, loc):
     """
     start = end = 0
     varsizes = np.sum(system._owned_output_sizes, axis=0)
-    for i, name in enumerate(system._resolver.abs_iter('output')):
+    for i, name in enumerate(system._resolver.abs_iter("output")):
         end += varsizes[i]
         if loc < end:
-            varname = system._resolver.abs2prom(name, 'output')
+            varname = system._resolver.abs2prom(name, "output")
             break
         start = end
 
-    if varname == name or name.startswith('_auto_ivc.'):
+    if varname == name or name.startswith("_auto_ivc."):
         name_string = "'{}' index {}.".format(varname, loc - start)
     else:
         name_string = "'{}' ('{}') index {}.".format(varname, name, loc - start)
@@ -94,7 +94,6 @@ def format_singular_error(system, matrix):
     zero_rows = np.where(~matrix.any(axis=1))[0]
     zero_cols = np.where(~matrix.any(axis=0))[0]
     if zero_cols.size <= zero_rows.size:
-
         if zero_rows.size == 0:
             # In this case, some row is a linear combination of the other rows.
 
@@ -103,8 +102,10 @@ def format_singular_error(system, matrix):
                 u, _, _ = np.linalg.svd(matrix)
 
             except Exception:
-                msg = f"Jacobian in '{system.pathname}' is not full rank, but OpenMDAO was " + \
-                      "not able to determine which rows or columns."
+                msg = (
+                    f"Jacobian in '{system.pathname}' is not full rank, but OpenMDAO was "
+                    + "not able to determine which rows or columns."
+                )
                 return msg
 
             # Nonzero elements in the left singular vector show the rows that contribute strongly to
@@ -114,12 +115,14 @@ def format_singular_error(system, matrix):
             u_sing = np.abs(u[:, -1])
             left_idx = np.where(u_sing > tol)[0]
 
-            msg = "Jacobian in '{}' is not full rank. The following set of states/residuals " + \
-                  "contains one or more equations that is a linear combination of the others: \n"
+            msg = (
+                "Jacobian in '{}' is not full rank. The following set of states/residuals "
+                + "contains one or more equations that is a linear combination of the others: \n"
+            )
 
             for loc in left_idx:
                 name = index_to_varname(system, loc)
-                msg += ' ' + name + '\n'
+                msg += " " + name + "\n"
 
             if len(left_idx) > 2:
                 msg += "Note that the problem may be in a single Component."
@@ -160,14 +163,14 @@ def format_nan_error(system, matrix):
 
     varnames = []
     start = end = 0
-    for i, name in enumerate(system._resolver.abs_iter('output')):
+    for i, name in enumerate(system._resolver.abs_iter("output")):
         end += varsizes[i]
         if np.any(nanrows[start:end]):
-            varnames.append("'%s'" % system._resolver.abs2prom(name, 'output'))
+            varnames.append("'%s'" % system._resolver.abs2prom(name, "output"))
         start = end
 
     msg = "NaN entries found in {} for rows associated with states/residuals [{}]."
-    return msg.format(system.msginfo, ', '.join(varnames))
+    return msg.format(system.msginfo, ", ".join(varnames))
 
 
 class DirectSolver(LinearSolver):
@@ -195,7 +198,7 @@ class DirectSolver(LinearSolver):
         what was factorized rather than by what the system reports at solve time.
     """
 
-    SOLVER = 'LN: Direct'
+    SOLVER = "LN: Direct"
 
     def __init__(self, **kwargs):
         """
@@ -213,15 +216,22 @@ class DirectSolver(LinearSolver):
         """
         super()._declare_options()
 
-        self.options.declare('err_on_singular', types=bool, default=True,
-                             desc="Raise an error if LU decomposition is singular.")
+        self.options.declare(
+            "err_on_singular",
+            types=bool,
+            default=True,
+            desc="Raise an error if LU decomposition is singular.",
+        )
 
-        self.options.declare('rhs_checking', types=(bool, dict),
-                             default=False,
-                             desc="If True, check RHS vs. cache and/or zero to avoid some solves."
-                             "Can also be set to a dict of options for the LinearRHSChecker to "
-                             "allow finer control over it. Allowed options are: "
-                             f"{LinearRHSChecker.options}")
+        self.options.declare(
+            "rhs_checking",
+            types=(bool, dict),
+            default=False,
+            desc="If True, check RHS vs. cache and/or zero to avoid some solves."
+            "Can also be set to a dict of options for the LinearRHSChecker to "
+            "allow finer control over it. Allowed options are: "
+            f"{LinearRHSChecker.options}",
+        )
 
         # this solver does not iterate
         self.options.undeclare("maxiter")
@@ -231,9 +241,9 @@ class DirectSolver(LinearSolver):
         self.options.undeclare("rtol")
 
         # Use an assembled jacobian by default.
-        self.options['assemble_jac'] = True
+        self.options["assemble_jac"] = True
 
-        self.supports['implicit_components'] = True
+        self.supports["implicit_components"] = True
 
     def check_config(self, logger):
         """
@@ -244,7 +254,7 @@ class DirectSolver(LinearSolver):
         logger : object
             The object that manages logging output.
         """
-        if self.options['rhs_checking'] is False:
+        if self.options["rhs_checking"] is False:
             system = self._system()
             redundant_adj = system.pathname in system._relevance.get_redundant_adjoint_systems()
             if redundant_adj:
@@ -268,7 +278,7 @@ class DirectSolver(LinearSolver):
         """
         super()._setup_solvers(system, depth)
         self._disallow_distrib_solve()
-        self._lin_rhs_checker = LinearRHSChecker.create(system, self.options['rhs_checking'])
+        self._lin_rhs_checker = LinearRHSChecker.create(system, self.options["rhs_checking"])
 
     def _linearize_children(self):
         """
@@ -333,7 +343,7 @@ class DirectSolver(LinearSolver):
                 xvec.set_val(seed)
 
                 # apply linear
-                system._apply_linear('fwd', scope_out, scope_in)
+                system._apply_linear("fwd", scope_out, scope_in)
 
                 # put new value in out_vec
                 mtx[:, i] = bvec.asarray()
@@ -370,8 +380,8 @@ class DirectSolver(LinearSolver):
             elif isinstance(matrix, np.ndarray):  # dense
                 # During LU decomposition, detect singularities and warn user.
                 with warnings.catch_warnings():
-                    if self.options['err_on_singular']:
-                        warnings.simplefilter('error', RuntimeWarning)
+                    if self.options["err_on_singular"]:
+                        warnings.simplefilter("error", RuntimeWarning)
                     try:
                         self._lup = scipy.linalg.lu_factor(matrix)
                     except RuntimeWarning:
@@ -384,12 +394,16 @@ class DirectSolver(LinearSolver):
             # Note: calling scipy.sparse.linalg.splu on a COO actually transposes
             # the matrix during conversion to csc prior to LU decomp, so we can't use COO.
             else:
-                raise RuntimeError("Direct solver not implemented for matrix type %s"
-                                   " in %s." % (type(matrix), system.msginfo))
+                raise RuntimeError(
+                    "Direct solver not implemented for matrix type %s"
+                    " in %s." % (type(matrix), system.msginfo)
+                )
         else:
             if nproc > 1:
-                raise RuntimeError("DirectSolvers without an assembled jacobian are not supported "
-                                   "when running under MPI if comm.size > 1.")
+                raise RuntimeError(
+                    "DirectSolvers without an assembled jacobian are not supported "
+                    "when running under MPI if comm.size > 1."
+                )
 
             mtx = self._build_mtx()
             self._lu = self._lup = None
@@ -397,9 +411,8 @@ class DirectSolver(LinearSolver):
 
             # During LU decomposition, detect singularities and warn user.
             with warnings.catch_warnings():
-
-                if self.options['err_on_singular']:
-                    warnings.simplefilter('error', RuntimeWarning)
+                if self.options["err_on_singular"]:
+                    warnings.simplefilter("error", RuntimeWarning)
 
                 try:
                     self._lup = scipy.linalg.lu_factor(mtx)
@@ -441,8 +454,8 @@ class DirectSolver(LinearSolver):
             elif isinstance(matrix, np.ndarray):
                 # Detect singularities and warn user.
                 with warnings.catch_warnings():
-                    if self.options['err_on_singular']:
-                        warnings.simplefilter('error', RuntimeWarning)
+                    if self.options["err_on_singular"]:
+                        warnings.simplefilter("error", RuntimeWarning)
                     try:
                         inv_jac = scipy.linalg.inv(matrix)
                     except RuntimeWarning:
@@ -463,20 +476,23 @@ class DirectSolver(LinearSolver):
                 if inv_jac.size == 1:
                     inv_jac = inv_jac.reshape((1, 1))
             else:
-                raise RuntimeError("Direct solver not implemented for matrix type %s"
-                                   " in %s." % (type(matrix), system.msginfo))
+                raise RuntimeError(
+                    "Direct solver not implemented for matrix type %s"
+                    " in %s." % (type(matrix), system.msginfo)
+                )
 
         else:
             if nproc > 1:
-                raise RuntimeError("BroydenSolvers without an assembled jacobian are not supported "
-                                   "when running under MPI if comm.size > 1.")
+                raise RuntimeError(
+                    "BroydenSolvers without an assembled jacobian are not supported "
+                    "when running under MPI if comm.size > 1."
+                )
             mtx = self._build_mtx()
 
             # During inversion detect singularities and warn user.
             with warnings.catch_warnings():
-
-                if self.options['err_on_singular']:
-                    warnings.simplefilter('error', RuntimeWarning)
+                if self.options["err_on_singular"]:
+                    warnings.simplefilter("error", RuntimeWarning)
 
                 try:
                     inv_jac = scipy.linalg.inv(mtx)
@@ -507,16 +523,16 @@ class DirectSolver(LinearSolver):
         d_outputs = system._doutputs
 
         # assign x and b vectors based on mode
-        if mode == 'fwd':
+        if mode == "fwd":
             x_vec = d_outputs.asarray()
             b_vec = d_residuals.asarray()
             trans_lu = 0
-            trans_splu = 'N'
+            trans_splu = "N"
         else:  # rev
             x_vec = d_residuals.asarray()
             b_vec = d_outputs.asarray()
             trans_lu = 1
-            trans_splu = 'T'
+            trans_splu = "T"
 
             if self._lin_rhs_checker is not None:
                 sol_array, is_zero = self._lin_rhs_checker.get_solution(b_vec, system)
@@ -528,9 +544,11 @@ class DirectSolver(LinearSolver):
                     return
 
         if self._lu is None and self._lup is None:
-            raise RuntimeError(f"{system.msginfo}: DirectSolver has no factorization to "
-                               "solve with. Its linearize step either did not run or ran "
-                               "while the system was using a different jacobian.")
+            raise RuntimeError(
+                f"{system.msginfo}: DirectSolver has no factorization to "
+                "solve with. Its linearize step either did not run or ran "
+                "while the system was using a different jacobian."
+            )
 
         # AssembledJacobians are unscaled.
         if self._factored_assembled_jac:
@@ -548,7 +566,7 @@ class DirectSolver(LinearSolver):
         else:
             x_vec[:] = sol_array = scipy.linalg.lu_solve(self._lup, b_vec, trans=trans_lu)
 
-        if not system.under_complex_step and self._lin_rhs_checker is not None and mode == 'rev':
+        if not system.under_complex_step and self._lin_rhs_checker is not None and mode == "rev":
             self._lin_rhs_checker.add_solution(b_vec, sol_array, system, copy=True)
 
     def preferred_sparse_format(self):
@@ -560,4 +578,4 @@ class DirectSolver(LinearSolver):
         str
             The preferred sparse format for the dr/do matrix of a split jacobian.
         """
-        return 'csc'
+        return "csc"

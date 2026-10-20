@@ -1,4 +1,5 @@
 """Define some functions to view Web pages."""
+
 import sys
 import os
 import webbrowser
@@ -13,9 +14,9 @@ def webview(outfile):
     outfile : str
         Path to the HTML file to open.
     """
-    if sys.platform == 'darwin':
-        if not outfile.startswith('file://'):
-            outfile = 'file://' + os.path.abspath(outfile)
+    if sys.platform == "darwin":
+        if not outfile.startswith("file://"):
+            outfile = "file://" + os.path.abspath(outfile)
     webbrowser.get().open(outfile)
 
 

@@ -3,10 +3,14 @@ Interpolate using a linear polynomial.
 
 Based on NPSS implementation.
 """
+
 import numpy as np
 
-from openmdao.components.interp_util.interp_algorithm import InterpAlgorithm, \
-    InterpAlgorithmSemi, InterpAlgorithmFixed
+from openmdao.components.interp_util.interp_algorithm import (
+    InterpAlgorithm,
+    InterpAlgorithmSemi,
+    InterpAlgorithmFixed,
+)
 
 
 class InterpLinear(InterpAlgorithm):
@@ -31,7 +35,7 @@ class InterpLinear(InterpAlgorithm):
         """
         super().__init__(grid, values, interp, **kwargs)
         self.k = 2
-        self._name = 'slinear'
+        self._name = "slinear"
 
     def interpolate(self, x, idx, slice_idx):
         """
@@ -77,7 +81,7 @@ class InterpLinear(InterpAlgorithm):
             nx = len(x)
             level = len(slice_idx)
             if level == 0:
-                nshape = (nx, )
+                nshape = (nx,)
             else:
                 nshape = [2] * level
                 nshape.append(nx)
@@ -99,8 +103,7 @@ class InterpLinear(InterpAlgorithm):
             values = self.values[tuple(slice_idx)]
             slope = (values[..., idx + 1] - values[..., idx]) * h
 
-            return values[..., idx] + (x - grid[idx]) * slope, slope[..., None], \
-                None, None
+            return values[..., idx] + (x - grid[idx]) * slope, slope[..., None], None, None
 
 
 class InterpLinearSemi(InterpAlgorithmSemi):
@@ -128,15 +131,32 @@ class InterpLinearSemi(InterpAlgorithmSemi):
         Interpolator-specific options to pass onward.
     """
 
-    def __init__(self, grid, values, interp, extrapolate=True, compute_d_dvalues=False, idx=None,
-                 idim=0, **kwargs):
+    def __init__(
+        self,
+        grid,
+        values,
+        interp,
+        extrapolate=True,
+        compute_d_dvalues=False,
+        idx=None,
+        idim=0,
+        **kwargs,
+    ):
         """
         Initialize table and subtables.
         """
-        super().__init__(grid, values, interp, extrapolate=extrapolate,
-                         compute_d_dvalues=compute_d_dvalues, idx=idx, idim=idim, **kwargs)
+        super().__init__(
+            grid,
+            values,
+            interp,
+            extrapolate=extrapolate,
+            compute_d_dvalues=compute_d_dvalues,
+            idx=idx,
+            idim=idim,
+            **kwargs,
+        )
         self.k = 2
-        self._name = 'slinear'
+        self._name = "slinear"
 
     def interpolate(self, x):
         """
@@ -253,7 +273,7 @@ class Interp1DSlinear(InterpAlgorithmFixed):
         self.k = 2
         self.dim = 1
         self.last_index = [0] * self.dim
-        self._name = '1D-slinear'
+        self._name = "1D-slinear"
 
     def vectorized(self, x):
         """
@@ -404,7 +424,7 @@ class Interp1DSlinear(InterpAlgorithmFixed):
         uncached = needed.difference(self.coeffs)
         if len(uncached) > 0:
             unc = np.array(list(uncached))
-            uncached_idx = (unc, )
+            uncached_idx = (unc,)
             a = self.compute_coeffs_vectorized(uncached_idx, dtype)
             self.vec_coeff[unc, ...] = a
             self.coeffs.update(uncached)
@@ -486,7 +506,7 @@ class Interp2DSlinear(InterpAlgorithmFixed):
         self.k = 2
         self.dim = 2
         self.last_index = [0] * self.dim
-        self._name = '2D-slinear'
+        self._name = "2D-slinear"
 
     def vectorized(self, x):
         """
@@ -543,7 +563,7 @@ class Interp2DSlinear(InterpAlgorithmFixed):
 
         val = a[0] + (a[1] + a[3] * y) * x + a[2] * y
 
-        d_x = np.empty((2, ), dtype=dtype)
+        d_x = np.empty((2,), dtype=dtype)
         d_x[0] = a[1] + y * a[3]
         d_x[1] = a[2] + x * a[3]
 
@@ -594,10 +614,7 @@ class Interp2DSlinear(InterpAlgorithmFixed):
         c10 = values[i_x + 1, i_y]
         c11 = values[i_x + 1, i_y + 1]
 
-        a[0] = c00 * x1 * y1 - \
-            c01 * x1 * y0 - \
-            c10 * x0 * y1 + \
-            c11 * x0 * y0
+        a[0] = c00 * x1 * y1 - c01 * x1 * y0 - c10 * x0 * y1 + c11 * x0 * y0
 
         a[1] = (c10 - c00) * y1 + (c01 - c11) * y0
 
@@ -705,10 +722,7 @@ class Interp2DSlinear(InterpAlgorithmFixed):
         c10 = values[i_x + 1, i_y]
         c11 = values[i_x + 1, i_y + 1]
 
-        a[:, 0] = c00 * x1 * y1 - \
-            c01 * x1 * y0 - \
-            c10 * x0 * y1 + \
-            c11 * x0 * y0
+        a[:, 0] = c00 * x1 * y1 - c01 * x1 * y0 - c10 * x0 * y1 + c11 * x0 * y0
 
         a[:, 1] = (c10 - c00) * y1 + (c01 - c11) * y0
 
@@ -717,7 +731,7 @@ class Interp2DSlinear(InterpAlgorithmFixed):
         a[:, 3] = c00 + c11 - c01 - c10
 
         rec_vol = 1.0 / ((x0 - x1) * (y0 - y1))
-        return np.einsum('i,ij->ij', rec_vol, a)
+        return np.einsum("i,ij->ij", rec_vol, a)
 
 
 class Interp3DSlinear(InterpAlgorithmFixed):
@@ -753,7 +767,7 @@ class Interp3DSlinear(InterpAlgorithmFixed):
         self.k = 2
         self.dim = 3
         self.last_index = [0] * self.dim
-        self._name = '3D-slinear'
+        self._name = "3D-slinear"
 
     def vectorized(self, x):
         """
@@ -808,12 +822,11 @@ class Interp3DSlinear(InterpAlgorithmFixed):
             self.coeffs[idx_key] = self.compute_coeffs(idx, dtype)
         a = self.coeffs[idx_key]
 
-        val = a[0] + \
-            (a[1] + (a[4] + a[7] * z) * y) * x + \
-            a[2] * y + \
-            (a[3] + a[5] * x + a[6] * y) * z
+        val = (
+            a[0] + (a[1] + (a[4] + a[7] * z) * y) * x + a[2] * y + (a[3] + a[5] * x + a[6] * y) * z
+        )
 
-        d_x = np.empty((3, ), dtype=dtype)
+        d_x = np.empty((3,), dtype=dtype)
         d_x[0] = a[1] + y * a[4] + z * (a[5] + y * a[7])
         d_x[1] = a[2] + x * a[4] + z * (a[6] + x * a[7])
         d_x[2] = a[3] + x * a[5] + y * (a[6] + x * a[7])
@@ -877,68 +890,82 @@ class Interp3DSlinear(InterpAlgorithmFixed):
         c101 = values[i_x + 1, i_y, i_z + 1]
         c111 = values[i_x + 1, i_y + 1, i_z + 1]
 
-        a[0] = -c000 * x1 * y1 * z1 + \
-            c001 * x1 * y1 * z0 + \
-            c010 * x1 * y0 * z1 - \
-            c011 * x1 * y0 * z0 + \
-            c100 * x0 * y1 * z1 - \
-            c101 * x0 * y1 * z0 - \
-            c110 * x0 * y0 * z1 + \
-            c111 * x0 * y0 * z0
+        a[0] = (
+            -c000 * x1 * y1 * z1
+            + c001 * x1 * y1 * z0
+            + c010 * x1 * y0 * z1
+            - c011 * x1 * y0 * z0
+            + c100 * x0 * y1 * z1
+            - c101 * x0 * y1 * z0
+            - c110 * x0 * y0 * z1
+            + c111 * x0 * y0 * z0
+        )
 
-        a[1] = c000 * y1 * z1 - \
-            c001 * y1 * z0 - \
-            c010 * y0 * z1 + \
-            c011 * y0 * z0 - \
-            c100 * y1 * z1 + \
-            c101 * y1 * z0 + \
-            c110 * y0 * z1 - \
-            c111 * y0 * z0
+        a[1] = (
+            c000 * y1 * z1
+            - c001 * y1 * z0
+            - c010 * y0 * z1
+            + c011 * y0 * z0
+            - c100 * y1 * z1
+            + c101 * y1 * z0
+            + c110 * y0 * z1
+            - c111 * y0 * z0
+        )
 
-        a[2] = c000 * x1 * z1 - \
-            c001 * x1 * z0 - \
-            c010 * x1 * z1 + \
-            c011 * x1 * z0 - \
-            c100 * x0 * z1 + \
-            c101 * x0 * z0 + \
-            c110 * x0 * z1 - \
-            c111 * x0 * z0
+        a[2] = (
+            c000 * x1 * z1
+            - c001 * x1 * z0
+            - c010 * x1 * z1
+            + c011 * x1 * z0
+            - c100 * x0 * z1
+            + c101 * x0 * z0
+            + c110 * x0 * z1
+            - c111 * x0 * z0
+        )
 
-        a[3] = c000 * x1 * y1 - \
-            c001 * x1 * y1 - \
-            c010 * x1 * y0 + \
-            c011 * x1 * y0 - \
-            c100 * x0 * y1 + \
-            c101 * x0 * y1 + \
-            c110 * x0 * y0 - \
-            c111 * x0 * y0
+        a[3] = (
+            c000 * x1 * y1
+            - c001 * x1 * y1
+            - c010 * x1 * y0
+            + c011 * x1 * y0
+            - c100 * x0 * y1
+            + c101 * x0 * y1
+            + c110 * x0 * y0
+            - c111 * x0 * y0
+        )
 
-        a[4] = -c000 * z1 + \
-            c001 * z0 + \
-            c010 * z1 - \
-            c011 * z0 + \
-            c100 * z1 - \
-            c101 * z0 - \
-            c110 * z1 + \
-            c111 * z0
+        a[4] = (
+            -c000 * z1
+            + c001 * z0
+            + c010 * z1
+            - c011 * z0
+            + c100 * z1
+            - c101 * z0
+            - c110 * z1
+            + c111 * z0
+        )
 
-        a[5] = -c000 * y1 + \
-            c001 * y1 + \
-            c010 * y0 - \
-            c011 * y0 + \
-            c100 * y1 - \
-            c101 * y1 - \
-            c110 * y0 + \
-            c111 * y0
+        a[5] = (
+            -c000 * y1
+            + c001 * y1
+            + c010 * y0
+            - c011 * y0
+            + c100 * y1
+            - c101 * y1
+            - c110 * y0
+            + c111 * y0
+        )
 
-        a[6] = -c000 * x1 + \
-            c001 * x1 + \
-            c010 * x1 - \
-            c011 * x1 + \
-            c100 * x0 - \
-            c101 * x0 - \
-            c110 * x0 + \
-            c111 * x0
+        a[6] = (
+            -c000 * x1
+            + c001 * x1
+            + c010 * x1
+            - c011 * x1
+            + c100 * x0
+            - c101 * x0
+            - c110 * x0
+            + c111 * x0
+        )
 
         a[7] = c000 - c001 - c010 + c011 - c100 + c101 + c110 - c111
 
@@ -1004,10 +1031,12 @@ class Interp3DSlinear(InterpAlgorithmFixed):
             self.coeffs.update(uncached)
         a = self.vec_coeff[i_x, i_y, i_z, :]
 
-        val = a[:, 0] + \
-            (a[:, 1] + (a[:, 4] + a[:, 7] * z) * y) * x + \
-            a[:, 2] * y + \
-            (a[:, 3] + a[:, 5] * x + a[:, 6] * y) * z
+        val = (
+            a[:, 0]
+            + (a[:, 1] + (a[:, 4] + a[:, 7] * z) * y) * x
+            + a[:, 2] * y
+            + (a[:, 3] + a[:, 5] * x + a[:, 6] * y) * z
+        )
 
         d_x = np.empty((vec_size, 3), dtype=dtype)
         d_x[:, 0] = a[:, 1] + y * a[:, 4] + z * (a[:, 5] + y * a[:, 7])
@@ -1055,70 +1084,84 @@ class Interp3DSlinear(InterpAlgorithmFixed):
         c101 = values[i_x + 1, i_y, i_z + 1]
         c111 = values[i_x + 1, i_y + 1, i_z + 1]
 
-        a[:, 0] = -c000 * x1 * y1 * z1 + \
-            c001 * x1 * y1 * z0 + \
-            c010 * x1 * y0 * z1 - \
-            c011 * x1 * y0 * z0 + \
-            c100 * x0 * y1 * z1 - \
-            c101 * x0 * y1 * z0 - \
-            c110 * x0 * y0 * z1 + \
-            c111 * x0 * y0 * z0
+        a[:, 0] = (
+            -c000 * x1 * y1 * z1
+            + c001 * x1 * y1 * z0
+            + c010 * x1 * y0 * z1
+            - c011 * x1 * y0 * z0
+            + c100 * x0 * y1 * z1
+            - c101 * x0 * y1 * z0
+            - c110 * x0 * y0 * z1
+            + c111 * x0 * y0 * z0
+        )
 
-        a[:, 1] = c000 * y1 * z1 - \
-            c001 * y1 * z0 - \
-            c010 * y0 * z1 + \
-            c011 * y0 * z0 - \
-            c100 * y1 * z1 + \
-            c101 * y1 * z0 + \
-            c110 * y0 * z1 - \
-            c111 * y0 * z0
+        a[:, 1] = (
+            c000 * y1 * z1
+            - c001 * y1 * z0
+            - c010 * y0 * z1
+            + c011 * y0 * z0
+            - c100 * y1 * z1
+            + c101 * y1 * z0
+            + c110 * y0 * z1
+            - c111 * y0 * z0
+        )
 
-        a[:, 2] = c000 * x1 * z1 - \
-            c001 * x1 * z0 - \
-            c010 * x1 * z1 + \
-            c011 * x1 * z0 - \
-            c100 * x0 * z1 + \
-            c101 * x0 * z0 + \
-            c110 * x0 * z1 - \
-            c111 * x0 * z0
+        a[:, 2] = (
+            c000 * x1 * z1
+            - c001 * x1 * z0
+            - c010 * x1 * z1
+            + c011 * x1 * z0
+            - c100 * x0 * z1
+            + c101 * x0 * z0
+            + c110 * x0 * z1
+            - c111 * x0 * z0
+        )
 
-        a[:, 3] = c000 * x1 * y1 - \
-            c001 * x1 * y1 - \
-            c010 * x1 * y0 + \
-            c011 * x1 * y0 - \
-            c100 * x0 * y1 + \
-            c101 * x0 * y1 + \
-            c110 * x0 * y0 - \
-            c111 * x0 * y0
+        a[:, 3] = (
+            c000 * x1 * y1
+            - c001 * x1 * y1
+            - c010 * x1 * y0
+            + c011 * x1 * y0
+            - c100 * x0 * y1
+            + c101 * x0 * y1
+            + c110 * x0 * y0
+            - c111 * x0 * y0
+        )
 
-        a[:, 4] = -c000 * z1 + \
-            c001 * z0 + \
-            c010 * z1 - \
-            c011 * z0 + \
-            c100 * z1 - \
-            c101 * z0 - \
-            c110 * z1 + \
-            c111 * z0
+        a[:, 4] = (
+            -c000 * z1
+            + c001 * z0
+            + c010 * z1
+            - c011 * z0
+            + c100 * z1
+            - c101 * z0
+            - c110 * z1
+            + c111 * z0
+        )
 
-        a[:, 5] = -c000 * y1 + \
-            c001 * y1 + \
-            c010 * y0 - \
-            c011 * y0 + \
-            c100 * y1 - \
-            c101 * y1 - \
-            c110 * y0 + \
-            c111 * y0
+        a[:, 5] = (
+            -c000 * y1
+            + c001 * y1
+            + c010 * y0
+            - c011 * y0
+            + c100 * y1
+            - c101 * y1
+            - c110 * y0
+            + c111 * y0
+        )
 
-        a[:, 6] = -c000 * x1 + \
-            c001 * x1 + \
-            c010 * x1 - \
-            c011 * x1 + \
-            c100 * x0 - \
-            c101 * x0 - \
-            c110 * x0 + \
-            c111 * x0
+        a[:, 6] = (
+            -c000 * x1
+            + c001 * x1
+            + c010 * x1
+            - c011 * x1
+            + c100 * x0
+            - c101 * x0
+            - c110 * x0
+            + c111 * x0
+        )
 
         a[:, 7] = c000 - c001 - c010 + c011 - c100 + c101 + c110 - c111
 
         rec_vol = 1.0 / ((x0 - x1) * (y0 - y1) * (z0 - z1))
-        return np.einsum('i,ij->ij', rec_vol, a)
+        return np.einsum("i,ij->ij", rec_vol, a)

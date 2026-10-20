@@ -259,8 +259,7 @@ class PhysicalUnit(object):
         str
             str representation of how to instantiate this PhysicalUnit
         """
-        return 'PhysicalUnit(%s,%s,%s,%s)' % (self._names, self._factor,
-                                              self._powers, self._offset)
+        return "PhysicalUnit(%s,%s,%s,%s)" % (self._names, self._factor, self._powers, self._offset)
 
     def __str__(self):
         """
@@ -271,7 +270,7 @@ class PhysicalUnit(object):
         str
             str representation of a PhysicalUnit
         """
-        return '<PhysicalUnit ' + self.name() + '>'
+        return "<PhysicalUnit " + self.name() + ">"
 
     def __lt__(self, other):
         """
@@ -324,9 +323,11 @@ class PhysicalUnit(object):
         bool
             true if _factor, _offset, and _powers all match
         """
-        return (self._factor == other._factor and
-                self._offset == other._offset and
-                self._powers == other._powers)
+        return (
+            self._factor == other._factor
+            and self._offset == other._offset
+            and self._powers == other._powers
+        )
 
     def __mul__(self, other):
         """
@@ -342,19 +343,24 @@ class PhysicalUnit(object):
         PhysicalUnit
             new PhysicalUnit instance representing the product of two units
         """
-        if self._offset != 0 or (isinstance(other, PhysicalUnit) and
-                                 other._offset != 0):
-            raise TypeError(f"Can't multiply units: either '{self.name()}' or '{other.name()}' "
-                            "has a non-zero offset.")
+        if self._offset != 0 or (isinstance(other, PhysicalUnit) and other._offset != 0):
+            raise TypeError(
+                f"Can't multiply units: either '{self.name()}' or '{other.name()}' "
+                "has a non-zero offset."
+            )
         if isinstance(other, PhysicalUnit):
-            return PhysicalUnit(self._names + other._names,
-                                self._factor * other._factor,
-                                [a + b for a, b in zip(self._powers, other._powers)])
+            return PhysicalUnit(
+                self._names + other._names,
+                self._factor * other._factor,
+                [a + b for a, b in zip(self._powers, other._powers)],
+            )
         else:
-            return PhysicalUnit(self._names + {str(other): 1},
-                                self._factor * other,
-                                self._powers,
-                                self._offset * other)
+            return PhysicalUnit(
+                self._names + {str(other): 1},
+                self._factor * other,
+                self._powers,
+                self._offset * other,
+            )
 
     __rmul__ = __mul__
 
@@ -372,20 +378,23 @@ class PhysicalUnit(object):
         PhysicalUnit
             new PhysicalUnit instance representing the self/other
         """
-        if self._offset != 0 or (isinstance(other, PhysicalUnit) and
-                                 other._offset != 0):
-            raise TypeError(f"Can't divide units: either '{self.name()}' or '{other.name()}' "
-                            "has a non-zero offset.")
+        if self._offset != 0 or (isinstance(other, PhysicalUnit) and other._offset != 0):
+            raise TypeError(
+                f"Can't divide units: either '{self.name()}' or '{other.name()}' "
+                "has a non-zero offset."
+            )
         if isinstance(other, PhysicalUnit):
-            return PhysicalUnit(self._names - other._names,
-                                self._factor / other._factor,
-                                [a - b for (a, b) in zip(self._powers,
-                                                         other._powers)])
+            return PhysicalUnit(
+                self._names - other._names,
+                self._factor / other._factor,
+                [a - b for (a, b) in zip(self._powers, other._powers)],
+            )
         else:
-            return PhysicalUnit(self._names + {str(other): -1},
-                                self._factor / float(other), self._powers)
+            return PhysicalUnit(
+                self._names + {str(other): -1}, self._factor / float(other), self._powers
+            )
 
-    __truediv__ = __div__   # for python 3
+    __truediv__ = __div__  # for python 3
 
     def __rdiv__(self, other):
         """
@@ -401,9 +410,9 @@ class PhysicalUnit(object):
         PhysicalUnit
             new PhysicalUnit instance representing the other/self
         """
-        return PhysicalUnit({str(other): 1} - self._names,
-                            float(other) / self._factor,
-                            [-x for x in self._powers])
+        return PhysicalUnit(
+            {str(other): 1} - self._names, float(other) / self._factor, [-x for x in self._powers]
+        )
 
     __rtruediv__ = __rdiv__
 
@@ -422,16 +431,17 @@ class PhysicalUnit(object):
             new PhysicalUnit of self^power
         """
         if self._offset != 0:
-            raise TypeError(f"Can't exponentiate unit '{self.name()}' because it "
-                            "has a non-zero offset.")
+            raise TypeError(
+                f"Can't exponentiate unit '{self.name()}' because it has a non-zero offset."
+            )
         if isinstance(power, int):
-            return PhysicalUnit(power * self._names, pow(self._factor, power),
-                                [x * power for x in self._powers])
+            return PhysicalUnit(
+                power * self._names, pow(self._factor, power), [x * power for x in self._powers]
+            )
         if isinstance(power, float):
-            inv_exp = 1. / power
+            inv_exp = 1.0 / power
             rounded = int(floor(inv_exp + 0.5))
-            if abs(inv_exp - rounded) < 1.e-10:
-
+            if abs(inv_exp - rounded) < 1.0e-10:
                 if all([x % rounded == 0 for x in self._powers]):
                     f = self._factor**power
                     p = [x / rounded for x in self._powers]
@@ -439,14 +449,16 @@ class PhysicalUnit(object):
                         names = self._names / rounded
                     else:
                         names = NumberDict()
-                        if f != 1.:
+                        if f != 1.0:
                             names[str(f)] = 1
                         for x, name in zip(p, _UNIT_LIB.base_names):
                             names[name] = x
                     return PhysicalUnit(names, f, p)
 
-        raise TypeError(f"Can't exponentiate unit '{self.name()}': "
-                        "only integer and inverse integer exponents are allowed.")
+        raise TypeError(
+            f"Can't exponentiate unit '{self.name()}': "
+            "only integer and inverse integer exponents are allowed."
+        )
 
     def in_base_units(self):
         """
@@ -457,20 +469,20 @@ class PhysicalUnit(object):
         PhysicalUnit
             The equivalent base unit.
         """
-        num = ''
-        denom = ''
+        num = ""
+        denom = ""
         for unit, power in zip(_UNIT_LIB.base_names, self._powers):
             if power < 0:
-                denom = denom + '/' + unit
+                denom = denom + "/" + unit
                 if power < -1:
-                    denom = denom + '**' + str(-power)
+                    denom = denom + "**" + str(-power)
             elif power > 0:
-                num = num + '*' + unit
+                num = num + "*" + unit
                 if power > 1:
-                    num = num + '**' + str(power)
+                    num = num + "**" + str(power)
 
         if len(num) == 0:
-            num = '1'
+            num = "1"
         else:
             num = num[1:]
 
@@ -549,8 +561,7 @@ class PhysicalUnit(object):
         bool
             Indicates if this an angle type.
         """
-        return (self._powers[_UNIT_LIB.base_types['angle']] == 1 and
-                sum(self._powers) == 1)
+        return self._powers[_UNIT_LIB.base_types["angle"]] == 1 and sum(self._powers) == 1
 
     def set_name(self, name):
         """
@@ -573,19 +584,19 @@ class PhysicalUnit(object):
         str
             String representation of the unit.
         """
-        num = ''
-        denom = ''
+        num = ""
+        denom = ""
         for unit, power in self._names.items():
             if power < 0:
-                denom = denom + '/' + unit
+                denom = denom + "/" + unit
                 if power < -1:
-                    denom = denom + '**' + str(-power)
+                    denom = denom + "**" + str(-power)
             elif power > 0:
-                num = num + '*' + unit
+                num = num + "*" + unit
                 if power > 1:
-                    num = num + '**' + str(power)
+                    num = num + "**" + str(power)
         if len(num) == 0:
-            num = '1'
+            num = "1"
         else:
             num = num[1:]
         return num + denom
@@ -594,6 +605,7 @@ class PhysicalUnit(object):
 ####################################
 # Module Functions
 ####################################
+
 
 def _new_unit(name, factor, powers):
     """
@@ -612,7 +624,7 @@ def _new_unit(name, factor, powers):
     _UNIT_LIB.unit_table[name] = PhysicalUnit(name, factor, powers)
 
 
-def add_offset_unit(name, baseunit, factor, offset, comment=''):
+def add_offset_unit(name, baseunit, factor, offset, comment=""):
     """
     Add Offset Unit.
 
@@ -633,20 +645,21 @@ def add_offset_unit(name, baseunit, factor, offset, comment=''):
         baseunit = _find_unit(baseunit)
     # else, baseunit should be a instance of PhysicalUnit
     # names, factor, powers, offset=0
-    unit = PhysicalUnit(baseunit._names, baseunit._factor * factor,
-                        baseunit._powers, offset)
+    unit = PhysicalUnit(baseunit._names, baseunit._factor * factor, baseunit._powers, offset)
     unit.set_name(name)
     if name in _UNIT_LIB.unit_table:
-        if (_UNIT_LIB.unit_table[name]._factor != unit._factor or
-                _UNIT_LIB.unit_table[name]._powers != unit._powers):
+        if (
+            _UNIT_LIB.unit_table[name]._factor != unit._factor
+            or _UNIT_LIB.unit_table[name]._powers != unit._powers
+        ):
             raise KeyError(f"Unit '{name}' already defined with different factor or powers.")
     _UNIT_LIB.unit_table[name] = unit
-    _UNIT_LIB.set('units', name, unit)
+    _UNIT_LIB.set("units", name, unit)
     if comment:
         _UNIT_LIB.help.append((name, comment, unit))
 
 
-def add_unit(name, unit, comment=''):
+def add_unit(name, unit, comment=""):
     """
     Add Unit.
 
@@ -665,34 +678,42 @@ def add_unit(name, unit, comment=''):
         _UNIT_LIB.help.append((name, comment, unit))
     if isinstance(unit, str):
         try:
-            unit = eval(unit, {'__builtins__': None, 'pi': pi},  # nosec: scope limited
-                        _UNIT_LIB.unit_table)
+            unit = eval(
+                unit,
+                {"__builtins__": None, "pi": pi},  # nosec: scope limited
+                _UNIT_LIB.unit_table,
+            )
         except (TypeError, NameError, KeyError):
             # Use _find_unit to parse and add any prefixed units to the unit_table.
-            regex = re.compile(r'(?<!\d)[A-Za-z]+[A-Za-z0-9]*')
+            regex = re.compile(r"(?<!\d)[A-Za-z]+[A-Za-z0-9]*")
             potential_units = regex.findall(unit)
             for item in potential_units:
-                if item != 'pi':  # Skip the constant pi
+                if item != "pi":  # Skip the constant pi
                     _find_unit(item, error=False)
 
             # Now try evaluating again
             try:
-                unit = eval(unit, {'__builtins__': None, 'pi': pi},  # nosec: scope limited
-                            _UNIT_LIB.unit_table)
+                unit = eval(
+                    unit,
+                    {"__builtins__": None, "pi": pi},  # nosec: scope limited
+                    _UNIT_LIB.unit_table,
+                )
             except Exception as eval_error:
                 raise ValueError(
                     f"Could not evaluate unit definition '{unit}' for new unit '{name}'. "
-                    f'Original error: {eval_error}. '
+                    f"Original error: {eval_error}. "
                 ) from eval_error
 
     unit.set_name(name)
     if name in _UNIT_LIB.unit_table:
-        if (_UNIT_LIB.unit_table[name]._factor != unit._factor or
-                _UNIT_LIB.unit_table[name]._powers != unit._powers):
+        if (
+            _UNIT_LIB.unit_table[name]._factor != unit._factor
+            or _UNIT_LIB.unit_table[name]._powers != unit._powers
+        ):
             raise KeyError(f"Unit '{name}' already defined with different factor or powers.")
 
     _UNIT_LIB.unit_table[name] = unit
-    _UNIT_LIB.set('units', name, unit)
+    _UNIT_LIB.set("units", name, unit)
 
 
 _UNIT_LIB = ConfigParser()
@@ -747,7 +768,7 @@ def import_library(libfilepointer):
     else:
         _UNIT_LIB.readfp(libfilepointer)
 
-    required_base_types = ['length', 'mass', 'time', 'temperature', 'angle']
+    required_base_types = ["length", "mass", "time", "temperature", "angle"]
     _UNIT_LIB.base_names = list()
     # used to is_angle() and other base type checking
     _UNIT_LIB.base_types = dict()
@@ -755,13 +776,13 @@ def import_library(libfilepointer):
     _UNIT_LIB.prefixes = dict()
     _UNIT_LIB.help = list()
 
-    for prefix, factor in _UNIT_LIB.items('prefixes'):
-        factor, comma, comment = factor.partition(',')
+    for prefix, factor in _UNIT_LIB.items("prefixes"):
+        factor, comma, comment = factor.partition(",")
         _UNIT_LIB.prefixes[prefix] = float(factor)
 
-    base_list = [0] * len(_UNIT_LIB.items('base_units'))
+    base_list = [0] * len(_UNIT_LIB.items("base_units"))
 
-    for i, (unit_type, name) in enumerate(_UNIT_LIB.items('base_units')):
+    for i, (unit_type, name) in enumerate(_UNIT_LIB.items("base_units")):
         _UNIT_LIB.base_types[unit_type] = i
         powers = list(base_list)
         powers[i] = 1
@@ -771,11 +792,12 @@ def import_library(libfilepointer):
         _UNIT_LIB.base_names.append(name)
 
     # test for required base types
-    missing = [utype for utype in required_base_types
-               if utype not in _UNIT_LIB.base_types]
+    missing = [utype for utype in required_base_types if utype not in _UNIT_LIB.base_types]
     if missing:
-        raise ValueError("Not all required base types were present in the config file. missing: "
-                         f"{missing}, at least {required_base_types} required.")
+        raise ValueError(
+            "Not all required base types were present in the config file. missing: "
+            f"{missing}, at least {required_base_types} required."
+        )
 
     _update_library(_UNIT_LIB)
     return _UNIT_LIB
@@ -791,7 +813,7 @@ def update_library(filename):
         Source of units configuration data.
     """
     if isinstance(filename, str):
-        inp = open(filename, 'rU')
+        inp = open(filename, "rU")
     else:
         inp = filename
     try:
@@ -819,8 +841,8 @@ def _update_library(cfg):
         ConfigParser loaded with unit_lib.ini data
     """
     retry1 = set()
-    for name, unit in cfg.items('units'):
-        data = [item.strip() for item in unit.split(',')]
+    for name, unit in cfg.items("units"):
+        data = [item.strip() for item in unit.split(",")]
         if len(data) == 2:
             unit, comment = data
             try:
@@ -830,11 +852,9 @@ def _update_library(cfg):
         elif len(data) == 4:
             factor, baseunit, offset, comment = data
             try:
-                add_offset_unit(name, baseunit, float(factor), float(offset),
-                                comment)
+                add_offset_unit(name, baseunit, float(factor), float(offset), comment)
             except NameError:
-                retry1.add((name, baseunit, float(factor), float(offset),
-                            comment))
+                retry1.add((name, baseunit, float(factor), float(offset), comment))
         else:
             raise ValueError(f"Unit '{name}' definition {unit} has invalid format.")
     retry_count = 0
@@ -859,9 +879,11 @@ def _update_library(cfg):
                 except NameError:
                     retry_count += 1
     if retry1:
-        raise ValueError('The following units were not defined because they'
-                         ' could not be resolved as a function of any other'
-                         ' defined units: %s.' % [x[0] for x in retry1])
+        raise ValueError(
+            "The following units were not defined because they"
+            " could not be resolved as a function of any other"
+            " defined units: %s." % [x[0] for x in retry1]
+        )
 
 
 _UNIT_CACHE = {}
@@ -891,61 +913,65 @@ def _find_unit(unit, error=False):
         The actual unit object
     """
     if isinstance(unit, str):
-
         # Deal with 'as' for attoseconds
-        reg1 = re.compile(r'\bas\b')
-        unit = re.sub(reg1, 'as_', unit)
+        reg1 = re.compile(r"\bas\b")
+        unit = re.sub(reg1, "as_", unit)
 
         name = unit.strip()
         try:
             unit = _UNIT_CACHE[name]
         except KeyError:
             try:
-                unit = eval(name, {'__builtins__': None},  # nosec: scope limited
-                            _UNIT_LIB.unit_table)
+                unit = eval(
+                    name,
+                    {"__builtins__": None},  # nosec: scope limited
+                    _UNIT_LIB.unit_table,
+                )
             except Exception:
-
                 # This unit might include prefixed units that aren't in the
                 # unit_table. We must parse them ALL and add them to the
                 # unit_table.
 
                 # First character of a unit is always alphabet or $.
                 # Remaining characters may include numbers.
-                regex = re.compile('[A-Z,a-z]{1}[A-Z,a-z,0-9]*')
+                regex = re.compile("[A-Z,a-z]{1}[A-Z,a-z,0-9]*")
 
                 unit_table = _UNIT_LIB.unit_table
                 prefixes = _UNIT_LIB.prefixes
 
                 for item in regex.findall(name):
-                    item = re.sub(reg1, 'as_', item)
+                    item = re.sub(reg1, "as_", item)
 
                     # check if this was a compound unit, so each
                     # substring might be a unit
                     try:
-                        eval(item, {'__builtins__': None}, unit_table)  # nosec: scope limited
+                        eval(item, {"__builtins__": None}, unit_table)  # nosec: scope limited
 
                     except Exception:  # maybe is a prefixed unit then
-                        base_unit = item[1:].rstrip('_')
+                        base_unit = item[1:].rstrip("_")
 
                         # check for single letter prefix before unit
-                        if (item[0] in prefixes and base_unit in unit_table):
+                        if item[0] in prefixes and base_unit in unit_table:
                             add_unit(item, prefixes[item[0]] * unit_table[base_unit])
 
                         # check for double letter prefix before unit
-                        elif (item[0:2] in prefixes and item[2:] in unit_table):
+                        elif item[0:2] in prefixes and item[2:] in unit_table:
                             add_unit(item, prefixes[item[0:2]] * unit_table[item[2:]])
 
                         # no prefixes found, unknown unit
                         else:
                             if error:
-                                guesses = get_close_matches(name, list(unit_table.keys()),
-                                                            n=5, cutoff=0.5)
-                                raise ValueError(f"The units '{name}' are invalid. "
-                                                 "Perhaps you meant one of the "
-                                                 f"following units?: {guesses}")
+                                guesses = get_close_matches(
+                                    name, list(unit_table.keys()), n=5, cutoff=0.5
+                                )
+                                raise ValueError(
+                                    f"The units '{name}' are invalid. "
+                                    "Perhaps you meant one of the "
+                                    f"following units?: {guesses}"
+                                )
                             return None
 
-                unit = eval(name, {'__builtins__': None}, unit_table)  # nosec: scope limited
+                unit = eval(name, {"__builtins__": None}, unit_table)  # nosec: scope limited
 
             _UNIT_CACHE[name] = unit
     else:
@@ -993,7 +1019,7 @@ def conversion_to_base_units(units):
         Mult. factor to get to default unit: m (length), s(time), etc.
     """
     if not units:  # dimensionless
-        return 0., 1.
+        return 0.0, 1.0
     unit = _find_unit(units, error=True)
 
     return unit._offset, unit._factor
@@ -1117,7 +1143,7 @@ def has_val_mismatch(units1, val1, units2, val2, rtol=1e-10):
     return np.any(absdiff > threshold)
 
 
-def simplify_unit(old_unit_str, msginfo=''):
+def simplify_unit(old_unit_str, msginfo=""):
     """
     Simplify unit string using built-in naming method.
 
@@ -1140,33 +1166,33 @@ def simplify_unit(old_unit_str, msginfo=''):
 
     found_unit = _find_unit(old_unit_str)
     if found_unit is None:
-        _msginfo = f'{msginfo}: ' if msginfo else ''
+        _msginfo = f"{msginfo}: " if msginfo else ""
         raise ValueError(f"{_msginfo}The units '{old_unit_str}' are invalid.")
 
     new_str = found_unit.name()
-    if new_str == '1':
+    if new_str == "1":
         # Special Case. Unity always becomes None.
         new_str = None
 
     # Restore units 'as' (attoseconds).
     if new_str:
-        reg1 = re.compile(r'\bas_\b')
-        new_str = reg1.sub('as', new_str)
+        reg1 = re.compile(r"\bas_\b")
+        new_str = reg1.sub("as", new_str)
     return new_str
 
 
 # Load in the default unit library
-file_path = open(os.path.join(os.path.dirname(__file__), 'unit_library.ini'))
+file_path = open(os.path.join(os.path.dirname(__file__), "unit_library.ini"))
 with file_path as default_lib:
     import_library(default_lib)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     for returned, expected in [
-        (conversion_to_base_units('cm'), (0., 1.0e-2)),
-        (conversion_to_base_units('km'), (0., 1.0e3)),
-        (convert_units(3.0, 'mm'), (3.0e-3)),
-        (convert_units(3.0, 'mm', 'cm'), (3.0e-1)),
-        (convert_units(100, 'degC', 'degF'), (212.))
+        (conversion_to_base_units("cm"), (0.0, 1.0e-2)),
+        (conversion_to_base_units("km"), (0.0, 1.0e3)),
+        (convert_units(3.0, "mm"), (3.0e-3)),
+        (convert_units(3.0, "mm", "cm"), (3.0e-1)),
+        (convert_units(100, "degC", "degF"), (212.0)),
     ]:
-        print(returned, 'should be', expected)
+        print(returned, "should be", expected)

@@ -11,92 +11,91 @@ from openmdao.utils.assert_utils import assert_near_equal
 
 
 class TestOptionsDictionary(unittest.TestCase):
-
     def test_simple(self):
         prob = om.Problem()
-        prob.model.add_subsystem('double', VectorDoublingComp(size=3))  # 'size' is an option
+        prob.model.add_subsystem("double", VectorDoublingComp(size=3))  # 'size' is an option
 
         prob.setup()
 
-        prob.set_val('double.x', [1., 2., 3.])
+        prob.set_val("double.x", [1.0, 2.0, 3.0])
 
         prob.run_model()
-        assert_near_equal(prob.get_val('double.y'), [2., 4., 6.])
+        assert_near_equal(prob.get_val("double.y"), [2.0, 4.0, 6.0])
 
     def test_simple_fail(self):
         prob = om.Problem()
-        prob.model.add_subsystem('double', VectorDoublingComp())  # 'size' not specified
+        prob.model.add_subsystem("double", VectorDoublingComp())  # 'size' not specified
 
         try:
             prob.setup()
         except RuntimeError as err:
-            self.assertEqual(str(err), "'double' <class VectorDoublingComp>: Option 'size' is required but has not been set.")
+            self.assertEqual(
+                str(err),
+                "'double' <class VectorDoublingComp>: Option 'size' is required but has not been set.",
+            )
 
     def test_with_default(self):
         prob = om.Problem()
-        prob.model.add_subsystem('linear', LinearCombinationComp(a=2.))  # 'b' not specified
+        prob.model.add_subsystem("linear", LinearCombinationComp(a=2.0))  # 'b' not specified
 
         prob.setup()
 
-        prob.set_val('linear.x', 3)
+        prob.set_val("linear.x", 3)
 
         prob.run_model()
-        self.assertEqual(prob.get_val('linear.y'), 7.)
+        self.assertEqual(prob.get_val("linear.y"), 7.0)
 
     def test_simple_array(self):
         prob = om.Problem()
-        prob.model.add_subsystem('a_comp', ArrayMultiplyComp(array=np.array([1, 2, 3])))
+        prob.model.add_subsystem("a_comp", ArrayMultiplyComp(array=np.array([1, 2, 3])))
 
         prob.setup()
 
-        prob.set_val('a_comp.x', 5.)
+        prob.set_val("a_comp.x", 5.0)
 
         prob.run_model()
-        assert_near_equal(prob.get_val('a_comp.y'), [5., 10., 15.])
+        assert_near_equal(prob.get_val("a_comp.y"), [5.0, 10.0, 15.0])
 
     def test_simple_function(self):
 
         def my_func(x):
-            return x*2
+            return x * 2
 
         prob = om.Problem()
-        prob.model.add_subsystem('f_comp', UnitaryFunctionComp(func=my_func))
+        prob.model.add_subsystem("f_comp", UnitaryFunctionComp(func=my_func))
 
         prob.setup()
 
-        prob.set_val('f_comp.x', 5.)
+        prob.set_val("f_comp.x", 5.0)
 
         prob.run_model()
-        assert_near_equal(prob.get_val('f_comp.y'), 10.)
+        assert_near_equal(prob.get_val("f_comp.y"), 10.0)
 
     def test_simple_values(self):
 
         class VectorDoublingComp(om.ExplicitComponent):
-
             def initialize(self):
-                self.options.declare('size', values=[2, 4, 6, 8])
+                self.options.declare("size", values=[2, 4, 6, 8])
 
             def setup(self):
-                size = self.options['size']
+                size = self.options["size"]
 
-                self.add_input('x', shape=size)
-                self.add_output('y', shape=size)
-                self.declare_partials('y', 'x', val=2.,
-                                      rows=np.arange(size),
-                                      cols=np.arange(size))
+                self.add_input("x", shape=size)
+                self.add_output("y", shape=size)
+                self.declare_partials("y", "x", val=2.0, rows=np.arange(size), cols=np.arange(size))
 
             def compute(self, inputs, outputs):
-                outputs['y'] = 2 * inputs['x']
+                outputs["y"] = 2 * inputs["x"]
 
         prob = om.Problem()
-        prob.model.add_subsystem('double', VectorDoublingComp(size=4))
+        prob.model.add_subsystem("double", VectorDoublingComp(size=4))
 
         prob.setup()
 
-        prob.set_val('double.x', [1., 2., 3., 4.])
+        prob.set_val("double.x", [1.0, 2.0, 3.0, 4.0])
 
         prob.run_model()
-        assert_near_equal(prob.get_val('double.y'), [2., 4., 6., 8.])
+        assert_near_equal(prob.get_val("double.y"), [2.0, 4.0, 6.0, 8.0])
 
     def test_simple_bounds_valid(self):
 
@@ -105,21 +104,18 @@ class TestOptionsDictionary(unittest.TestCase):
                 raise ValueError(f"Option '{name}' with value {value} must be an even number.")
 
         class VectorDoublingComp(om.ExplicitComponent):
-
             def initialize(self):
-                self.options.declare('size', types=int, lower=2, upper=8, check_valid=check_even)
+                self.options.declare("size", types=int, lower=2, upper=8, check_valid=check_even)
 
             def setup(self):
-                size = self.options['size']
+                size = self.options["size"]
 
-                self.add_input('x', shape=size)
-                self.add_output('y', shape=size)
-                self.declare_partials('y', 'x', val=2.,
-                                      rows=np.arange(size),
-                                      cols=np.arange(size))
+                self.add_input("x", shape=size)
+                self.add_output("y", shape=size)
+                self.declare_partials("y", "x", val=2.0, rows=np.arange(size), cols=np.arange(size))
 
             def compute(self, inputs, outputs):
-                outputs['y'] = 2 * inputs['x']
+                outputs["y"] = 2 * inputs["x"]
 
         try:
             VectorDoublingComp(size=5)

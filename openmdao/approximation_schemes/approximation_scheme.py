@@ -1,4 +1,5 @@
 """Base class used to define the interface for derivative approximation schemes."""
+
 import time
 from collections import defaultdict
 import numpy as np
@@ -137,7 +138,7 @@ class ApproximationScheme(object):
         if coloring is None or coloring._fwd is None:
             return
 
-        is_total = system.pathname == ''
+        is_total = system.pathname == ""
         is_semi = _is_group(system) and not is_total
         self._colored_approx_groups = []
         wrt_ranges = []
@@ -183,7 +184,7 @@ class ApproximationScheme(object):
         start = end = colorstart = colorend = 0
         for name, sz in it:
             end += sz
-            prom = name if is_total else abs2prom(name, 'output')
+            prom = name if is_total else abs2prom(name, "output")
             if prom in row_var_sizes:
                 colorend += row_var_sizes[prom]
                 row_map[colorstart:colorend] = range(start, end)
@@ -200,9 +201,10 @@ class ApproximationScheme(object):
         inputs = system._inputs
 
         from openmdao.core.implicitcomponent import ImplicitComponent
+
         use_full_cols = is_semi or isinstance(system, ImplicitComponent)
 
-        for cols, nzrows in coloring.color_nonzero_iter('fwd'):
+        for cols, nzrows in coloring.color_nonzero_iter("fwd"):
             nzrows = [row_map[r] for r in nzrows]
             jaccols = cols if wrt_matches is None else ccol2jcol[cols]
             if is_total:
@@ -223,7 +225,7 @@ class ApproximationScheme(object):
         system : System
             The system having its derivs approximated.
         """
-        total = system.pathname == ''
+        total = system.pathname == ""
         coloring = system._get_static_coloring()
 
         self._approx_groups = []
@@ -234,7 +236,7 @@ class ApproximationScheme(object):
         else:
             wrt_matches = None
 
-        if self._totals_directional_mode == 'rev':
+        if self._totals_directional_mode == "rev":
             wrts_directional = []
             in_inds_directional = []
             vec_inds_directional = defaultdict(list)
@@ -243,11 +245,11 @@ class ApproximationScheme(object):
         for wrt, start, end, vec, sinds, _ in system._get_jac_wrts(wrt_matches):
             if wrt in self._wrt_meta:
                 meta = self._wrt_meta[wrt]
-                if coloring is not None and 'coloring' in meta:
+                if coloring is not None and "coloring" in meta:
                     continue
 
                 data = self._get_approx_data(system, wrt, meta)
-                directional = meta['directional'] or self._totals_directions
+                directional = meta["directional"] or self._totals_directions
 
                 in_idx = range(start, end)
 
@@ -280,26 +282,41 @@ class ApproximationScheme(object):
                 else:
                     self._nruns_uncolored += end - start
 
-                if self._totals_directional_mode == 'rev':
+                if self._totals_directional_mode == "rev":
                     wrts_directional.append(wrt)
                     data_directional = data
                     in_inds_directional.extend(in_idx[0])
                     vec_inds_directional[vec].extend(vec_idx[0])
                 else:
                     if self._totals_directions:
-                        direction = self._totals_directions['fwd'][start:end]
+                        direction = self._totals_directions["fwd"][start:end]
                     else:
-                        direction = meta['vector']
-                    self._approx_groups.append(((wrt,) if directional else wrt, data, in_idx,
-                                                [(vec, vec_idx)], directional, direction))
+                        direction = meta["vector"]
+                    self._approx_groups.append(
+                        (
+                            (wrt,) if directional else wrt,
+                            data,
+                            in_idx,
+                            [(vec, vec_idx)],
+                            directional,
+                            direction,
+                        )
+                    )
 
         if total:
-            if self._totals_directional_mode == 'rev':
+            if self._totals_directional_mode == "rev":
                 self._nruns_uncolored = 1
-                vector = self._totals_directions['fwd']
-                self._approx_groups = [(tuple(wrts_directional), data_directional,
-                                        [in_inds_directional], list(vec_inds_directional.items()),
-                                        True, vector)]
+                vector = self._totals_directions["fwd"]
+                self._approx_groups = [
+                    (
+                        tuple(wrts_directional),
+                        data_directional,
+                        [in_inds_directional],
+                        list(vec_inds_directional.items()),
+                        True,
+                        vector,
+                    )
+                ]
 
             # compute scatter from the results vector into a column of the total jacobian
             sinds, tinds, colsize, has_dist_data = system._get_jac_col_scatter()
@@ -312,19 +329,25 @@ class ApproximationScheme(object):
                         from petsc4py import PETSc
                     except ImportError:
                         if use_mpi:
-                            raise ImportError("Importing petsc4py failed and '"
-                                              "'OPENMDAO_USE_MPI is true.")
+                            raise ImportError(
+                                "Importing petsc4py failed and ''OPENMDAO_USE_MPI is true."
+                            )
                         PETSc = None
 
-                src_vec = PETSc.Vec().createWithArray(np.zeros(len(system._outputs), dtype=float),
-                                                      comm=system._comm)
-                tgt_vec = PETSc.Vec().createWithArray(np.zeros(colsize, dtype=float),
-                                                      comm=system._comm)
+                src_vec = PETSc.Vec().createWithArray(
+                    np.zeros(len(system._outputs), dtype=float), comm=system._comm
+                )
+                tgt_vec = PETSc.Vec().createWithArray(
+                    np.zeros(colsize, dtype=float), comm=system._comm
+                )
                 src_inds = PETSc.IS().createGeneral(sinds, comm=system._comm)
                 tgt_inds = PETSc.IS().createGeneral(tinds, comm=system._comm)
-                self._jac_scatter = (has_dist_data,
-                                     PETSc.Scatter().create(src_vec, src_inds, tgt_vec, tgt_inds),
-                                     src_vec, tgt_vec)
+                self._jac_scatter = (
+                    has_dist_data,
+                    PETSc.Scatter().create(src_vec, src_inds, tgt_vec, tgt_inds),
+                    src_vec,
+                    tgt_vec,
+                )
             else:
                 self._jac_scatter = (has_dist_data, sinds, tinds)
         else:
@@ -352,12 +375,13 @@ class ApproximationScheme(object):
         ndarray
             solution array corresponding to the jacobian column at the given column index
         """
-        total = system.pathname == ''
+        total = system.pathname == ""
         total_or_semi = total or _is_group(system)
 
         if total:
-            tot_result = np.zeros(sum([end - start for _, start, end, _, _
-                                       in system._get_jac_ofs()]))
+            tot_result = np.zeros(
+                sum([end - start for _, start, end, _, _ in system._get_jac_ofs()])
+            )
             scratch = tot_result.copy()
         else:
             scratch = np.empty(len(system._outputs))
@@ -366,8 +390,9 @@ class ApproximationScheme(object):
         vec = system._outputs if total_or_semi else system._residuals
         results_array = vec.asarray(copy=True)
 
-        use_parallel_fd = system._num_par_fd > 1 and (system._full_comm is not None and
-                                                      system._full_comm.size > 1)
+        use_parallel_fd = system._num_par_fd > 1 and (
+            system._full_comm is not None and system._full_comm.size > 1
+        )
         num_par_fd = system._num_par_fd if use_parallel_fd else 1
         par_fd_w_serial_model = use_parallel_fd and system._num_par_fd == system._full_comm.size
         fd_count = 0
@@ -376,14 +401,21 @@ class ApproximationScheme(object):
         nruns = len(colored_approx_groups)
         tosend = None
 
-        for data, jcols, vec_ind_list, nzrows, seed_vars, in colored_approx_groups:
+        for (
+            data,
+            jcols,
+            vec_ind_list,
+            nzrows,
+            seed_vars,
+        ) in colored_approx_groups:
             mult = self._get_multiplier(data)
 
             if fd_count % num_par_fd == system._par_fd_id:
                 # run the finite difference
                 with system._relevance.seeds_active(fwd_seeds=seed_vars):
-                    result = self._run_point(system, vec_ind_list, data, results_array,
-                                             total_or_semi)
+                    result = self._run_point(
+                        system, vec_ind_list, data, results_array, total_or_semi
+                    )
 
                 if par_fd_w_serial_model or not use_parallel_fd:
                     result = self._transform_result(result)
@@ -397,16 +429,19 @@ class ApproximationScheme(object):
                     tosend = (fd_count, result)
 
                 else:  # parallel model (some vars are remote)
-                    raise NotImplementedError("simul approx coloring with parallel FD/CS is "
-                                              "only supported currently when using "
-                                              "a serial model, i.e., when "
-                                              "num_par_fd == number of MPI procs.")
+                    raise NotImplementedError(
+                        "simul approx coloring with parallel FD/CS is "
+                        "only supported currently when using "
+                        "a serial model, i.e., when "
+                        "num_par_fd == number of MPI procs."
+                    )
 
             fd_count += 1
 
             # check if it's time to collect parallel FD columns
-            if use_parallel_fd and (nruns < num_par_fd or fd_count % num_par_fd == 0 or
-                                    fd_count == nruns):
+            if use_parallel_fd and (
+                nruns < num_par_fd or fd_count % num_par_fd == 0 or fd_count == nruns
+            ):
                 allres = mycomm.allgather(tosend)
                 tosend = None
             else:
@@ -480,7 +515,7 @@ class ApproximationScheme(object):
         ndarray
             solution array corresponding to the jacobian column at the given column index
         """
-        total = system.pathname == ''
+        total = system.pathname == ""
         if total:
             for _, _, end, _, _ in system._get_jac_ofs():
                 pass
@@ -489,10 +524,14 @@ class ApproximationScheme(object):
         total_or_semi = total or _is_group(system)
 
         # Clean vector for results (copy of the outputs or resids)
-        results_array = system._outputs.asarray(copy=True) if total_or_semi \
+        results_array = (
+            system._outputs.asarray(copy=True)
+            if total_or_semi
             else system._residuals.asarray(copy=True)
-        use_parallel_fd = system._num_par_fd > 1 and (system._full_comm is not None and
-                                                      system._full_comm.size > 1)
+        )
+        use_parallel_fd = system._num_par_fd > 1 and (
+            system._full_comm is not None and system._full_comm.size > 1
+        )
         num_par_fd = system._num_par_fd if use_parallel_fd else 1
 
         nruns = self._nruns_uncolored
@@ -516,19 +555,23 @@ class ApproximationScheme(object):
 
             jidx_iter = iter(range(len(jcol_idxs)))
             for vec_ind_info, vecidxs, loc_idx in self._vec_ind_iter(vec_ind_list):
-
                 if fd_count % num_par_fd == system._par_fd_id:
                     # run the finite difference
                     if total:
                         seeds = wrt if directional else (wrt,)
                         with system._relevance.seeds_active(fwd_seeds=seeds):
-                            result = self._run_point(system, vec_ind_info,
-                                                     app_data, results_array, total_or_semi,
-                                                     loc_idx)
+                            result = self._run_point(
+                                system,
+                                vec_ind_info,
+                                app_data,
+                                results_array,
+                                total_or_semi,
+                                loc_idx,
+                            )
                     else:
-                        result = self._run_point(system, vec_ind_info,
-                                                 app_data, results_array, total_or_semi,
-                                                 loc_idx)
+                        result = self._run_point(
+                            system, vec_ind_info, app_data, results_array, total_or_semi, loc_idx
+                        )
 
                     result = self._transform_result(result)
 
@@ -546,10 +589,12 @@ class ApproximationScheme(object):
                     if self._progress_out:
                         end_time = time.perf_counter()
                         prom_name = abs2prom(wrt)
-                        self._progress_out.write(f"{fd_count + 1}/{len(result)}: Checking "
-                                                 f"derivatives with respect to: "
-                                                 f"'{prom_name} [{vecidxs}]' ... "
-                                                 f"{round(end_time - start_time, 4)} seconds\n")
+                        self._progress_out.write(
+                            f"{fd_count + 1}/{len(result)}: Checking "
+                            f"derivatives with respect to: "
+                            f"'{prom_name} [{vecidxs}]' ... "
+                            f"{round(end_time - start_time, 4)} seconds\n"
+                        )
                 elif use_parallel_fd:
                     next(jidx_iter)  # skip this column index
 
@@ -593,8 +638,9 @@ class ApproximationScheme(object):
         if not self._wrt_meta:
             return
 
-        for ic, col in self.compute_approx_col_iter(system,
-                                                    under_cs=system._outputs._under_complex_step):
+        for ic, col in self.compute_approx_col_iter(
+            system, under_cs=system._outputs._under_complex_step
+        ):
             jac.set_col(system, ic, col)
 
     def _compute_approx_col_iter(self, system, under_cs):
@@ -647,4 +693,5 @@ def _is_group(obj):
         Object to be checked.
     """
     from openmdao.core.group import Group
+
     return isinstance(obj, Group)

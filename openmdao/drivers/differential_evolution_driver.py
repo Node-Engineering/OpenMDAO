@@ -13,6 +13,7 @@ Sobieszczanski-Sobieski, J., Morris, A. J., van Tooren, M. J. L. (2015)
 Multidisciplinary Design Optimization Supported by Knowledge Based Engineering.
 John Wiley & Sons, Ltd.
 """
+
 from importlib.util import find_spec
 import os
 import copy
@@ -60,27 +61,29 @@ class DifferentialEvolutionDriver(Driver):
         """
         Initialize the DifferentialEvolutionDriver driver.
         """
-        if find_spec('pydoe') is None:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+        if find_spec("pydoe") is None:
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         super().__init__(**kwargs)
 
         # What we support
-        self.supports['optimization'] = True
-        self.supports['inequality_constraints'] = True
-        self.supports['equality_constraints'] = True
-        self.supports['multiple_objectives'] = True
+        self.supports["optimization"] = True
+        self.supports["inequality_constraints"] = True
+        self.supports["equality_constraints"] = True
+        self.supports["multiple_objectives"] = True
 
         # What we don't support yet
-        self.supports['integer_design_vars'] = False
-        self.supports['two_sided_constraints'] = False
-        self.supports['linear_constraints'] = False
-        self.supports['simultaneous_derivatives'] = False
-        self.supports['active_set'] = False
-        self.supports['distributed_design_vars'] = False
+        self.supports["integer_design_vars"] = False
+        self.supports["two_sided_constraints"] = False
+        self.supports["linear_constraints"] = False
+        self.supports["simultaneous_derivatives"] = False
+        self.supports["active_set"] = False
+        self.supports["distributed_design_vars"] = False
         self.supports._read_only = True
 
         self._desvar_idx = {}
@@ -88,8 +91,8 @@ class DifferentialEvolutionDriver(Driver):
         self._nfit = 0
 
         # random state can be set for predictability during testing
-        if 'DifferentialEvolutionDriver_seed' in os.environ:
-            self._randomstate = int(os.environ['DifferentialEvolutionDriver_seed'])
+        if "DifferentialEvolutionDriver_seed" in os.environ:
+            self._randomstate = int(os.environ["DifferentialEvolutionDriver_seed"])
         else:
             self._randomstate = None
 
@@ -97,37 +100,56 @@ class DifferentialEvolutionDriver(Driver):
         self._concurrent_pop_size = 0
         self._concurrent_color = 0
 
-        warn_deprecation('The `DifferentialEvolutionDriver` is deprecated. Please use '
-                        '`pymooDriver` for population based optimizations.')
+        warn_deprecation(
+            "The `DifferentialEvolutionDriver` is deprecated. Please use "
+            "`pymooDriver` for population based optimizations."
+        )
 
     def _declare_options(self):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare('max_gen', default=100,
-                             desc='Number of generations before termination.')
-        self.options.declare('pop_size', default=0,
-                             desc='Number of points in the GA. Set to 0 and it will be computed '
-                             'as 20 times the total number of inputs.')
-        self.options.declare('run_parallel', types=bool, default=False,
-                             desc='Set to True to execute the points in a generation in parallel.')
-        self.options.declare('procs_per_model', default=1, lower=1,
-                             desc='Number of processors to give each model under MPI.')
-        self.options.declare('penalty_parameter', default=10., lower=0.,
-                             desc='Penalty function parameter.')
-        self.options.declare('penalty_exponent', default=1.,
-                             desc='Penalty function exponent.')
-        self.options.declare('Pc', default=0.9, lower=0., upper=1.,
-                             desc='Crossover probability.')
-        self.options.declare('F', default=0.9, lower=0., upper=1., allow_none=True,
-                             desc='Differential rate.')
-        self.options.declare('multi_obj_weights', default={}, types=(dict),
-                             desc='Weights of objectives for multi-objective optimization.'
-                             'Weights are specified as a dictionary with the absolute names'
-                             'of the objectives. The same weights for all objectives are assumed, '
-                             'if not given.')
-        self.options.declare('multi_obj_exponent', default=1., lower=0.,
-                             desc='Multi-objective weighting exponent.')
+        self.options.declare(
+            "max_gen", default=100, desc="Number of generations before termination."
+        )
+        self.options.declare(
+            "pop_size",
+            default=0,
+            desc="Number of points in the GA. Set to 0 and it will be computed "
+            "as 20 times the total number of inputs.",
+        )
+        self.options.declare(
+            "run_parallel",
+            types=bool,
+            default=False,
+            desc="Set to True to execute the points in a generation in parallel.",
+        )
+        self.options.declare(
+            "procs_per_model",
+            default=1,
+            lower=1,
+            desc="Number of processors to give each model under MPI.",
+        )
+        self.options.declare(
+            "penalty_parameter", default=10.0, lower=0.0, desc="Penalty function parameter."
+        )
+        self.options.declare("penalty_exponent", default=1.0, desc="Penalty function exponent.")
+        self.options.declare("Pc", default=0.9, lower=0.0, upper=1.0, desc="Crossover probability.")
+        self.options.declare(
+            "F", default=0.9, lower=0.0, upper=1.0, allow_none=True, desc="Differential rate."
+        )
+        self.options.declare(
+            "multi_obj_weights",
+            default={},
+            types=(dict),
+            desc="Weights of objectives for multi-objective optimization."
+            "Weights are specified as a dictionary with the absolute names"
+            "of the objectives. The same weights for all objectives are assumed, "
+            "if not given.",
+        )
+        self.options.declare(
+            "multi_obj_exponent", default=1.0, lower=0.0, desc="Multi-objective weighting exponent."
+        )
 
     def _setup_driver(self, problem):
         """
@@ -144,32 +166,36 @@ class DifferentialEvolutionDriver(Driver):
 
         # check design vars and constraints for invalid bounds
         for name, meta in self._designvars.items():
-            lower, upper = meta['lower'], meta['upper']
+            lower, upper = meta["lower"], meta["upper"]
             for param in (lower, upper):
                 if param is None or np.any(np.isinf(np.atleast_1d(param))):
-                    msg = (f"Invalid bounds for design variable '{name}'. When using "
-                           f"{self.__class__.__name__}, finite values for both 'lower' and "
-                           f"'upper' must be specified, but they are: "
-                           f"lower={lower}, upper={upper}.")
+                    msg = (
+                        f"Invalid bounds for design variable '{name}'. When using "
+                        f"{self.__class__.__name__}, finite values for both 'lower' and "
+                        f"'upper' must be specified, but they are: "
+                        f"lower={lower}, upper={upper}."
+                    )
                     raise ValueError(msg)
 
         for name, meta in self._cons.items():
-            equals, lower, upper = meta['equals'], meta['lower'], meta['upper']
+            equals, lower, upper = meta["equals"], meta["lower"], meta["upper"]
             eq_unbounded = equals is None or np.all(np.isinf(np.atleast_1d(equals)))
             lower_unbounded = lower is None or np.all(np.isinf(np.atleast_1d(lower)))
             upper_unbounded = upper is None or np.all(np.isinf(np.atleast_1d(upper)))
             if eq_unbounded and lower_unbounded and upper_unbounded:
-                msg = (f"Invalid bounds for constraint '{name}'. "
-                       f"When using {self.__class__.__name__}, a finite value for 'equals', "
-                       f"'lower' or 'upper' must be specified, but they are: "
-                       f"equals={equals}, lower={lower}, upper={upper}.")
+                msg = (
+                    f"Invalid bounds for constraint '{name}'. "
+                    f"When using {self.__class__.__name__}, a finite value for 'equals', "
+                    f"'lower' or 'upper' must be specified, but they are: "
+                    f"equals={equals}, lower={lower}, upper={upper}."
+                )
                 raise ValueError(msg)
 
         model_mpi = None
         comm = problem.comm
         if self._concurrent_pop_size > 0:
             model_mpi = (self._concurrent_pop_size, self._concurrent_color)
-        elif not self.options['run_parallel']:
+        elif not self.options["run_parallel"]:
             comm = None
 
         self._ga = DifferentialEvolution(self.objective_callback, comm=comm, model_mpi=model_mpi)
@@ -192,17 +218,18 @@ class DifferentialEvolutionDriver(Driver):
         """
         self._problem_comm = comm
 
-        procs_per_model = self.options['procs_per_model']
-        if MPI and self.options['run_parallel']:
-
+        procs_per_model = self.options["procs_per_model"]
+        if MPI and self.options["run_parallel"]:
             full_size = comm.size
             size = full_size // procs_per_model
             if full_size != size * procs_per_model:
-                raise RuntimeError("The total number of processors is not evenly divisible by the "
-                                   "specified number of processors per model.\n Provide a "
-                                   "number of processors that is a multiple of %d, or "
-                                   "specify a number of processors per model that divides "
-                                   "into %d." % (procs_per_model, full_size))
+                raise RuntimeError(
+                    "The total number of processors is not evenly divisible by the "
+                    "specified number of processors per model.\n Provide a "
+                    "number of processors that is a multiple of %d, or "
+                    "specify a number of processors per model that divides "
+                    "into %d." % (procs_per_model, full_size)
+                )
             color = comm.rank % size
             model_comm = comm.Split(color)
 
@@ -221,8 +248,8 @@ class DifferentialEvolutionDriver(Driver):
         Set up case recording.
         """
         if MPI:
-            run_parallel = self.options['run_parallel']
-            procs_per_model = self.options['procs_per_model']
+            run_parallel = self.options["run_parallel"]
+            procs_per_model = self.options["procs_per_model"]
 
             for recorder in self._rec_mgr:
                 if run_parallel:
@@ -264,10 +291,10 @@ class DifferentialEvolutionDriver(Driver):
         self.result.reset()
         ga = self._ga
 
-        pop_size = self.options['pop_size']
-        max_gen = self.options['max_gen']
-        F = self.options['F']
-        Pc = self.options['Pc']
+        pop_size = self.options["pop_size"]
+        max_gen = self.options["max_gen"]
+        F = self.options["F"]
+        Pc = self.options["Pc"]
 
         self._check_for_missing_objective()
         self._check_for_invalid_desvar_values()
@@ -278,28 +305,28 @@ class DifferentialEvolutionDriver(Driver):
 
         count = 0
         for name, meta in desvars.items():
-            size = meta['size']
+            size = meta["size"]
             self._desvar_idx[name] = (count, count + size)
             count += size
 
-        lower_bound = np.empty((count, ))
-        upper_bound = np.empty((count, ))
+        lower_bound = np.empty((count,))
+        upper_bound = np.empty((count,))
         x0 = np.empty(count)
 
         # Figure out bounds vectors and initial design vars
         for name, meta in desvars.items():
             i, j = self._desvar_idx[name]
-            lower_bound[i:j] = meta['lower']
-            upper_bound[i:j] = meta['upper']
+            lower_bound[i:j] = meta["lower"]
+            upper_bound[i:j] = meta["upper"]
             x0[i:j] = desvar_vals[name]
 
         # Automatic population size.
         if pop_size == 0:
             pop_size = 20 * count
 
-        desvar_new, obj, self._nfit = ga.execute_ga(x0, lower_bound, upper_bound,
-                                                    pop_size, max_gen,
-                                                    self._randomstate, F, Pc)
+        desvar_new, obj, self._nfit = ga.execute_ga(
+            x0, lower_bound, upper_bound, pop_size, max_gen, self._randomstate, F, Pc
+        )
 
         # Pull optimal parameters back into framework and re-run, so that
         # framework is left in the right final state
@@ -400,12 +427,12 @@ class DifferentialEvolutionDriver(Driver):
                 is_single_objective = len(obj) == 1
                 break
 
-        obj_exponent = self.options['multi_obj_exponent']
-        if self.options['multi_obj_weights']:  # not empty
-            obj_weights = self.options['multi_obj_weights']
+        obj_exponent = self.options["multi_obj_exponent"]
+        if self.options["multi_obj_weights"]:  # not empty
+            obj_weights = self.options["multi_obj_weights"]
         else:
             # Same weight for all objectives, if not specified
-            obj_weights = {name: 1. for name in objs.keys()}
+            obj_weights = {name: 1.0 for name in objs.keys()}
         sum_weights = sum(obj_weights.values())
 
         for name in self._designvars:
@@ -435,16 +462,18 @@ class DifferentialEvolutionDriver(Driver):
                     try:
                         weighted_obj = val * obj_weights[name] / val.size
                     except KeyError:
-                        msg = ('Name "{}" in "multi_obj_weights" option '
-                               'is not an absolute name of an objective.')
+                        msg = (
+                            'Name "{}" in "multi_obj_weights" option '
+                            "is not an absolute name of an objective."
+                        )
                         raise KeyError(msg.format(name))
                     weighted_objectives = np.hstack((weighted_objectives, weighted_obj))
 
-                obj = sum(weighted_objectives / sum_weights)**obj_exponent
+                obj = sum(weighted_objectives / sum_weights) ** obj_exponent
 
             # Parameters of the penalty method
-            penalty = self.options['penalty_parameter']
-            exponent = self.options['penalty_exponent']
+            penalty = self.options["penalty_parameter"]
+            exponent = self.options["penalty_exponent"]
 
             if penalty == 0:
                 fun = obj
@@ -453,17 +482,20 @@ class DifferentialEvolutionDriver(Driver):
                 for name, val in self.get_constraint_values().items():
                     con = self._cons[name]
                     # None means unbounded; np.inf also means unbounded
-                    if con['lower'] is not None and \
-                            not np.all(np.isneginf(np.atleast_1d(con['lower']))):
-                        diff = val - con['lower']
-                        violation = np.array([0. if d >= 0 else abs(d) for d in diff])
-                    elif con['upper'] is not None and \
-                            not np.all(np.isposinf(np.atleast_1d(con['upper']))):
-                        diff = val - con['upper']
-                        violation = np.array([0. if d <= 0 else abs(d) for d in diff])
-                    elif con['equals'] is not None and \
-                            not np.all(np.isinf(np.atleast_1d(con['equals']))):
-                        diff = val - con['equals']
+                    if con["lower"] is not None and not np.all(
+                        np.isneginf(np.atleast_1d(con["lower"]))
+                    ):
+                        diff = val - con["lower"]
+                        violation = np.array([0.0 if d >= 0 else abs(d) for d in diff])
+                    elif con["upper"] is not None and not np.all(
+                        np.isposinf(np.atleast_1d(con["upper"]))
+                    ):
+                        diff = val - con["upper"]
+                        violation = np.array([0.0 if d <= 0 else abs(d) for d in diff])
+                    elif con["equals"] is not None and not np.all(
+                        np.isinf(np.atleast_1d(con["equals"]))
+                    ):
+                        diff = val - con["equals"]
                         violation = np.absolute(diff)
                     constraint_violations = np.hstack((constraint_violations, violation))
                 fun = obj + penalty * sum(np.power(constraint_violations, exponent))
@@ -516,12 +548,15 @@ class DifferentialEvolution(object):
         """
         try:
             from pydoe import lhs
+
             self._lhs = lhs
         except ImportError:
-            raise RuntimeError(f"{self.__class__.__name__} requires the 'pydoe' package, "
-                               "which can be installed with one of the following commands:\n"
-                               "    pip install openmdao[doe]\n"
-                               "    pip install pydoe")
+            raise RuntimeError(
+                f"{self.__class__.__name__} requires the 'pydoe' package, "
+                "which can be installed with one of the following commands:\n"
+                "    pip install openmdao[doe]\n"
+                "    pip install pydoe"
+            )
 
         self.objfun = objfun
         self.comm = comm
@@ -591,7 +626,7 @@ class DifferentialEvolution(object):
         rng = np.random.default_rng(seed)
 
         # create LHS initial population (scaled to bounds) + user initial condition
-        population = self._lhs(self.lchrom, self.npop - 1, criterion='center', random_state=seed)
+        population = self._lhs(self.lchrom, self.npop - 1, criterion="center", random_state=seed)
         population = population * (vub - vlb) + vlb  # scale to bounds
         population = np.vstack((population, x0))
         fitness = np.ones(self.npop) * np.inf  # initialize fitness to infinitely bad
@@ -614,8 +649,9 @@ class DifferentialEvolution(object):
                     for j in range(comm.size - extra):
                         cases.append(cases[-1])
 
-                results = concurrent_eval(self.objfun, cases, comm,
-                                          allgather=True, model_mpi=self.model_mpi)
+                results = concurrent_eval(
+                    self.objfun, cases, comm, allgather=True, model_mpi=self.model_mpi
+                )
 
                 fitness[:] = np.inf
                 for result in results:
@@ -628,7 +664,7 @@ class DifferentialEvolution(object):
                             nfit += 1
                     else:
                         # Print the traceback if it fails
-                        print('A case failed:')
+                        print("A case failed:")
                         print(traceback)
             else:  # Serial
                 for ii in range(self.npop):

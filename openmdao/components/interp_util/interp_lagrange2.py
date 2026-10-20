@@ -3,10 +3,14 @@ Interpolate using a second order Lagrange polynomial.
 
 Based on NPSS implementation.
 """
+
 import numpy as np
 
-from openmdao.components.interp_util.interp_algorithm import InterpAlgorithm, \
-    InterpAlgorithmSemi, InterpAlgorithmFixed
+from openmdao.components.interp_util.interp_algorithm import (
+    InterpAlgorithm,
+    InterpAlgorithmSemi,
+    InterpAlgorithmFixed,
+)
 
 
 class InterpLagrange2(InterpAlgorithm):
@@ -31,7 +35,7 @@ class InterpLagrange2(InterpAlgorithm):
         """
         super().__init__(grid, values, interp, **kwargs)
         self.k = 3
-        self._name = 'lagrange2'
+        self._name = "lagrange2"
 
     def interpolate(self, x, idx, slice_idx):
         """
@@ -120,9 +124,11 @@ class InterpLagrange2(InterpAlgorithm):
             q2 = values[..., idx + 1] / (c12 * c23)
             q3 = values[..., idx + 2] / (c13 * c23)
 
-        derivs[..., 0] = q1 * (2.0 * x[0] - grid[idx + 1] - grid[idx + 2]) - \
-            q2 * (2.0 * x[0] - grid[idx] - grid[idx + 2]) + \
-            q3 * (2.0 * x[0] - grid[idx] - grid[idx + 1])
+        derivs[..., 0] = (
+            q1 * (2.0 * x[0] - grid[idx + 1] - grid[idx + 2])
+            - q2 * (2.0 * x[0] - grid[idx] - grid[idx + 2])
+            + q3 * (2.0 * x[0] - grid[idx] - grid[idx + 1])
+        )
 
         return xx3 * (q1 * xx2 - q2 * xx1) + q3 * xx1 * xx2, derivs, None, None
 
@@ -152,15 +158,32 @@ class InterpLagrange2Semi(InterpAlgorithmSemi):
         Interpolator-specific options to pass onward.
     """
 
-    def __init__(self, grid, values, interp, extrapolate=True, compute_d_dvalues=False, idx=None,
-                 idim=0, **kwargs):
+    def __init__(
+        self,
+        grid,
+        values,
+        interp,
+        extrapolate=True,
+        compute_d_dvalues=False,
+        idx=None,
+        idim=0,
+        **kwargs,
+    ):
         """
         Initialize table and subtables.
         """
-        super().__init__(grid, values, interp, extrapolate=extrapolate,
-                         compute_d_dvalues=compute_d_dvalues, idx=idx, idim=idim, **kwargs)
+        super().__init__(
+            grid,
+            values,
+            interp,
+            extrapolate=extrapolate,
+            compute_d_dvalues=compute_d_dvalues,
+            idx=idx,
+            idim=idim,
+            **kwargs,
+        )
         self.k = 3
-        self._name = 'lagrange2'
+        self._name = "lagrange2"
 
     def interpolate(self, x):
         """
@@ -242,7 +265,6 @@ class InterpLagrange2Semi(InterpAlgorithmSemi):
         c23 = (grid[idx + 1] - grid[idx + 2]).item()
 
         if subtables is not None:
-
             derivs = np.empty(len(dx0) + 1, dtype=dtype)
 
             q1 = val0 / (c12 * c13)
@@ -264,8 +286,8 @@ class InterpLagrange2Semi(InterpAlgorithmSemi):
 
                 d_value = np.empty(n * 3, dtype=dtype)
                 d_value[:n] = dvalue0 * xx3 * xx2 / (c12 * c13)
-                d_value[n:n * 2] = -dvalue1 * xx3 * xx1 / (c12 * c23)
-                d_value[n * 2:n * 3] = dvalue2 * xx1 * xx2 / (c13 * c23)
+                d_value[n : n * 2] = -dvalue1 * xx3 * xx1 / (c12 * c23)
+                d_value[n * 2 : n * 3] = dvalue2 * xx1 * xx2 / (c13 * c23)
 
                 idx0.extend(idx1)
                 idx0.extend(idx2)
@@ -287,12 +309,9 @@ class InterpLagrange2Semi(InterpAlgorithmSemi):
                 d_value[1] = -xx3 * xx1 / (c12 * c23)
                 d_value[2] = xx1 * xx2 / (c13 * c23)
 
-                d_value = (d_value,
-                           [self._idx[idx], self._idx[idx + 1], self._idx[idx + 2]])
+                d_value = (d_value, [self._idx[idx], self._idx[idx + 1], self._idx[idx + 2]])
 
-        derivs[0] = q1 * (xx2 + xx3) - \
-            q2 * (xx1 + xx3) + \
-            q3 * (xx1 + xx2)
+        derivs[0] = q1 * (xx2 + xx3) - q2 * (xx1 + xx3) + q3 * (xx1 + xx2)
 
         return xx3 * (q1 * xx2 - q2 * xx1) + q3 * xx1 * xx2, derivs, d_value, extrap
 
@@ -330,7 +349,7 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         self.k = 3
         self.dim = 3
         self.last_index = [0] * self.dim
-        self._name = '3D-lagrange2'
+        self._name = "3D-lagrange2"
         self._vectorized = False
 
     def vectorized(self, x):
@@ -425,7 +444,7 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         xx = np.array([1.0, x, x * x], dtype=dtype)
         yy = np.array([1.0, y, y * y], dtype=dtype)
         zz = np.array([1.0, z, z * z], dtype=dtype)
-        val = np.einsum('ijk,i,j,k->', a, xx, yy, zz)
+        val = np.einsum("ijk,i,j,k->", a, xx, yy, zz)
 
         # Compute derivatives using the 27 coefficients.
 
@@ -433,10 +452,10 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         dy = np.array([0.0, 1.0, 2.0 * y])
         dz = np.array([0.0, 1.0, 2.0 * z])
 
-        d_x = np.empty((3, ), dtype=dtype)
-        d_x[0] = np.einsum('i,j,k,ijk->', dx, yy, zz, a)
-        d_x[1] = np.einsum('i,j,k,ijk->', xx, dy, zz, a)
-        d_x[2] = np.einsum('i,j,k,ijk->', xx, yy, dz, a)
+        d_x = np.empty((3,), dtype=dtype)
+        d_x[0] = np.einsum("i,j,k,ijk->", dx, yy, zz, a)
+        d_x[1] = np.einsum("i,j,k,ijk->", xx, dy, zz, a)
+        d_x[2] = np.einsum("i,j,k,ijk->", xx, yy, dz, a)
 
         return val, d_x, None, None
 
@@ -464,9 +483,9 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         x = grid[0]
         y = grid[1]
         z = grid[2]
-        x1, x2, x3 = x[i_x:i_x + 3]
-        y1, y2, y3 = y[i_y:i_y + 3]
-        z1, z2, z3 = z[i_z:i_z + 3]
+        x1, x2, x3 = x[i_x : i_x + 3]
+        y1, y2, y3 = y[i_y : i_y + 3]
+        z1, z2, z3 = z[i_z : i_z + 3]
 
         cx12 = x1 - x2
         cx13 = x1 - x3
@@ -490,35 +509,32 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         z2 -= z1
         z3 -= z1
 
-        termx = np.array([[x2 * x3,
-                          0.0,
-                          0.0],
-                          [x2 + x3,
-                           x3,
-                           x2],
-                          [1.0 / (cx12 * cx13),
-                           -1.0 / (cx12 * cx23),
-                           1.0 / (cx13 * cx23)]], dtype=dtype)
+        termx = np.array(
+            [
+                [x2 * x3, 0.0, 0.0],
+                [x2 + x3, x3, x2],
+                [1.0 / (cx12 * cx13), -1.0 / (cx12 * cx23), 1.0 / (cx13 * cx23)],
+            ],
+            dtype=dtype,
+        )
 
-        termy = np.array([[y2 * y3,
-                          0.0,
-                          0.0],
-                          [y2 + y3,
-                           y3,
-                           y2],
-                          [1.0 / (cy12 * cy13),
-                           -1.0 / (cy12 * cy23),
-                           1.0 / (cy13 * cy23)]], dtype=dtype)
+        termy = np.array(
+            [
+                [y2 * y3, 0.0, 0.0],
+                [y2 + y3, y3, y2],
+                [1.0 / (cy12 * cy13), -1.0 / (cy12 * cy23), 1.0 / (cy13 * cy23)],
+            ],
+            dtype=dtype,
+        )
 
-        termz = np.array([[z2 * z3,
-                          0.0,
-                          0.0],
-                          [z2 + z3,
-                           z3,
-                           z2],
-                          [1.0 / (cz12 * cz13),
-                           -1.0 / (cz12 * cz23),
-                           1.0 / (cz13 * cz23)]], dtype=dtype)
+        termz = np.array(
+            [
+                [z2 * z3, 0.0, 0.0],
+                [z2 + z3, z3, z2],
+                [1.0 / (cz12 * cz13), -1.0 / (cz12 * cz23), 1.0 / (cz13 * cz23)],
+            ],
+            dtype=dtype,
+        )
 
         termx[1, :] *= -termx[2, :]
         termy[1, :] *= -termy[2, :]
@@ -528,7 +544,7 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         termy[0, :] *= termy[2, :]
         termz[0, :] *= termz[2, :]
 
-        all_val = values[i_x: i_x + 3, i_y: i_y + 3, i_z: i_z + 3]
+        all_val = values[i_x : i_x + 3, i_y : i_y + 3, i_z : i_z + 3]
 
         # There are 27 coefficients to compute, and each of them is a sum of 27 terms. These come
         # from multiplying the expression for lagrange interpolation, the  core of which is:
@@ -620,7 +636,7 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         zz[:, 1] = z
         zz[:, 2] = z * z
 
-        val = np.einsum('qijk,qi,qj,qk->q', a, xx, yy, zz)
+        val = np.einsum("qijk,qi,qj,qk->q", a, xx, yy, zz)
 
         # Compute derivatives using the 27 coefficients.
 
@@ -637,9 +653,9 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         dz[:, 1] = 2.0 * z
 
         d_x = np.empty((vec_size, 3), dtype=dtype)
-        d_x[:, 0] = np.einsum('qijk,qi,qj,qk->q', a[:, 1:, ...], dx, yy, zz)
-        d_x[:, 1] = np.einsum('qijk,qi,qj,qk->q', a[:, :, 1:, :], xx, dy, zz)
-        d_x[:, 2] = np.einsum('qijk,qi,qj,qk->q', a[:, :, :, 1:], xx, yy, dz)
+        d_x[:, 0] = np.einsum("qijk,qi,qj,qk->q", a[:, 1:, ...], dx, yy, zz)
+        d_x[:, 1] = np.einsum("qijk,qi,qj,qk->q", a[:, :, 1:, :], xx, dy, zz)
+        d_x[:, 2] = np.einsum("qijk,qi,qj,qk->q", a[:, :, :, 1:], xx, yy, dz)
 
         return val, d_x, None, None
 
@@ -747,9 +763,7 @@ class Interp3DLagrange2(InterpAlgorithmFixed):
         # The only loop in this algorithm, but it doesn't seem to have much impact on time.
         # Broadcasting out the index slices would be a bit complicated.
         for j in range(vec_size):
-            all_val[j, ...] = values[i_x[j]: i_x[j] + 3,
-                                     i_y[j]: i_y[j] + 3,
-                                     i_z[j]: i_z[j] + 3]
+            all_val[j, ...] = values[i_x[j] : i_x[j] + 3, i_y[j] : i_y[j] + 3, i_z[j] : i_z[j] + 3]
 
         # There are 27 coefficients to compute, and each of them is a sum of 27 terms. These come
         # from multiplying the expression for lagrange interpolation, the  core of which is:
@@ -795,7 +809,7 @@ class Interp2DLagrange2(InterpAlgorithmFixed):
         self.k = 3
         self.dim = 2
         self.last_index = [0] * self.dim
-        self._name = '2D-lagrange2'
+        self._name = "2D-lagrange2"
         self._vectorized = False
 
     def vectorized(self, x):
@@ -882,16 +896,16 @@ class Interp2DLagrange2(InterpAlgorithmFixed):
 
         xx = np.array([1.0, x, x * x], dtype=dtype)
         yy = np.array([1.0, y, y * y], dtype=dtype)
-        val = np.einsum('ij,i,j->', a, xx, yy)
+        val = np.einsum("ij,i,j->", a, xx, yy)
 
         # Compute derivatives using the 9 coefficients.
 
         dx = np.array([0.0, 1.0, 2.0 * x])
         dy = np.array([0.0, 1.0, 2.0 * y])
 
-        d_x = np.empty((2, ), dtype=dtype)
-        d_x[0] = np.einsum('i,j,ij->', dx, yy, a)
-        d_x[1] = np.einsum('i,j,ij->', xx, dy, a)
+        d_x = np.empty((2,), dtype=dtype)
+        d_x[0] = np.einsum("i,j,ij->", dx, yy, a)
+        d_x[1] = np.einsum("i,j,ij->", xx, dy, a)
 
         return val, d_x, None, None
 
@@ -918,8 +932,8 @@ class Interp2DLagrange2(InterpAlgorithmFixed):
 
         x = grid[0]
         y = grid[1]
-        x1, x2, x3 = x[i_x:i_x + 3]
-        y1, y2, y3 = y[i_y:i_y + 3]
+        x1, x2, x3 = x[i_x : i_x + 3]
+        y1, y2, y3 = y[i_y : i_y + 3]
 
         cx12 = x1 - x2
         cx13 = x1 - x3
@@ -936,25 +950,23 @@ class Interp2DLagrange2(InterpAlgorithmFixed):
         y2 -= y1
         y3 -= y1
 
-        termx = np.array([[x2 * x3,
-                          0.0,
-                          0.0],
-                          [x2 + x3,
-                           x3,
-                           x2],
-                          [1.0 / (cx12 * cx13),
-                           -1.0 / (cx12 * cx23),
-                           1.0 / (cx13 * cx23)]], dtype=dtype)
+        termx = np.array(
+            [
+                [x2 * x3, 0.0, 0.0],
+                [x2 + x3, x3, x2],
+                [1.0 / (cx12 * cx13), -1.0 / (cx12 * cx23), 1.0 / (cx13 * cx23)],
+            ],
+            dtype=dtype,
+        )
 
-        termy = np.array([[y2 * y3,
-                          0.0,
-                          0.0],
-                          [y2 + y3,
-                           y3,
-                           y2],
-                          [1.0 / (cy12 * cy13),
-                           -1.0 / (cy12 * cy23),
-                           1.0 / (cy13 * cy23)]], dtype=dtype)
+        termy = np.array(
+            [
+                [y2 * y3, 0.0, 0.0],
+                [y2 + y3, y3, y2],
+                [1.0 / (cy12 * cy13), -1.0 / (cy12 * cy23), 1.0 / (cy13 * cy23)],
+            ],
+            dtype=dtype,
+        )
 
         termx[1, :] *= -termx[2, :]
         termy[1, :] *= -termy[2, :]
@@ -962,7 +974,7 @@ class Interp2DLagrange2(InterpAlgorithmFixed):
         termx[0, :] *= termx[2, :]
         termy[0, :] *= termy[2, :]
 
-        all_val = values[i_x: i_x + 3, i_y: i_y + 3]
+        all_val = values[i_x : i_x + 3, i_y : i_y + 3]
 
         # There are 9 coefficients to compute, and each of them is a sum of 9 terms. These come
         # from multiplying the expression for lagrange interpolation, the  core of which is:
@@ -1046,7 +1058,7 @@ class Interp2DLagrange2(InterpAlgorithmFixed):
         yy[:, 1] = y
         yy[:, 2] = y * y
 
-        val = np.einsum('qij,qi,qj->q', a, xx, yy)
+        val = np.einsum("qij,qi,qj->q", a, xx, yy)
 
         # Compute derivatives using the 16 coefficients.
 
@@ -1059,8 +1071,8 @@ class Interp2DLagrange2(InterpAlgorithmFixed):
         dy[:, 1] = 2.0 * y
 
         d_x = np.empty((vec_size, 2), dtype=dtype)
-        d_x[:, 0] = np.einsum('qij,qi,qj->q', a[:, 1:, ...], dx, yy)
-        d_x[:, 1] = np.einsum('qij,qi,qj->q', a[:, :, 1:], xx, dy)
+        d_x[:, 0] = np.einsum("qij,qi,qj->q", a[:, 1:, ...], dx, yy)
+        d_x[:, 1] = np.einsum("qij,qi,qj->q", a[:, :, 1:], xx, dy)
 
         return val, d_x, None, None
 
@@ -1144,8 +1156,7 @@ class Interp2DLagrange2(InterpAlgorithmFixed):
         # The only loop in this algorithm, but it doesn't seem to have much impact on time.
         # Broadcasting out the index slices would be a bit complicated.
         for j in range(vec_size):
-            all_val[j, ...] = values[i_x[j]: i_x[j] + 3,
-                                     i_y[j]: i_y[j] + 3]
+            all_val[j, ...] = values[i_x[j] : i_x[j] + 3, i_y[j] : i_y[j] + 3]
 
         # There are 9 coefficients to compute, and each of them is a sum of 9 terms. These come
         # from multiplying the expression for lagrange interpolation, the  core of which is:
@@ -1191,7 +1202,7 @@ class Interp1DLagrange2(InterpAlgorithmFixed):
         self.k = 3
         self.dim = 1
         self.last_index = [0] * self.dim
-        self._name = '2D-lagrange2'
+        self._name = "2D-lagrange2"
         self._vectorized = False
 
     def vectorized(self, x):
@@ -1293,7 +1304,7 @@ class Interp1DLagrange2(InterpAlgorithmFixed):
         values = self.values
 
         x = grid[0]
-        x1, x2, x3 = x[idx:idx + 3]
+        x1, x2, x3 = x[idx : idx + 3]
 
         cx12 = x1 - x2
         cx13 = x1 - x3
@@ -1303,20 +1314,19 @@ class Interp1DLagrange2(InterpAlgorithmFixed):
         x2 -= x1
         x3 -= x1
 
-        termx = np.array([[x2 * x3,
-                          0.0,
-                          0.0],
-                          [x2 + x3,
-                           x3,
-                           x2],
-                          [1.0 / (cx12 * cx13),
-                           -1.0 / (cx12 * cx23),
-                           1.0 / (cx13 * cx23)]], dtype=dtype)
+        termx = np.array(
+            [
+                [x2 * x3, 0.0, 0.0],
+                [x2 + x3, x3, x2],
+                [1.0 / (cx12 * cx13), -1.0 / (cx12 * cx23), 1.0 / (cx13 * cx23)],
+            ],
+            dtype=dtype,
+        )
 
         termx[1, :] *= -termx[2, :]
         termx[0, :] *= termx[2, :]
 
-        all_val = values[idx: idx + 3]
+        all_val = values[idx : idx + 3]
 
         # There are 3 coefficients to compute, and each of them is a sum of 3 terms. These come
         # from multiplying the expression for lagrange interpolation, the  core of which is:
@@ -1391,7 +1401,7 @@ class Interp1DLagrange2(InterpAlgorithmFixed):
         xx[:, 1] = x
         xx[:, 2] = x * x
 
-        val = np.einsum('qi,qi->q', a, xx)
+        val = np.einsum("qi,qi->q", a, xx)
 
         # Compute derivatives using the 16 coefficients.
 
@@ -1400,7 +1410,7 @@ class Interp1DLagrange2(InterpAlgorithmFixed):
         dx[:, 1] = 2.0 * x
 
         d_x = np.empty((vec_size, 1), dtype=dtype)
-        d_x[:, 0] = np.einsum('qi,qi->q', a[:, 1:], dx)
+        d_x[:, 0] = np.einsum("qi,qi->q", a[:, 1:], dx)
 
         return val, d_x, None, None
 
@@ -1422,7 +1432,7 @@ class Interp1DLagrange2(InterpAlgorithmFixed):
         """
         grid = self.grid
         values = self.values
-        a = np.zeros((3, ), dtype=dtype)
+        a = np.zeros((3,), dtype=dtype)
 
         vec_size = len(idx)
 
@@ -1458,7 +1468,7 @@ class Interp1DLagrange2(InterpAlgorithmFixed):
         # The only loop in this algorithm, but it doesn't seem to have much impact on time.
         # Broadcasting out the index slices would be a bit complicated.
         for j in range(vec_size):
-            all_val[j, ...] = values[idx[j]: idx[j] + 3]
+            all_val[j, ...] = values[idx[j] : idx[j] + 3]
 
         # There are 9 coefficients to compute, and each of them is a sum of 3 terms. These come
         # from multiplying the expression for lagrange interpolation, the  core of which is:

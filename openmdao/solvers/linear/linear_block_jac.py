@@ -1,4 +1,5 @@
 """Define the LinearBlockJac class."""
+
 from openmdao.solvers.solver import BlockLinearSolver
 
 
@@ -12,7 +13,7 @@ class LinearBlockJac(BlockLinearSolver):
         Options dictionary.
     """
 
-    SOLVER = 'LN: LNBJ'
+    SOLVER = "LN: LNBJ"
 
     def _single_iteration(self):
         """
@@ -24,8 +25,8 @@ class LinearBlockJac(BlockLinearSolver):
         subs = list(system._relevance.filter(system._subsystems_myproc))
         scopelist = [None] * len(subs)
 
-        if mode == 'fwd':
-            system._transfer('linear', mode)
+        if mode == "fwd":
+            system._transfer("linear", mode)
 
             for i, subsys in enumerate(subs):
                 scope_out, scope_in = system._get_matvec_scope(subsys)
@@ -55,7 +56,7 @@ class LinearBlockJac(BlockLinearSolver):
                 else:
                     subsys._doutputs.set_val(0.0)
 
-            system._transfer('linear', mode)
+            system._transfer("linear", mode)
 
             system._doutputs *= -1.0
             system._doutputs += self._rhs_vec

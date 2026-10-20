@@ -56,11 +56,10 @@ For instance, in the paraboloid case we have:
 from openmdao.utils.assert_utils import assert_near_equal
 
 # minimum value
-assert_near_equal(prob.get_val('paraboloid.f'), -27.33333, 1e-6);
-
+assert_near_equal(prob.get_val("paraboloid.f"), -27.33333, 1e-6)
 # location of the minimum
-assert_near_equal(prob.get_val('paraboloid.x'), 6.6667, 1e-4);
-assert_near_equal(prob.get_val('paraboloid.y'), -7.33333, 1e-4);
+assert_near_equal(prob.get_val("paraboloid.x"), 6.6667, 1e-4)
+assert_near_equal(prob.get_val("paraboloid.y"), -7.33333, 1e-4)
 ```
 
 It's not necessary to show this in the documentation, so remove it using the same

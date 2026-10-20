@@ -1,9 +1,9 @@
-
 import numpy as np
 from scipy.sparse import coo_matrix, issparse
 
 try:
     import jax
+
     jax.config.update("jax_enable_x64", True)  # jax by default uses 32 bit floats
     import jax.numpy as jnp
     from jax.experimental import sparse as jsparse
@@ -29,23 +29,23 @@ class SparsityComp(ExplicitComponent):
             self.nzrows, self.nzcols = self.sparsity.row, self.sparsity.col
 
     def setup(self):
-        self.add_input('x', shape=self.sparsity.shape[1])
-        self.add_output('y', shape=self.sparsity.shape[0])
+        self.add_input("x", shape=self.sparsity.shape[1])
+        self.add_output("y", shape=self.sparsity.shape[0])
 
     def setup_partials(self):
         if self.use_sparse:
-            self.declare_partials('y', 'x', rows=self.nzrows, cols=self.nzcols)
+            self.declare_partials("y", "x", rows=self.nzrows, cols=self.nzcols)
         else:
-            self.declare_partials('y', 'x')
+            self.declare_partials("y", "x")
 
     def compute(self, inputs, outputs):
-        outputs['y'] = self.sparsity @ inputs['x']
+        outputs["y"] = self.sparsity @ inputs["x"]
 
     def compute_partials(self, inputs, partials):
         if self.use_sparse:
-            partials['y', 'x'] = self.sparsity.data
+            partials["y", "x"] = self.sparsity.data
         else:
-            partials['y', 'x'] = self.sparsity  # [self.nzrows, self.nzcols]
+            partials["y", "x"] = self.sparsity  # [self.nzrows, self.nzcols]
 
 
 class JaxSparsityComp(JaxExplicitComponent):
@@ -71,6 +71,7 @@ class JaxSparsityComp(JaxExplicitComponent):
     sparsity : coo_matrix
         Dense or sparse version of the sparsity structure.
     """
+
     def __init__(self, sparsity, declare_partials=False, **kwargs):
         super(JaxSparsityComp, self).__init__(**kwargs)
         self.declare = declare_partials
@@ -86,18 +87,18 @@ class JaxSparsityComp(JaxExplicitComponent):
             raise ValueError(f"{self.msginfo}: no support for sparse type of {type(sparsity)}")
 
     def setup(self):
-        self.add_input('x', shape=self.sparsity.shape[1])
-        self.add_output('y', shape=self.sparsity.shape[0])
+        self.add_input("x", shape=self.sparsity.shape[1])
+        self.add_output("y", shape=self.sparsity.shape[0])
 
     def setup_partials(self):
         if self.declare:
-            self.declare_partials('y', 'x', rows=self.nzrows, cols=self.nzcols)
+            self.declare_partials("y", "x", rows=self.nzrows, cols=self.nzcols)
 
     def compute_primal(self, x):
         return self.sparsity @ x
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from openmdao.test_suite.comp_tester import ComponentTester
 
     sparsity = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
@@ -107,5 +108,4 @@ if __name__ == '__main__':
     ComponentTester(SparsityComp, (sparsity,)).run()
     ComponentTester(SparsityComp, (sparsity_coo,)).run()
     ComponentTester(JaxSparsityComp, (jax_sparsity,)).run()
-    ComponentTester(JaxSparsityComp, (jax_sparsity,), {'declare_partials': True}).run()
-
+    ComponentTester(JaxSparsityComp, (jax_sparsity,), {"declare_partials": True}).run()

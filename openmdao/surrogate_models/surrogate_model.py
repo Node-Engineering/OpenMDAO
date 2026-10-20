@@ -1,6 +1,7 @@
 """
 Class definition for SurrogateModel, the base class for all surrogate models.
 """
+
 from openmdao.utils.options_dictionary import OptionsDictionary
 
 
@@ -54,8 +55,9 @@ class SurrogateModel(object):
             Point(s) at which the surrogate is evaluated.
         """
         if not self.trained:
-            msg = "{0} has not been trained, so no prediction can be made."\
-                .format(type(self).__name__)
+            msg = "{0} has not been trained, so no prediction can be made.".format(
+                type(self).__name__
+            )
             raise RuntimeError(msg)
 
     def vectorized_predict(self, x):

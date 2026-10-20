@@ -1,6 +1,7 @@
 """
 Routines to compute coloring for use with simultaneous derivatives.
 """
+
 import datetime
 import io
 import os
@@ -33,6 +34,7 @@ from openmdao.devtools.memory import mem_usage
 
 try:
     import jax
+
     jax.config.update("jax_enable_x64", True)  # jax by default uses 32 bit floats
     import jax.numpy as jnp
     from jax.experimental.sparse import BCOO
@@ -41,7 +43,7 @@ except ImportError:
     jnp = np
 
 
-bokeh_available = find_spec('bokeh') is not None
+bokeh_available = find_spec("bokeh") is not None
 
 
 CITATIONS = """
@@ -79,7 +81,7 @@ _force_dyn_coloring = False
 # path or system pathname. U
 
 
-class STD_COLORING_FNAME():
+class STD_COLORING_FNAME:
     """
     Used to indicate that coloring file should have a standard name.
 
@@ -90,22 +92,22 @@ class STD_COLORING_FNAME():
     pass
 
 
-_default_coloring_imagefile = 'coloring.png'
+_default_coloring_imagefile = "coloring.png"
 
 # default values related to the computation of a sparsity matrix
 _DEF_COMP_SPARSITY_ARGS = {
-    'tol': 1e-25,     # use this tolerance to determine what's a zero when determining sparsity
-    'orders': None,   # num orders += around 'tol' for the tolerance sweep when determining sparsity
-    'num_full_jacs': 3,      # number of full jacobians to generate before computing sparsity
-    'perturb_size': 1e-9,    # size of input/output perturbation during generation of sparsity
-    'min_improve_pct': 5.,   # don't use coloring unless at least 5% decrease in number of solves
-    'show_summary': True,    # if True, print a short summary of the coloring
-    'show_sparsity': False,  # if True, show a plot of the sparsity
-    'use_scaling': False,    # if True, use driver scaling when computing sparsity
-                             # (total coloring only)
+    "tol": 1e-25,  # use this tolerance to determine what's a zero when determining sparsity
+    "orders": None,  # num orders += around 'tol' for the tolerance sweep when determining sparsity
+    "num_full_jacs": 3,  # number of full jacobians to generate before computing sparsity
+    "perturb_size": 1e-9,  # size of input/output perturbation during generation of sparsity
+    "min_improve_pct": 5.0,  # don't use coloring unless at least 5% decrease in number of solves
+    "show_summary": True,  # if True, print a short summary of the coloring
+    "show_sparsity": False,  # if True, show a plot of the sparsity
+    "use_scaling": False,  # if True, use driver scaling when computing sparsity
+    # (total coloring only)
 }
 
-_COLORING_VERSION = '1.0'
+_COLORING_VERSION = "1.0"
 
 
 # A dict containing colorings that have been generated during the current execution.
@@ -196,13 +198,35 @@ class ColoringMeta(object):
         matrix of partitions, else use the substitution method.
     """
 
-    _meta_names = {'num_full_jacs', 'tol', 'orders', 'min_improve_pct', 'show_summary',
-                   'show_sparsity', 'dynamic', 'perturb_size', 'use_scaling', 'msginfo',
-                   'direct'}
+    _meta_names = {
+        "num_full_jacs",
+        "tol",
+        "orders",
+        "min_improve_pct",
+        "show_summary",
+        "show_sparsity",
+        "dynamic",
+        "perturb_size",
+        "use_scaling",
+        "msginfo",
+        "direct",
+    }
 
-    def __init__(self, num_full_jacs=3, tol=1e-25, orders=None, min_improve_pct=5.,
-                 show_summary=True, show_sparsity=False, dynamic=False, static=None,
-                 perturb_size=1e-9, use_scaling=False, msginfo='', direct=True):
+    def __init__(
+        self,
+        num_full_jacs=3,
+        tol=1e-25,
+        orders=None,
+        min_improve_pct=5.0,
+        show_summary=True,
+        show_sparsity=False,
+        dynamic=False,
+        static=None,
+        perturb_size=1e-9,
+        use_scaling=False,
+        msginfo="",
+        direct=True,
+    ):
         """
         Initialize data structures.
         """
@@ -311,7 +335,7 @@ class ColoringMeta(object):
         value : object
             Value of the metadata.
         """
-        if name in self.__dict__ or name == 'coloring':
+        if name in self.__dict__ or name == "coloring":
             setattr(self, name, value)
         else:
             raise KeyError(name)
@@ -361,7 +385,7 @@ class ColoringMeta(object):
         """
         self.set_coloring(coloring)
 
-    def set_coloring(self, coloring, msginfo=''):
+    def set_coloring(self, coloring, msginfo=""):
         """
         Set the coloring.
 
@@ -397,7 +421,7 @@ class ColoringMeta(object):
         self.static = None
         self._failed = True
 
-    def _pct_improvement_good(self, coloring, msginfo=''):
+    def _pct_improvement_good(self, coloring, msginfo=""):
         """
         Return True if the percentage improvement is greater than the minimum allowed.
 
@@ -420,8 +444,10 @@ class ColoringMeta(object):
         if self.min_improve_pct <= pct:
             return True
         else:
-            msg = f"Coloring was deactivated.  Improvement of {pct:.1f}% was less than min " \
-                  f"allowed ({self.min_improve_pct:.1f}%)."
+            msg = (
+                f"Coloring was deactivated.  Improvement of {pct:.1f}% was less than min "
+                f"allowed ({self.min_improve_pct:.1f}%)."
+            )
             issue_warning(msg, prefix=msginfo, category=DerivativesWarning)
             return False
 
@@ -447,9 +473,11 @@ class ColoringMeta(object):
         bool
             True if coloring should be used.
         """
-        return not self._failed and _use_total_sparsity and (self.coloring is not None or
-                                                             self.dynamic or
-                                                             self.has_static_coloring())
+        return (
+            not self._failed
+            and _use_total_sparsity
+            and (self.coloring is not None or self.dynamic or self.has_static_coloring())
+        )
 
     def has_static_coloring(self):
         """
@@ -522,19 +550,42 @@ class Partial_ColoringMeta(ColoringMeta):
         Where matched wrt names are stored.
     """
 
-    _meta_names = {'wrt_patterns', 'per_instance', 'method', 'form', 'step'}
+    _meta_names = {"wrt_patterns", "per_instance", "method", "form", "step"}
     _meta_names.update(ColoringMeta._meta_names)
 
-    def __init__(self, wrt_patterns=('*',), method='fd', form=None, step=None, per_instance=True,
-                 perturb_size=1e-9, num_full_jacs=3, tol=1e-25, orders=None, min_improve_pct=5.,
-                 show_summary=True, show_sparsity=False, dynamic=False, static=None, msginfo=''):
+    def __init__(
+        self,
+        wrt_patterns=("*",),
+        method="fd",
+        form=None,
+        step=None,
+        per_instance=True,
+        perturb_size=1e-9,
+        num_full_jacs=3,
+        tol=1e-25,
+        orders=None,
+        min_improve_pct=5.0,
+        show_summary=True,
+        show_sparsity=False,
+        dynamic=False,
+        static=None,
+        msginfo="",
+    ):
         """
         Initialize data structures.
         """
-        super().__init__(num_full_jacs=num_full_jacs, tol=tol, orders=orders,
-                         min_improve_pct=min_improve_pct, show_summary=show_summary,
-                         show_sparsity=show_sparsity, dynamic=dynamic, static=static,
-                         perturb_size=perturb_size, msginfo=msginfo)
+        super().__init__(
+            num_full_jacs=num_full_jacs,
+            tol=tol,
+            orders=orders,
+            min_improve_pct=min_improve_pct,
+            show_summary=show_summary,
+            show_sparsity=show_sparsity,
+            dynamic=dynamic,
+            static=static,
+            perturb_size=perturb_size,
+            msginfo=msginfo,
+        )
         if wrt_patterns is None:
             wrt_patterns = ()
         elif isinstance(wrt_patterns, str):
@@ -581,8 +632,9 @@ class Partial_ColoringMeta(ColoringMeta):
                 if isinstance(pattern, str):
                     newpats.append(pattern)
                 else:
-                    raise RuntimeError("Patterns in wrt_patterns must be strings, but found "
-                                       f"{pattern} instead.")
+                    raise RuntimeError(
+                        f"Patterns in wrt_patterns must be strings, but found {pattern} instead."
+                    )
             self._wrt_patterns = tuple(newpats)
 
     def use_coloring(self):
@@ -596,9 +648,11 @@ class Partial_ColoringMeta(ColoringMeta):
         bool
             True if coloring should be used.
         """
-        return not self._failed and _use_partial_sparsity and (self.coloring is not None or
-                                                               self.dynamic or
-                                                               self.has_static_coloring())
+        return (
+            not self._failed
+            and _use_partial_sparsity
+            and (self.coloring is not None or self.dynamic or self.has_static_coloring())
+        )
 
     def _update_wrt_matches(self, system):
         """
@@ -614,18 +668,21 @@ class Partial_ColoringMeta(ColoringMeta):
         set of str or None
             Matched absolute wrt variable names or None if all wrt variables match.
         """
-        if '*' in self._wrt_patterns:
+        if "*" in self._wrt_patterns:
             self.wrt_matches = None  # None means match everything
             return
 
-        prefix = system.pathname + '.' if system.pathname else ''
-        self.wrt_matches = frozenset(prefix + n for n in
-                                     pattern_filter(self.wrt_patterns, system._promoted_wrt_iter()))
+        prefix = system.pathname + "." if system.pathname else ""
+        self.wrt_matches = frozenset(
+            prefix + n for n in pattern_filter(self.wrt_patterns, system._promoted_wrt_iter())
+        )
 
         # error if nothing matched
         if not self.wrt_matches:
-            raise ValueError("{}: Invalid 'wrt' variable(s) specified for colored approx partial "
-                             "options: {}.".format(self.msginfo, self.wrt_patterns))
+            raise ValueError(
+                "{}: Invalid 'wrt' variable(s) specified for colored approx partial "
+                "options: {}.".format(self.msginfo, self.wrt_patterns)
+            )
 
         return self.wrt_matches
 
@@ -698,8 +755,15 @@ class Coloring(object):
         Dictionary of color arrays for each direction.
     """
 
-    def __init__(self, sparsity, row_vars=None, row_var_sizes=None, col_vars=None,
-                 col_var_sizes=None, resolver=None):
+    def __init__(
+        self,
+        sparsity,
+        row_vars=None,
+        row_var_sizes=None,
+        col_vars=None,
+        col_var_sizes=None,
+        resolver=None,
+    ):
         """
         Initialize data structures.
         """
@@ -723,12 +787,12 @@ class Coloring(object):
         self._rev = None
 
         self._meta = {
-            'version': _COLORING_VERSION,
-            'source': '',
+            "version": _COLORING_VERSION,
+            "source": "",
         }
 
-        self._names_array = {'fwd': None, 'rev': None}
-        self._local_array = {'fwd': None, 'rev': None}
+        self._names_array = {"fwd": None, "rev": None}
+        self._local_array = {"fwd": None, "rev": None}
 
         self._resolver = resolver
         self._subtractions = None
@@ -752,8 +816,14 @@ class Coloring(object):
         """
         row_vars = [row_translate[v] for v in self._row_vars]
         col_vars = [col_translate[v] for v in self._col_vars]
-        c = Coloring(self.sparsity, row_vars, self._row_var_sizes, col_vars, self._col_var_sizes,
-                     resolver=self._resolver)
+        c = Coloring(
+            self.sparsity,
+            row_vars,
+            self._row_var_sizes,
+            col_vars,
+            self._col_var_sizes,
+            resolver=self._resolver,
+        )
         c._fwd = self._fwd
         c._rev = self._rev
         c._meta = self._meta.copy()
@@ -776,9 +846,9 @@ class Coloring(object):
         list of int
             Lists of column indices (in fwd mode) or row indices (in rev mode).
         """
-        if direction == 'fwd':
+        if direction == "fwd":
             colors = self._fwd[0]
-        elif direction == 'rev':
+        elif direction == "rev":
             colors = self._rev[0]
         else:
             raise RuntimeError("Invalid direction '%s' in color_iter" % direction)
@@ -802,12 +872,12 @@ class Coloring(object):
             Color array for the given direction.
         """
         if direction not in self._color_arrays:
-            if direction == 'fwd':
+            if direction == "fwd":
                 color_array = np.zeros(self._shape[1], dtype=int)
                 for i, color_list in enumerate(self._fwd[0]):
                     color_array[color_list] = i
                 colors_nz = color_array[self._nzcols]
-            elif direction == 'rev':
+            elif direction == "rev":
                 color_array = np.zeros(self._shape[0], dtype=int)
                 for i, color_list in enumerate(self._rev[0]):
                     color_array[color_list] = i
@@ -862,7 +932,7 @@ class Coloring(object):
         int
             Index into the full jacobian of the current column or row.
         """
-        if direction == 'fwd':
+        if direction == "fwd":
             for i, (nzs, nzparts) in enumerate(self.color_nonzero_iter(direction)):
                 for jac_icol, nzpart in zip(nzs, nzparts):
                     if trans is not None:
@@ -890,9 +960,9 @@ class Coloring(object):
             The full jacobian.
         """
         colors_coo = self._get_color_array(direction)
-        if direction == 'fwd':
+        if direction == "fwd":
             data = compressed_j[self._nzrows, colors_coo]
-        elif direction == 'rev':
+        elif direction == "rev":
             data = compressed_j[colors_coo, self._nzcols]
 
         return csc_matrix((data, (self._nzrows, self._nzcols)), shape=self._shape)
@@ -912,9 +982,9 @@ class Coloring(object):
             List where each entry contains list of nonzero rows/cols for the index corresponding
             to each column/row.
         """
-        if direction == 'fwd':
+        if direction == "fwd":
             return self._fwd[1]
-        elif direction == 'rev':
+        elif direction == "rev":
             return self._rev[1]
         else:
             raise RuntimeError("Invalid direction '%s' in get_row_col_map" % direction)
@@ -929,11 +999,11 @@ class Coloring(object):
             Tuple containing some subset of ('fwd', 'rev').
         """
         if self._fwd and self._rev:
-            return ('fwd', 'rev')
+            return ("fwd", "rev")
         elif self._fwd:
-            return ('fwd',)
+            return ("fwd",)
         elif self._rev:
-            return ('rev',)
+            return ("rev",)
         return ()
 
     def _solves_info(self):
@@ -961,12 +1031,12 @@ class Coloring(object):
         fwd_solves = rev_solves = 0
         if tot_solves == 0:  # no coloring found
             tot_solves = tot_size = min([rev_size, fwd_size])
-            pct = 0.
+            pct = 0.0
         else:
             fwd_lists = self._fwd[0] if self._fwd else []
             rev_lists = self._rev[0] if self._rev else []
 
-            if self._meta.get('bidirectional'):
+            if self._meta.get("bidirectional"):
                 tot_size = min(fwd_size, rev_size)
             elif fwd_lists and not rev_lists:
                 tot_size = fwd_size
@@ -982,12 +1052,12 @@ class Coloring(object):
                 rev_solves = len(rev_lists)
 
             if tot_size <= 0:
-                pct = 0.
+                pct = 0.0
             else:
-                pct = ((tot_size - tot_solves) / tot_size * 100)
+                pct = (tot_size - tot_solves) / tot_size * 100
 
         if tot_size < 0:
-            tot_size = '?'
+            tot_size = "?"
 
         return tot_size, tot_solves, fwd_solves, rev_solves, pct
 
@@ -1031,7 +1101,7 @@ class Coloring(object):
         Coloring
             See docstring for Coloring class.
         """
-        with open(fname, 'rb') as f:
+        with open(fname, "rb") as f:
             bad = False
             try:
                 coloring = pickle.load(f)
@@ -1042,7 +1112,7 @@ class Coloring(object):
             if bad:
                 raise RuntimeError(f"File '{fname}' is not a valid coloring file.")
 
-        if 'version' not in coloring._meta:
+        if "version" not in coloring._meta:
             # old format, have to update color groups
             if coloring._fwd:
                 old = coloring._fwd[0]
@@ -1055,13 +1125,14 @@ class Coloring(object):
                 newgrps.extend(old[1:])
                 coloring._rev = (newgrps, coloring._rev[1])
 
-        if 'timestamp' not in coloring._meta:
+        if "timestamp" not in coloring._meta:
             file_mtime = pathlib.Path(fname).stat().st_mtime
-            coloring._meta['timestamp'] = datetime.datetime.\
-                fromtimestamp(file_mtime).strftime("%Y-%m-%d %H:%M:%S")
+            coloring._meta["timestamp"] = datetime.datetime.fromtimestamp(file_mtime).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
 
-        if 'source' not in coloring._meta:
-            coloring._meta['source'] = pathlib.Path(fname).absolute()
+        if "source" not in coloring._meta:
+            coloring._meta["source"] = pathlib.Path(fname).absolute()
 
         return coloring
 
@@ -1079,11 +1150,13 @@ class Coloring(object):
             if not color_dir.exists():
                 color_dir.mkdir(parents=True, exist_ok=True)
 
-            with open(fname, 'wb') as f:
+            with open(fname, "wb") as f:
                 pickle.dump(self, f)
         else:
-            raise TypeError("Can't save coloring.  Expected a string for fname but got a %s" %
-                            type(fname).__name__)
+            raise TypeError(
+                "Can't save coloring.  Expected a string for fname but got a %s"
+                % type(fname).__name__
+            )
 
     def _check_config_total(self, driver, model):
         """
@@ -1102,10 +1175,10 @@ class Coloring(object):
             Raised if the jacobian structure has changed and the coloring is invalid.
         """
         ofs = model._active_responses(driver._get_ordered_nl_responses(), driver._responses)
-        of_sizes = [m['size'] for m in ofs.values()]
+        of_sizes = [m["size"] for m in ofs.values()]
 
         wrts = model._active_desvars(driver._designvars.keys(), driver._designvars)
-        wrt_sizes = [m['size'] for m in wrts.values()]
+        wrt_sizes = [m["size"] for m in wrts.values()]
 
         self._config_check_msgs(ofs, of_sizes, wrts, wrt_sizes, driver)
 
@@ -1124,16 +1197,19 @@ class Coloring(object):
             Raised if the jacobian structure has changed and the coloring is invalid.
         """
         # check the contents (vars and sizes) of the input and output vectors of system
-        info = Partial_ColoringMeta(wrt_patterns=self._meta.get('wrt_patterns', ('*',)))
+        info = Partial_ColoringMeta(wrt_patterns=self._meta.get("wrt_patterns", ("*",)))
         info._update_wrt_matches(system)
         if system.pathname:
             # for partial and semi-total derivs, convert to promoted names
             abs2prom = system._resolver.abs2prom
-            ordered_of_info = [(abs2prom(name), offset, end, idxs, dsizes)
-                               for name, offset, end, idxs, dsizes in system._get_jac_ofs()]
-            ordered_wrt_info = [(abs2prom(name), offset, end, vec, idxs, dsizes)
-                                for name, offset, end, vec, idxs, dsizes in
-                                system._get_jac_wrts(info.wrt_matches)]
+            ordered_of_info = [
+                (abs2prom(name), offset, end, idxs, dsizes)
+                for name, offset, end, idxs, dsizes in system._get_jac_ofs()
+            ]
+            ordered_wrt_info = [
+                (abs2prom(name), offset, end, vec, idxs, dsizes)
+                for name, offset, end, vec, idxs, dsizes in system._get_jac_wrts(info.wrt_matches)
+            ]
         else:
             ordered_of_info = system._get_jac_ofs()
             ordered_wrt_info = system._get_jac_wrts(info.wrt_matches)
@@ -1147,36 +1223,40 @@ class Coloring(object):
         self._config_check_msgs(of_names, of_sizes, wrt_names, wrt_sizes, system)
 
     def _config_check_msgs(self, of_names, of_sizes, wrt_names, wrt_sizes, obj):
-        msg_suffix = ("Make sure you don't have different problems that have the same coloring "
-                      "directory. Set the coloring directory by setting the value of "
-                      "problem.options['coloring_dir'].")
+        msg_suffix = (
+            "Make sure you don't have different problems that have the same coloring "
+            "directory. Set the coloring directory by setting the value of "
+            "problem.options['coloring_dir']."
+        )
 
-        msg = ["%s: Current coloring configuration does not match the "
-               "configuration of the current model." % obj.msginfo]
+        msg = [
+            "%s: Current coloring configuration does not match the "
+            "configuration of the current model." % obj.msginfo
+        ]
 
         of_names = list(of_names)
         if of_names != self._row_vars:
             of_diff = set(of_names) - set(self._row_vars)
             if of_diff:
-                msg.append('   The following row vars were added: %s.' % sorted(of_diff))
+                msg.append("   The following row vars were added: %s." % sorted(of_diff))
             else:
                 of_diff = set(self._row_vars) - set(of_names)
                 if of_diff:
-                    msg.append('   The following row vars were removed: %s.' % sorted(of_diff))
+                    msg.append("   The following row vars were removed: %s." % sorted(of_diff))
                 else:
-                    msg.append('   The row vars have changed order.')
+                    msg.append("   The row vars have changed order.")
 
         wrt_names = list(wrt_names)
         if wrt_names != self._col_vars:
             wrt_diff = set(wrt_names) - set(self._col_vars)
             if wrt_diff:
-                msg.append('   The following column vars were added: %s.' % sorted(wrt_diff))
+                msg.append("   The following column vars were added: %s." % sorted(wrt_diff))
             else:
                 wrt_diff = set(self._col_vars) - set(wrt_names)
                 if wrt_diff:
-                    msg.append('   The following column vars were removed: %s.' % sorted(wrt_diff))
+                    msg.append("   The following column vars were removed: %s." % sorted(wrt_diff))
                 else:
-                    msg.append('   The column vars have changed order.')
+                    msg.append("   The column vars have changed order.")
 
         # check sizes
         changed_sizes = []
@@ -1191,11 +1271,11 @@ class Coloring(object):
                     changed_sizes.append(wrt_names[i])
 
         if changed_sizes:
-            msg.append('   The following variables have changed sizes: %s.' % sorted(changed_sizes))
+            msg.append("   The following variables have changed sizes: %s." % sorted(changed_sizes))
 
         if len(msg) > 1:
             msg.append(msg_suffix)
-            raise InvalidColoringError('\n'.join(msg))
+            raise InvalidColoringError("\n".join(msg))
 
     def __repr__(self):
         """
@@ -1209,11 +1289,11 @@ class Coloring(object):
         shape = self._shape
 
         if self._fwd and self._rev:
-            direction = 'bidirectional'
+            direction = "bidirectional"
         elif self._fwd:
-            direction = 'fwd'
+            direction = "fwd"
         else:
-            direction = 'rev'
+            direction = "rev"
 
         return (
             f"Coloring (direction: {direction}, ncolors: {self.total_solves()}, shape: {shape}"
@@ -1235,52 +1315,66 @@ class Coloring(object):
         if out_stream == _DEFAULT_OUT_STREAM:
             out_stream = sys.stdout
 
-        print(f"\nJacobian shape: ({nrows}, {ncols})  ({self._pct_nonzero:.2f}% nonzero)",
-              file=out_stream)
+        print(
+            f"\nJacobian shape: ({nrows}, {ncols})  ({self._pct_nonzero:.2f}% nonzero)",
+            file=out_stream,
+        )
         if self._fwd is None and self._rev is None:
             tot_size = min(nrows, ncols)
             if tot_size < 0:
-                tot_size = '?'
-            print(f"Simultaneous derivatives can't improve on the total number of solves "
-                  f"required ({tot_size}) for this configuration", file=out_stream)
+                tot_size = "?"
+            print(
+                f"Simultaneous derivatives can't improve on the total number of solves "
+                f"required ({tot_size}) for this configuration",
+                file=out_stream,
+            )
         else:
             tot_size, tot_colors, fwd_solves, rev_solves, pct = self._solves_info()
             print(f"FWD solves: {fwd_solves}   REV solves: {rev_solves}", file=out_stream)
-            print(f"Total colors vs. total size: {tot_colors} vs {tot_size}  "
-                  f"({pct:.2f}% improvement)",
-                  file=out_stream)
+            print(
+                f"Total colors vs. total size: {tot_colors} vs {tot_size}  "
+                f"({pct:.2f}% improvement)",
+                file=out_stream,
+            )
 
         meta = self._meta
-        print('', file=out_stream)
-        good_tol = meta.get('good_tol')
+        print("", file=out_stream)
+        good_tol = meta.get("good_tol")
         if good_tol is not None:
             print(f"Sparsity computed using tolerance: {meta['good_tol']}.", file=out_stream)
-            if meta['n_tested'] > 1:
+            if meta["n_tested"] > 1:
                 jsize = np.prod(self._shape)
-                print(f"Most common number of nonzero entries ({meta['nz_entries']} of {jsize}) "
-                      f"repeated {meta['nz_matches']} times out of {meta['n_tested']} tolerances "
-                      "tested.\n", file=out_stream)
+                print(
+                    f"Most common number of nonzero entries ({meta['nz_entries']} of {jsize}) "
+                    f"repeated {meta['nz_matches']} times out of {meta['n_tested']} tolerances "
+                    "tested.\n",
+                    file=out_stream,
+                )
 
-        sparsity_time = meta.get('sparsity_time', None)
+        sparsity_time = meta.get("sparsity_time", None)
         if sparsity_time is not None:
-            print(f"Dense {meta['type']} jacobian for {meta['class']} '{meta['pathname']}' was "
-                  f"computed {meta['num_full_jacs']} times.", file=out_stream)
+            print(
+                f"Dense {meta['type']} jacobian for {meta['class']} '{meta['pathname']}' was "
+                f"computed {meta['num_full_jacs']} times.",
+                file=out_stream,
+            )
             print(f"Time to compute sparsity: {sparsity_time:8.4f} sec", file=out_stream)
 
-        coloring_time = meta.get('coloring_time', None)
+        coloring_time = meta.get("coloring_time", None)
         if coloring_time is not None:
             print(f"Time to compute coloring: {coloring_time:8.4f} sec", file=out_stream)
 
-        coloring_mem = meta.get('coloring_memory', None)
+        coloring_mem = meta.get("coloring_memory", None)
         if coloring_mem is not None:
             print(f"Memory to compute coloring: {coloring_mem:8.4f} MB", file=out_stream)
 
-        coloring_timestamp = meta.get('timestamp', None)
+        coloring_timestamp = meta.get("timestamp", None)
         if coloring_timestamp is not None:
             print(f"Coloring created on: {coloring_timestamp}", file=out_stream)
 
-    def display_txt(self, out_stream=_DEFAULT_OUT_STREAM, html=False, summary=True,
-                    use_prom_names=True):
+    def display_txt(
+        self, out_stream=_DEFAULT_OUT_STREAM, html=False, summary=True, use_prom_names=True
+    ):
         """
         Print the structure of a boolean array with coloring info for each nonzero value.
 
@@ -1308,28 +1402,30 @@ class Coloring(object):
         if out_stream == _DEFAULT_OUT_STREAM:
             out_stream = sys.stdout
 
-        source_name = self._meta['source']
+        source_name = self._meta["source"]
 
         shape = self._shape
         nrows, ncols = shape
 
         if html:
-            out_stream.write(f'<html>\n'
-                             f'<head>\n'
-                             f'<title>total coloring report: {source_name}</title>\n'
-                             f'</head>\n'
-                             f'<body>\n'
-                             f'Total Coloring Report<br>\n'
-                             f'{source_name}\n'
-                             f'<hr style="width:100%;text-align:left;margin-left:0">\n'
-                             f'<pre>\n')
+            out_stream.write(
+                f"<html>\n"
+                f"<head>\n"
+                f"<title>total coloring report: {source_name}</title>\n"
+                f"</head>\n"
+                f"<body>\n"
+                f"Total Coloring Report<br>\n"
+                f"{source_name}\n"
+                f'<hr style="width:100%;text-align:left;margin-left:0">\n'
+                f"<pre>\n"
+            )
 
         # array of chars the same size as dense jacobian
-        charr = np.full(shape, '.', dtype=str)
+        charr = np.full(shape, ".", dtype=str)
 
         # mark all nonzero entries as 'x' initially, so the 'x' will be left
         # if not covered with an 'f' or an 'r'
-        charr[self._nzrows, self._nzcols] = 'x'
+        charr[self._nzrows, self._nzcols] = "x"
 
         if self._fwd:
             full_rows = np.arange(nrows, dtype=INT_DTYPE)
@@ -1339,7 +1435,7 @@ class Coloring(object):
                     rows = col2row[c]
                     if rows is None:
                         rows = full_rows
-                    charr[rows, c] = 'f'
+                    charr[rows, c] = "f"
 
         has_overlap = False
         if self._rev:
@@ -1353,63 +1449,69 @@ class Coloring(object):
                     for c in cols:
                         # check for any overlapping entries (ones having both a fwd and rev color)
                         # NOTE: this should never happen unless there's a bug in the coloring!
-                        if charr[r, c] == 'f':
-                            charr[r, c] = 'O'  # mark entry as overlapping
+                        if charr[r, c] == "f":
+                            charr[r, c] = "O"  # mark entry as overlapping
                             has_overlap = True
                         else:
-                            charr[r, c] = 'r'
+                            charr[r, c] = "r"
 
-        if (self._row_vars is None or self._row_var_sizes is None or
-                self._col_vars is None or self._col_var_sizes is None):
+        if (
+            self._row_vars is None
+            or self._row_var_sizes is None
+            or self._col_vars is None
+            or self._col_var_sizes is None
+        ):
             # we don't have var name/size info, so just show the unadorned matrix
             for r in range(nrows):
                 for c in range(ncols):
-                    print(charr[r, c], end='', file=out_stream)
-                print(' %d' % r, file=out_stream)
+                    print(charr[r, c], end="", file=out_stream)
+                print(" %d" % r, file=out_stream)
         else:
             # we have var name/size info, so mark rows/cols with their respective variable names
             rowstart = rowend = 0
-            for row_var_name, rvsize in zip(self.get_row_var_names(use_prom_names),
-                                            self._row_var_sizes):
+            for row_var_name, rvsize in zip(
+                self.get_row_var_names(use_prom_names), self._row_var_sizes
+            ):
                 rowend += rvsize
                 for r in range(rowstart, rowend):
                     colstart = colend = 0
                     for cvsize in self._col_var_sizes:
                         colend += cvsize
                         for c in range(colstart, colend):
-                            print(charr[r, c], end='', file=out_stream)
+                            print(charr[r, c], end="", file=out_stream)
                         colstart = colend
                     # include row variable with row
-                    print(' %d  %s' % (r, row_var_name), file=out_stream)
+                    print(" %d  %s" % (r, row_var_name), file=out_stream)
                 rowstart = rowend
 
             # now print the column vars below the matrix, with each one spaced over to line up
             # with the appropriate starting column of the matrix ('|' marks the start of each var)
             start = 0
 
-            for col_var_name, size in zip(self.get_col_var_names(use_prom_names),
-                                          self._col_var_sizes):
-                tab = ' ' * start
-                print('%s|%s' % (tab, col_var_name), file=out_stream)
+            for col_var_name, size in zip(
+                self.get_col_var_names(use_prom_names), self._col_var_sizes
+            ):
+                tab = " " * start
+                print("%s|%s" % (tab, col_var_name), file=out_stream)
                 start += size
 
         if html:
-            print('</pre>\n', file=out_stream)
+            print("</pre>\n", file=out_stream)
 
         if summary:
             if html:
-                print('<pre>\n', file=out_stream)
+                print("<pre>\n", file=out_stream)
             self.summary(out_stream=out_stream)
             if html:
-                print('</pre>\n', file=out_stream)
+                print("</pre>\n", file=out_stream)
 
         if html:
-            out_stream.write('</body>\n'
-                             '</html>')
+            out_stream.write("</body>\n</html>")
 
         if has_overlap:
-            raise RuntimeError("Internal coloring bug: jacobian has entries where fwd and rev "
-                               "colorings overlap!")
+            raise RuntimeError(
+                "Internal coloring bug: jacobian has entries where fwd and rev colorings overlap!"
+            )
 
     def display(self, show=True, fname=_default_coloring_imagefile):
         """
@@ -1422,8 +1524,11 @@ class Coloring(object):
         fname : str
             Path to the location where the plot file should be saved.
         """
-        issue_warning('display is deprecated. Use display_bokeh for rich html displays of coloring'
-                      'or display_txt for a text-based display.', category=OMDeprecationWarning)
+        issue_warning(
+            "display is deprecated. Use display_bokeh for rich html displays of coloring"
+            "or display_txt for a text-based display.",
+            category=OMDeprecationWarning,
+        )
 
         try:
             import matplotlib as mpl
@@ -1432,10 +1537,12 @@ class Coloring(object):
             if Version(mpl.__version__) < Version("3.6"):
                 from matplotlib import cm
         except ImportError:
-            print("matplotlib is not installed so the coloring viewer is not available. The ascii "
-                  "based coloring viewer can be accessed by calling display_txt() on the Coloring "
-                  "object or by using 'openmdao view_coloring --textview <your_coloring_file>' "
-                  "from the command line.")
+            print(
+                "matplotlib is not installed so the coloring viewer is not available. The ascii "
+                "based coloring viewer can be accessed by calling display_txt() on the Coloring "
+                "object or by using 'openmdao view_coloring --textview <your_coloring_file>' "
+                "from the command line."
+            )
             return
 
         nrows, ncols = self._shape
@@ -1473,9 +1580,9 @@ class Coloring(object):
 
             # pick two colors for our checkerboard pattern
             if Version(mpl.__version__) < Version("3.6"):
-                sjcolors = [cm.get_cmap('Greys')(0.3), cm.get_cmap('Greys')(0.4)]
+                sjcolors = [cm.get_cmap("Greys")(0.3), cm.get_cmap("Greys")(0.4)]
             else:
-                sjcolors = [mpl.colormaps['Greys'](0.3), mpl.colormaps['Greys'](0.4)]
+                sjcolors = [mpl.colormaps["Greys"](0.3), mpl.colormaps["Greys"](0.4)]
 
             colstart = colend = 0
             for i, cvsize in enumerate(self._col_var_sizes):
@@ -1504,12 +1611,12 @@ class Coloring(object):
                     ix = int(event.xdata)
                     iy = int(event.ydata)
 
-                    if event.xdata - ix >= .5:
+                    if event.xdata - ix >= 0.5:
                         ix += 1
                     ix = max(0, ix)
                     ix = min(ncols, ix)
 
-                    if event.ydata - iy >= .5:
+                    if event.ydata - iy >= 0.5:
                         iy += 1
                     iy = max(0, iy)
                     iy = min(nrows, iy)
@@ -1517,35 +1624,39 @@ class Coloring(object):
                     # if J[iy, ix] is not one of the background 'checkerboard' colors, then it
                     # must be either forward or reverse colored.
                     if np.all(J[iy, ix] == sjcolors[0][:3]) or np.all(J[iy, ix] == sjcolors[1][:3]):
-                        color_str = ''
+                        color_str = ""
                     else:
                         # display the color number because sometimes certain colormap colors look
                         # too similar to the eye.
                         if entry_xcolors[ix] != 0:
-                            color_str = 'Color: %d (fwd)' % entry_xcolors[ix]
+                            color_str = "Color: %d (fwd)" % entry_xcolors[ix]
                         else:
-                            color_str = 'Color: %d (rev)' % entry_ycolors[iy]
+                            color_str = "Color: %d (rev)" % entry_ycolors[iy]
 
                     # because we have potentially really long pathnames, we just print
                     # the 'of' and 'wrt' variables to the console instead of trying to display
                     # them on the plot.
-                    print('\nJ[%d, %d]  %s' % (iy, ix, color_str),
-                          '\nOF:', self._row_vars[entry_ynames[iy]],
-                          '\nWRT:', self._col_vars[entry_xnames[ix]])
+                    print(
+                        "\nJ[%d, %d]  %s" % (iy, ix, color_str),
+                        "\nOF:",
+                        self._row_vars[entry_ynames[iy]],
+                        "\nWRT:",
+                        self._col_vars[entry_xnames[ix]],
+                    )
 
             def on_resize(event):
                 fig.tight_layout()
 
             # set up event handling
-            fig.canvas.mpl_connect('button_press_event', on_press)
-            fig.canvas.mpl_connect('resize_event', on_resize)
+            fig.canvas.mpl_connect("button_press_event", on_press)
+            fig.canvas.mpl_connect("resize_event", on_resize)
 
         if self._fwd:
             # winter is a blue/green color map
             if Version(mpl.__version__) < Version("3.6"):
-                cmap = cm.get_cmap('winter')
+                cmap = cm.get_cmap("winter")
             else:
-                cmap = mpl.colormaps['winter']
+                cmap = mpl.colormaps["winter"]
 
             icol = 1
             full_rows = np.arange(nrows, dtype=INT_DTYPE)
@@ -1564,9 +1675,9 @@ class Coloring(object):
         if self._rev:
             # autumn_r is a red/yellow color map
             if Version(mpl.__version__) < Version("3.6"):
-                cmap = cm.get_cmap('autumn_r')
+                cmap = cm.get_cmap("autumn_r")
             else:
-                cmap = mpl.colormaps['autumn_r']
+                cmap = mpl.colormaps["autumn_r"]
 
             icol = 1
             full_cols = np.arange(ncols, dtype=INT_DTYPE)
@@ -1582,11 +1693,13 @@ class Coloring(object):
                     entry_ycolors[r] = icol
                 icol += 1
 
-        typ = self._meta['type'].upper()[0] + self._meta['type'][1:]
+        typ = self._meta["type"].upper()[0] + self._meta["type"][1:]
 
-        ax.set_title("%s Jacobian Coloring (%d x %d)\n%d fwd colors, %d rev colors "
-                     "(%.1f%% improvement)" %
-                     (typ, self._shape[0], self._shape[1], fwd_solves, rev_solves, pct))
+        ax.set_title(
+            "%s Jacobian Coloring (%d x %d)\n%d fwd colors, %d rev colors "
+            "(%.1f%% improvement)"
+            % (typ, self._shape[0], self._shape[1], fwd_solves, rev_solves, pct)
+        )
 
         pyplot.imshow(J, interpolation="none")
         fig.tight_layout()
@@ -1598,8 +1711,9 @@ class Coloring(object):
 
         pyplot.close(fig)
 
-    def display_bokeh(source, output_file='total_coloring.html', show=False, max_colors=200,
-                      use_prom_names=True):
+    def display_bokeh(
+        source, output_file="total_coloring.html", show=False, max_colors=200, use_prom_names=True
+    ):
         """
         Display a plot of the sparsity pattern, showing grouping by color.
 
@@ -1623,8 +1737,14 @@ class Coloring(object):
             If True, display promoted names rather than absolute path names for variables.
         """
         try:
-            from bokeh.models import CategoricalColorMapper, ColumnDataSource, CustomJSHover, \
-                Div, HoverTool, PreText
+            from bokeh.models import (
+                CategoricalColorMapper,
+                ColumnDataSource,
+                CustomJSHover,
+                Div,
+                HoverTool,
+                PreText,
+            )
             from bokeh.layouts import column
             from bokeh.palettes import Blues256, Reds256, gray, interp_palette
             from bokeh.plotting import figure
@@ -1632,10 +1752,12 @@ class Coloring(object):
             from bokeh.transform import transform
             import bokeh.io
         except ImportError:
-            print("bokeh is not installed so this coloring viewer is not available. The ascii "
-                  "based coloring viewer can be accessed by calling display_txt() on the Coloring "
-                  "object or by using 'openmdao view_coloring --textview <your_coloring_file>' "
-                  "from the command line.")
+            print(
+                "bokeh is not installed so this coloring viewer is not available. The ascii "
+                "based coloring viewer can be accessed by calling display_txt() on the Coloring "
+                "object or by using 'openmdao view_coloring --textview <your_coloring_file>' "
+                "from the command line."
+            )
             return
 
         if isinstance(source, str):
@@ -1643,20 +1765,23 @@ class Coloring(object):
             source_name = pathlib.Path(source).absolute()
         elif isinstance(source, Coloring):
             coloring = source
-            source_name = coloring._meta['source']
-        elif hasattr(source, '_coloring_info'):
+            source_name = coloring._meta["source"]
+        elif hasattr(source, "_coloring_info"):
             coloring = source._coloring_info.coloring
-            source_name = source._problem()._metadata['pathname']
+            source_name = source._problem()._metadata["pathname"]
         else:
-            raise ValueError(f'display_bokeh was expecting the source to be a valid coloring file '
-                             f'or an instance of driver but instead got f{type(source)}')
+            raise ValueError(
+                f"display_bokeh was expecting the source to be a valid coloring file "
+                f"or an instance of driver but instead got f{type(source)}"
+            )
 
         if coloring is None:
             # Save and show
-            summary_div = PreText(text='No total derivative coloring found.',
-                                  styles={'font-size': '12pt'})
+            summary_div = PreText(
+                text="No total derivative coloring found.", styles={"font-size": "12pt"}
+            )
 
-            fig = PreText(text='')
+            fig = PreText(text="")
         else:
             nrows, ncols = coloring._shape
             aspect_ratio = ncols / nrows
@@ -1666,58 +1791,69 @@ class Coloring(object):
             data = {}
 
             # The row and column indices of the individual jacobian elements
-            data['col_idx'] = np.tile(np.arange(ncols, dtype=int), nrows)
-            data['row_idx'] = np.repeat(np.arange(nrows, dtype=int), ncols)
+            data["col_idx"] = np.tile(np.arange(ncols, dtype=int), nrows)
+            data["row_idx"] = np.repeat(np.arange(nrows, dtype=int), ncols)
 
-            have_vars = None not in (coloring._col_vars, coloring._row_vars,
-                                     coloring._col_var_sizes, coloring._row_var_sizes)
+            have_vars = None not in (
+                coloring._col_vars,
+                coloring._row_vars,
+                coloring._col_var_sizes,
+                coloring._row_var_sizes,
+            )
 
             # The indices of the responses and desvars obtained by binning the row/col indices
             if have_vars:
-                desvar_idx_bins = [] if coloring._col_var_sizes is None else \
-                    np.cumsum(coloring._col_var_sizes)
-                response_idx_bins = [] if coloring._row_var_sizes is None else \
-                    np.cumsum(coloring._row_var_sizes)
+                desvar_idx_bins = (
+                    [] if coloring._col_var_sizes is None else np.cumsum(coloring._col_var_sizes)
+                )
+                response_idx_bins = (
+                    [] if coloring._row_var_sizes is None else np.cumsum(coloring._row_var_sizes)
+                )
 
-                response_idx = np.digitize(data['row_idx'], response_idx_bins)
-                desvar_idx = np.digitize(data['col_idx'], desvar_idx_bins)
+                response_idx = np.digitize(data["row_idx"], response_idx_bins)
+                desvar_idx = np.digitize(data["col_idx"], desvar_idx_bins)
 
-                data['pattern'] = np.full(nrows * ncols, '', dtype=str)
-                data['pattern'][...] = np.asarray(desvar_idx % 2 + response_idx % 2, dtype=str)
-            data['fwd_color_idx'] = np.full(nrows * ncols, '', dtype=object)
-            data['rev_color_idx'] = np.full(nrows * ncols, '', dtype=object)
+                data["pattern"] = np.full(nrows * ncols, "", dtype=str)
+                data["pattern"][...] = np.asarray(desvar_idx % 2 + response_idx % 2, dtype=str)
+            data["fwd_color_idx"] = np.full(nrows * ncols, "", dtype=object)
+            data["rev_color_idx"] = np.full(nrows * ncols, "", dtype=object)
 
             # Add the color group information to the data source
             fwd_map = {}
             if coloring._fwd is not None:
-                for idx_fwd, (_cols, _nz_rows) in enumerate(coloring.color_nonzero_iter('fwd')):
+                for idx_fwd, (_cols, _nz_rows) in enumerate(coloring.color_nonzero_iter("fwd")):
                     for _row_idx, _col_idx in zip(_nz_rows, _cols):
                         if _row_idx is not None:
                             fwd_map.update({(i, _col_idx): idx_fwd for i in _row_idx})
 
             rev_map = {}
             if coloring._rev is not None:
-                for idx_rev, (_rows, _nz_cols) in enumerate(coloring.color_nonzero_iter('rev')):
+                for idx_rev, (_rows, _nz_cols) in enumerate(coloring.color_nonzero_iter("rev")):
                     for _row_idx, _col_idx in zip(_rows, _nz_cols):
                         if _row_idx is not None:
                             rev_map.update({(_row_idx, j): idx_rev for j in _col_idx})
 
             for i in range(nrows * ncols):
-                r = data['row_idx'][i]
-                c = data['col_idx'][i]
+                r = data["row_idx"][i]
+                c = data["col_idx"][i]
                 if (r, c) in fwd_map:
-                    data['fwd_color_idx'][i] = str(fwd_map[r, c])
+                    data["fwd_color_idx"][i] = str(fwd_map[r, c])
                 if (r, c) in rev_map:
-                    data['rev_color_idx'][i] = str(rev_map[r, c])
+                    data["rev_color_idx"][i] = str(rev_map[r, c])
 
             data_source = ColumnDataSource(data)
 
             HEIGHT = 600
 
-            fig = figure(toolbar_location="above",
-                         x_range=(-1, ncols + 1), y_range=(nrows + 1, -1),
-                         x_axis_location="above", width=int(HEIGHT * aspect_ratio), height=HEIGHT,
-                         sizing_mode='scale_both')
+            fig = figure(
+                toolbar_location="above",
+                x_range=(-1, ncols + 1),
+                y_range=(nrows + 1, -1),
+                x_axis_location="above",
+                width=int(HEIGHT * aspect_ratio),
+                height=HEIGHT,
+                sizing_mode="scale_both",
+            )
 
             fig.xaxis.visible = False
             fig.yaxis.visible = False
@@ -1728,48 +1864,81 @@ class Coloring(object):
             # Plot the background pattern
             if have_vars:
                 gray_cm = gray(12)
-                background_mapper = CategoricalColorMapper(factors=[str(i) for i in range(3)],
-                                                           palette=gray_cm[-4:-1])
+                background_mapper = CategoricalColorMapper(
+                    factors=[str(i) for i in range(3)], palette=gray_cm[-4:-1]
+                )
 
-                fig.rect(x='col_idx', y='row_idx', width=1, height=1, source=data_source, alpha=0.5,
-                         line_color=None, fill_color=transform('pattern', background_mapper))
+                fig.rect(
+                    x="col_idx",
+                    y="row_idx",
+                    width=1,
+                    height=1,
+                    source=data_source,
+                    alpha=0.5,
+                    line_color=None,
+                    fill_color=transform("pattern", background_mapper),
+                )
 
             # Plot the fwd solve groups
             if fwd_solves > 0:
                 fwd_colors = interp_palette(list(Blues256)[:max_colors], fwd_solves)
-                fwd_mapper = CategoricalColorMapper(factors=[str(i) for i in range(fwd_solves)],
-                                                    palette=fwd_colors,
-                                                    nan_color=(0, 0, 0, 0))
-                fwd_rect = fig.rect(x='col_idx', y='row_idx', width=1, height=1,
-                                    source=data_source, alpha=1.0, line_color=None,
-                                    fill_color=transform('fwd_color_idx', fwd_mapper))
+                fwd_mapper = CategoricalColorMapper(
+                    factors=[str(i) for i in range(fwd_solves)],
+                    palette=fwd_colors,
+                    nan_color=(0, 0, 0, 0),
+                )
+                fwd_rect = fig.rect(
+                    x="col_idx",
+                    y="row_idx",
+                    width=1,
+                    height=1,
+                    source=data_source,
+                    alpha=1.0,
+                    line_color=None,
+                    fill_color=transform("fwd_color_idx", fwd_mapper),
+                )
 
-                fig.add_layout(fwd_rect.construct_color_bar(
-                    major_label_text_font_size="7px",
-                    label_standoff=6,
-                    border_line_color=None,
-                    padding=5,
-                    title='forward solves',
-                ), 'right')
+                fig.add_layout(
+                    fwd_rect.construct_color_bar(
+                        major_label_text_font_size="7px",
+                        label_standoff=6,
+                        border_line_color=None,
+                        padding=5,
+                        title="forward solves",
+                    ),
+                    "right",
+                )
 
             # Plot the rev solve groups
             if rev_solves > 0:
                 rev_colors = interp_palette(list(Reds256)[:max_colors], rev_solves)
-                rev_mapper = CategoricalColorMapper(factors=[str(i) for i in range(rev_solves)],
-                                                    palette=rev_colors,
-                                                    nan_color=(0, 0, 0, 0))
+                rev_mapper = CategoricalColorMapper(
+                    factors=[str(i) for i in range(rev_solves)],
+                    palette=rev_colors,
+                    nan_color=(0, 0, 0, 0),
+                )
 
-                rev_rect = fig.rect(x='col_idx', y='row_idx', width=1, height=1,
-                                    source=data_source, alpha=1.0, line_color=None,
-                                    fill_color=transform('rev_color_idx', rev_mapper))
+                rev_rect = fig.rect(
+                    x="col_idx",
+                    y="row_idx",
+                    width=1,
+                    height=1,
+                    source=data_source,
+                    alpha=1.0,
+                    line_color=None,
+                    fill_color=transform("rev_color_idx", rev_mapper),
+                )
 
-                fig.add_layout(rev_rect.construct_color_bar(
-                    major_label_text_font_size="7px",
-                    label_standoff=6,
-                    border_line_color=None,
-                    padding=0,
-                    title='reverse solves',
-                ), 'right')
+                fig.add_layout(
+                    rev_rect.construct_color_bar(
+                        major_label_text_font_size="7px",
+                        label_standoff=6,
+                        border_line_color=None,
+                        padding=0,
+                        title="reverse solves",
+                    ),
+                    "right",
+                )
 
             # Add a tooltip on hover
             if have_vars:
@@ -1779,8 +1948,9 @@ class Coloring(object):
                     desvar_col_map[desvar_name].add(col_idx)
 
                 if use_prom_names and coloring._resolver:
-                    desvar_col_map = {coloring._get_prom_name(k): v
-                                      for k, v in desvar_col_map.items()}
+                    desvar_col_map = {
+                        coloring._get_prom_name(k): v for k, v in desvar_col_map.items()
+                    }
 
                 resvar_col_map = {varname: set() for varname in coloring._row_vars}
                 for row_idx in range(nrows):
@@ -1788,62 +1958,74 @@ class Coloring(object):
                     resvar_col_map[resvar_name].add(row_idx)
 
                 if use_prom_names and coloring._resolver:
-                    resvar_col_map = {coloring._get_prom_name(k): v
-                                      for k, v in resvar_col_map.items()}
+                    resvar_col_map = {
+                        coloring._get_prom_name(k): v for k, v in resvar_col_map.items()
+                    }
 
-                design_var_js = CustomJSHover(code="""
+                design_var_js = CustomJSHover(
+                    code="""
                 for (var name in varnames_map) {
                     if (varnames_map[name].has(special_vars.snap_x)) {
                         return name;
                     }
                 }
                 return '';
-                """, args=dict(varnames_map=desvar_col_map))
+                """,
+                    args=dict(varnames_map=desvar_col_map),
+                )
 
-                response_var_js = CustomJSHover(code="""
+                response_var_js = CustomJSHover(
+                    code="""
                 for (var name in varnames_map) {
                     if (varnames_map[name].has(special_vars.snap_y)) {
                         return name;
                     }
                 }
                 return '';
-                """, args=dict(varnames_map=resvar_col_map))
+                """,
+                    args=dict(varnames_map=resvar_col_map),
+                )
 
-                tooltips = [('Response', '$snap_y{0}'),  # {0} triggers the formatter
-                            ('Design Var', '$snap_x{0}'),
-                            ('Forward solve', '@fwd_color_idx'),
-                            ('Reverse solve', '@rev_color_idx'),
-                            ('Row', '@row_idx'),
-                            ('Col', '@col_idx')]
-                formatters = {'$snap_y': response_var_js,
-                              '$snap_x': design_var_js}
+                tooltips = [
+                    ("Response", "$snap_y{0}"),  # {0} triggers the formatter
+                    ("Design Var", "$snap_x{0}"),
+                    ("Forward solve", "@fwd_color_idx"),
+                    ("Reverse solve", "@rev_color_idx"),
+                    ("Row", "@row_idx"),
+                    ("Col", "@col_idx"),
+                ]
+                formatters = {"$snap_y": response_var_js, "$snap_x": design_var_js}
             else:
-                tooltips = [('Forward solve', '@fwd_color_idx'),
-                            ('Reverse solve', '@rev_color_idx'),
-                            ('Row', '@row_idx'),
-                            ('Col', '@col_idx')]
+                tooltips = [
+                    ("Forward solve", "@fwd_color_idx"),
+                    ("Reverse solve", "@rev_color_idx"),
+                    ("Row", "@row_idx"),
+                    ("Col", "@col_idx"),
+                ]
                 formatters = {}
 
             fig.add_tools(HoverTool(tooltips=tooltips, formatters=formatters))
 
             ss = io.StringIO()
             coloring.summary(out_stream=ss)
-            summary_div = PreText(text=ss.getvalue(), styles={'font-size': '12pt'})
+            summary_div = PreText(text=ss.getvalue(), styles={"font-size": "12pt"})
 
-        header_div = Div(text=f'Total Coloring Report<br>{source_name}',
-                         styles={'font-size': '16pt', 'font-style': 'bold'})
+        header_div = Div(
+            text=f"Total Coloring Report<br>{source_name}",
+            styles={"font-size": "16pt", "font-style": "bold"},
+        )
 
-        report_layout = column(children=[header_div,
-                                         fig,
-                                         summary_div],
-                               sizing_mode='scale_height')
+        report_layout = column(children=[header_div, fig, summary_div], sizing_mode="scale_height")
 
         # Save and show
-        bokeh.io.curdoc().theme = 'light_minimal'
+        bokeh.io.curdoc().theme = "light_minimal"
         if output_file is not None:
-            bokeh.io.save(report_layout, filename=output_file,
-                          title=f'total coloring report for {source_name}',
-                          resources=bokeh.resources.INLINE)
+            bokeh.io.save(
+                report_layout,
+                filename=output_file,
+                title=f"total coloring report for {source_name}",
+                resources=bokeh.resources.INLINE,
+            )
 
         if show:
             bokeh.io.show(report_layout)
@@ -1858,8 +2040,10 @@ class Coloring(object):
         coo_matrix
             The sparsity matrix.
         """
-        return coo_matrix((np.ones(len(self._nzrows), dtype=np.uint8),
-                           (self._nzrows, self._nzcols)), shape=self._shape)
+        return coo_matrix(
+            (np.ones(len(self._nzrows), dtype=np.uint8), (self._nzrows, self._nzcols)),
+            shape=self._shape,
+        )
 
     def get_sparsity_of_type(self, dtype):
         """
@@ -1875,8 +2059,10 @@ class Coloring(object):
         coo_matrix
             The sparsity matrix.
         """
-        return coo_matrix((np.ones(len(self._nzrows), dtype=dtype),
-                           (self._nzrows, self._nzcols)), shape=self._shape)
+        return coo_matrix(
+            (np.ones(len(self._nzrows), dtype=dtype), (self._nzrows, self._nzcols)),
+            shape=self._shape,
+        )
 
     def get_jax_sparsity(self):
         """
@@ -1930,9 +2116,13 @@ class Coloring(object):
 
     def _subjac_sparsity_iter(self):
         if self._row_vars and self._col_vars and self._row_var_sizes and self._col_var_sizes:
-            yield from submat_sparsity_iter(zip(self._row_vars, self._row_var_sizes),
-                                            zip(self._col_vars, self._col_var_sizes),
-                                            self._nzrows, self._nzcols, self._shape)
+            yield from submat_sparsity_iter(
+                zip(self._row_vars, self._row_var_sizes),
+                zip(self._col_vars, self._col_var_sizes),
+                self._nzrows,
+                self._nzcols,
+                self._shape,
+            )
         else:
             raise RuntimeError("Coloring doesn't have enough info to compute subjac sparsity.")
 
@@ -1948,9 +2138,11 @@ class Coloring(object):
         """
         lines = []
         for of, wrt, nzrows, nzcols, _ in self._subjac_sparsity_iter():
-            lines.append("    self.declare_partials(of='%s', wrt='%s', rows=%s, cols=%s)" %
-                         (of, wrt, list(nzrows), list(nzcols)))
-        return '\n'.join(lines)
+            lines.append(
+                "    self.declare_partials(of='%s', wrt='%s', rows=%s, cols=%s)"
+                % (of, wrt, list(nzrows), list(nzcols))
+            )
+        return "\n".join(lines)
 
     def get_row_var_coloring(self, varname):
         """
@@ -1987,7 +2179,7 @@ class Coloring(object):
 
             if self._fwd:
                 nzrows = self._fwd[1]
-                for color_group in self.color_iter('fwd'):
+                for color_group in self.color_iter("fwd"):
                     subJ[:, :] = False
                     for c in color_group:
                         J[nzrows[c], c] = True
@@ -1997,7 +2189,7 @@ class Coloring(object):
                         fwd_solves += 1
 
             if self._rev:
-                for color_group in self.color_iter('rev'):
+                for color_group in self.color_iter("rev"):
                     subJ[:, :] = False
                     J[color_group, :] = True
 
@@ -2009,7 +2201,7 @@ class Coloring(object):
     def _local_indices(self, inds, mode):
         # this is currently only used when dumping debug info for coloring
         if self._names_array[mode] is None:
-            if mode == 'fwd':
+            if mode == "fwd":
                 col_info = zip(self._col_vars, self._col_var_sizes)
             else:
                 col_info = zip(self._row_vars, self._row_var_sizes)
@@ -2024,13 +2216,17 @@ class Coloring(object):
             self._local_array[mode] = np.concatenate(indices)
 
         if isinstance(inds, list):
-            var_name_and_sub_indices = \
-                [(key, [x[1] for x in group]) for key, group in
-                 groupby(zip(self._names_array[mode][inds], self._local_array[mode][inds]),
-                         key=lambda x: x[0])]
+            var_name_and_sub_indices = [
+                (key, [x[1] for x in group])
+                for key, group in groupby(
+                    zip(self._names_array[mode][inds], self._local_array[mode][inds]),
+                    key=lambda x: x[0],
+                )
+            ]
         else:
-            var_name_and_sub_indices = [(self._names_array[mode][inds],
-                                         self._local_array[mode][inds])]
+            var_name_and_sub_indices = [
+                (self._names_array[mode][inds], self._local_array[mode][inds])
+            ]
 
         return var_name_and_sub_indices
 
@@ -2055,14 +2251,16 @@ class Coloring(object):
         ndarray
             tangent array for inputs (fwd) or outputs (rev)
         """
-        fwd = direction == 'fwd'
+        fwd = direction == "fwd"
         size = self._shape[1] if fwd else self._shape[0]
 
         if arr is None:
             arr = np.empty(size)
         elif size != arr.size:
-            raise RuntimeError("Size of given storage array doesn't match shape of the coloring for"
-                               f" the '{direction}' direction.")
+            raise RuntimeError(
+                "Size of given storage array doesn't match shape of the coloring for"
+                f" the '{direction}' direction."
+            )
 
         for nzs, nzparts in self.color_nonzero_iter(direction):
             if trans is not None:
@@ -2090,7 +2288,7 @@ class Coloring(object):
         ndarray
             The tangent or cotangent matrix.
         """
-        if direction == 'fwd':
+        if direction == "fwd":
             shape = (self.total_solves(rev=False), self._shape[1])
             tangent = np.empty(shape)
             for i, (arr, _, _) in enumerate(self.tangent_iter(direction, trans=trans)):
@@ -2167,8 +2365,10 @@ class Coloring(object):
         for color, columns in enumerate(self._fwd[0]):
             vrows.extend(columns)
             vcols.extend(np.full(len(columns), color))
-        return csc_matrix((np.ones(len(vrows), dtype=np.int8), (vrows, vcols)),
-                          shape=(self._shape[1], len(self._fwd[0])))
+        return csc_matrix(
+            (np.ones(len(vrows), dtype=np.int8), (vrows, vcols)),
+            shape=(self._shape[1], len(self._fwd[0])),
+        )
 
     def _getW(self):
         if self._rev is None:
@@ -2180,8 +2380,10 @@ class Coloring(object):
             wrows.extend(rows)
             wcols.extend(np.full(len(rows), color))
 
-        return csr_matrix((np.ones(len(wrows), dtype=np.int8), (wrows, wcols)),
-                          shape=(self._shape[0], len(self._rev[0])))
+        return csr_matrix(
+            (np.ones(len(wrows), dtype=np.int8), (wrows, wcols)),
+            shape=(self._shape[0], len(self._rev[0])),
+        )
 
     def _get_sparse_coloring(self):
         """
@@ -2238,7 +2440,7 @@ class Coloring(object):
             List of subtractions to be applied to the jacobian, keyed on row, col pairs.
         """
         subtractions = {}
-        if (self._fwd is None or self._rev is None):
+        if self._fwd is None or self._rev is None:
             return subtractions
 
         sparse_coloring = self._get_sparse_coloring()
@@ -2465,8 +2667,9 @@ def _Jc2col_matrix_substitution(J, part_rows, part_cols, overlap):
     allnzc = []
 
     Jrow = np.zeros(ncols, dtype=bool)
-    part_csr = csr_matrix((np.ones(part_rows.size, dtype=bool), (part_rows, part_cols)),
-                          shape=shape)
+    part_csr = csr_matrix(
+        (np.ones(part_rows.size, dtype=bool), (part_rows, part_cols)), shape=shape
+    )
 
     for row in np.unique(part_rows):
         nzr = []
@@ -2690,8 +2893,8 @@ def MNCO_bidir(J, direct=True):
     # Jf is colored by column and those columns will be solved in fwd mode.
     # Jr is colored by row and those rows will be solved in reverse mode.
 
-    Jf_nz_max = 0   # max row nonzeros in Jf
-    Jr_nz_max = 0   # max col nonzeros in Jr
+    Jf_nz_max = 0  # max row nonzeros in Jf
+    Jr_nz_max = 0  # max col nonzeros in Jr
 
     rowcols = {}
 
@@ -2709,7 +2912,6 @@ def MNCO_bidir(J, direct=True):
         nnz_r = M_row_nonzeros[r]
 
         if Jr_nz_max + max(Jf_nz_max, nnz_r) < (Jf_nz_max + max(Jr_nz_max, nnz_c)):
-
             Jf_rows[r] = M_cols[M_rows == r]  # add a row to Jf
             keep = M_rows != r  # remove row r from M
             M_row_nonzeros[r] = skip  # make sure we don't pick this row again
@@ -2722,7 +2924,6 @@ def MNCO_bidir(J, direct=True):
             rowcols[r, True] = len(rowcols)
 
         else:
-
             Jr_cols[c] = M_rows[M_cols == c]  # add a column to Jr
             keep = M_cols != c  # remove column c from M
             M_col_nonzeros[c] = skip  # make sure we don't pick this one again
@@ -2793,12 +2994,12 @@ def MNCO_bidir(J, direct=True):
     if nzrows.size != nnz_Jf + nnz_Jr:
         raise RuntimeError("Nonzero mismatch for J vs. Jf and Jr")
 
-    coloring._meta['bidirectional'] = row_i > 0 and col_i > 0
+    coloring._meta["bidirectional"] = row_i > 0 and col_i > 0
 
     return coloring
 
 
-def _tol_sweep(arr, tol=_DEF_COMP_SPARSITY_ARGS['tol'], orders=_DEF_COMP_SPARSITY_ARGS['orders']):
+def _tol_sweep(arr, tol=_DEF_COMP_SPARSITY_ARGS["tol"], orders=_DEF_COMP_SPARSITY_ARGS["orders"]):
     """
     Find best tolerance 'around' tol to choose nonzero values of arr.
 
@@ -2821,23 +3022,23 @@ def _tol_sweep(arr, tol=_DEF_COMP_SPARSITY_ARGS['tol'], orders=_DEF_COMP_SPARSIT
     dict
         Info about the tolerance and how it was determined.
     """
-    if orders is None:   # skip the sweep. Just use the tolerance given.
+    if orders is None:  # skip the sweep. Just use the tolerance given.
         good_tol = tol
         nz_matches = n_tested = 1
     else:
         nzeros = []
-        itol = tol * 10.**orders
-        smallest = tol / 10.**orders
+        itol = tol * 10.0**orders
+        smallest = tol / 10.0**orders
         n_tested = 0
         while itol >= smallest:
-            if itol < 1.:
+            if itol < 1.0:
                 nz = np.count_nonzero(arr > itol)
                 if nzeros and nzeros[-1][1] == nz:
                     nzeros[-1][0].append(itol)
                 else:
                     nzeros.append(([itol], nz))
                 n_tested += 1
-            itol *= .1
+            itol *= 0.1
 
         # pick lowest tolerance corresponding to the most repeated number of 'zero' entries
         sorted_items = sorted(nzeros, key=lambda x: len(x[0]), reverse=True)
@@ -2846,26 +3047,27 @@ def _tol_sweep(arr, tol=_DEF_COMP_SPARSITY_ARGS['tol'], orders=_DEF_COMP_SPARSIT
         if nz_matches <= 1:
             lst = []
             for itols, nz in sorted_items:
-                entry = ", ".join(['%3.1g' % tol for tol in itols])
+                entry = ", ".join(["%3.1g" % tol for tol in itols])
                 if len(itols) > 1:
                     entry = "[%s]" % entry
                 lst.append("(%s, %d)" % (entry, nz))
 
-            raise RuntimeError("Could not find more than 1 tolerance to match any number of "
-                               "nonzeros. This indicates that your tolerance sweep of +- %d "
-                               "orders, starting from %s is not big enough.  To get a 'stable' "
-                               "sparsity pattern, try re-running with a larger tolerance sweep.\n"
-                               "Nonzeros found for each tolerance: [%s]" %
-                               (orders, tol, ", ".join(lst)))
+            raise RuntimeError(
+                "Could not find more than 1 tolerance to match any number of "
+                "nonzeros. This indicates that your tolerance sweep of +- %d "
+                "orders, starting from %s is not big enough.  To get a 'stable' "
+                "sparsity pattern, try re-running with a larger tolerance sweep.\n"
+                "Nonzeros found for each tolerance: [%s]" % (orders, tol, ", ".join(lst))
+            )
 
         good_tol = sorted_items[0][0][-1]
 
     info = {
-        'tol': tol,
-        'orders': orders,
-        'good_tol': good_tol,
-        'nz_matches': nz_matches,
-        'n_tested': n_tested,
+        "tol": tol,
+        "orders": orders,
+        "good_tol": good_tol,
+        "nz_matches": nz_matches,
+        "n_tested": n_tested,
     }
 
     return info
@@ -2883,28 +3085,35 @@ def _compute_total_coloring_context(problem, coloring_info):
     coloring_info : ColoringMeta or None
         Metadata object for coloring.
     """
-    problem._metadata['coloring_randgen'] = np.random.default_rng(41)  # set seed for consistency
+    problem._metadata["coloring_randgen"] = np.random.default_rng(41)  # set seed for consistency
     problem._computing_coloring = True
-    saved_rand_subjacs = problem._metadata['randomize_subjacs']
-    saved_rand_seeds = problem._metadata['randomize_seeds']
+    saved_rand_subjacs = problem._metadata["randomize_subjacs"]
+    saved_rand_seeds = problem._metadata["randomize_seeds"]
 
     if coloring_info is not None:
-        problem._metadata['randomize_subjacs'] = coloring_info.randomize_subjacs
-        problem._metadata['randomize_seeds'] = coloring_info.randomize_seeds
+        problem._metadata["randomize_subjacs"] = coloring_info.randomize_subjacs
+        problem._metadata["randomize_seeds"] = coloring_info.randomize_seeds
 
     try:
         yield
     finally:
-        problem._metadata['coloring_randgen'] = None
+        problem._metadata["coloring_randgen"] = None
         problem._computing_coloring = False
-        problem._metadata['randomize_subjacs'] = saved_rand_subjacs
-        problem._metadata['randomize_seeds'] = saved_rand_seeds
+        problem._metadata["randomize_subjacs"] = saved_rand_subjacs
+        problem._metadata["randomize_seeds"] = saved_rand_seeds
 
 
-def _get_total_jac_sparsity(prob, num_full_jacs=_DEF_COMP_SPARSITY_ARGS['num_full_jacs'],
-                            tol=_DEF_COMP_SPARSITY_ARGS['tol'],
-                            orders=_DEF_COMP_SPARSITY_ARGS['orders'], setup=False, run_model=False,
-                            of=None, wrt=None, driver=None):
+def _get_total_jac_sparsity(
+    prob,
+    num_full_jacs=_DEF_COMP_SPARSITY_ARGS["num_full_jacs"],
+    tol=_DEF_COMP_SPARSITY_ARGS["tol"],
+    orders=_DEF_COMP_SPARSITY_ARGS["orders"],
+    setup=False,
+    run_model=False,
+    of=None,
+    wrt=None,
+    driver=None,
+):
     """
     Return a boolean version of the total jacobian.
 
@@ -2963,9 +3172,11 @@ def _get_total_jac_sparsity(prob, num_full_jacs=_DEF_COMP_SPARSITY_ARGS['num_ful
             of = driver_of = driver._get_ordered_nl_responses()
 
         if not driver or not driver_wrt or not driver_of:
-            raise RuntimeError("When computing total jacobian sparsity, either 'of' and 'wrt' "
-                               "must be provided or design_vars/constraints/objective must be "
-                               "added to the driver.")
+            raise RuntimeError(
+                "When computing total jacobian sparsity, either 'of' and 'wrt' "
+                "must be provided or design_vars/constraints/objective must be "
+                "added to the driver."
+            )
 
     needs_scaling = driver and driver._coloring_info.use_scaling
     if driver:
@@ -2979,9 +3190,9 @@ def _get_total_jac_sparsity(prob, num_full_jacs=_DEF_COMP_SPARSITY_ARGS['num_ful
         fullJ = None
         for _ in range(num_full_jacs):
             if needs_scaling:
-                J = driver._compute_totals(of=of, wrt=wrt, return_format='array')
+                J = driver._compute_totals(of=of, wrt=wrt, return_format="array")
             else:
-                J = prob.compute_totals(of=of, wrt=wrt, return_format='array', coloring_info=False)
+                J = prob.compute_totals(of=of, wrt=wrt, return_format="array", coloring_info=False)
             if fullJ is None:
                 fullJ = np.abs(J)
             else:
@@ -2996,18 +3207,18 @@ def _get_total_jac_sparsity(prob, num_full_jacs=_DEF_COMP_SPARSITY_ARGS['num_ful
         # force driver to recreate total jacobian using coloring
         driver._total_jac = None
 
-    fullJ *= (1.0 / np.max(fullJ))
+    fullJ *= 1.0 / np.max(fullJ)
 
     spmeta = _tol_sweep(fullJ, tol, orders)
-    spmeta['J_shape'] = fullJ.shape
-    spmeta['class'] = type(prob).__name__
-    spmeta['pathname'] = prob._metadata['pathname']
-    spmeta['nz_entries'] = np.count_nonzero(fullJ)
-    spmeta['num_full_jacs'] = num_full_jacs
-    spmeta['sparsity_time'] = time.perf_counter() - start_time
-    spmeta['type'] = 'total'
+    spmeta["J_shape"] = fullJ.shape
+    spmeta["class"] = type(prob).__name__
+    spmeta["pathname"] = prob._metadata["pathname"]
+    spmeta["nz_entries"] = np.count_nonzero(fullJ)
+    spmeta["num_full_jacs"] = num_full_jacs
+    spmeta["sparsity_time"] = time.perf_counter() - start_time
+    spmeta["type"] = "total"
 
-    nzrows, nzcols = np.nonzero(fullJ > spmeta['good_tol'])
+    nzrows, nzcols = np.nonzero(fullJ > spmeta["good_tol"])
     shape = fullJ.shape
     fullJ = None
 
@@ -3040,7 +3251,7 @@ def _compute_coloring(J, mode, direct=True):
     except RuntimeError:
         start_mem = None
 
-    if mode == 'auto':  # use bidirectional coloring
+    if mode == "auto":  # use bidirectional coloring
         if isinstance(J, np.ndarray):
             nzrows, nzcols = np.nonzero(J)
             J = coo_matrix((np.ones(nzrows.size, dtype=bool), (nzrows, nzcols)), shape=J.shape)
@@ -3048,24 +3259,24 @@ def _compute_coloring(J, mode, direct=True):
             J = J.tocoo()
 
         coloring = MNCO_bidir(J, direct=direct)
-        fallback = _compute_coloring(J, 'fwd')
+        fallback = _compute_coloring(J, "fwd")
         if coloring.total_solves() >= fallback.total_solves():
             coloring = fallback
-            coloring._meta['fallback'] = True
-        fallback = _compute_coloring(J, 'rev')
+            coloring._meta["fallback"] = True
+        fallback = _compute_coloring(J, "rev")
         if coloring.total_solves() > fallback.total_solves():
             coloring = fallback
-            coloring._meta['fallback'] = True
+            coloring._meta["fallback"] = True
         fallback = None
 
         # record the total time and memory usage for bidir, fwd, and rev
-        coloring._meta['coloring_time'] = time.perf_counter() - start_time
+        coloring._meta["coloring_time"] = time.perf_counter() - start_time
         if start_mem is not None:
-            coloring._meta['coloring_memory'] = mem_usage() - start_mem
+            coloring._meta["coloring_memory"] = mem_usage() - start_mem
 
         return coloring
 
-    rev = mode == 'rev'
+    rev = mode == "rev"
 
     coloring = Coloring(sparsity=J)
 
@@ -3094,19 +3305,26 @@ def _compute_coloring(J, mode, direct=True):
     else:  # fwd
         coloring._fwd = (col_groups, col2rows)
 
-    coloring._meta['coloring_time'] = time.perf_counter() - start_time
+    coloring._meta["coloring_time"] = time.perf_counter() - start_time
     if start_mem is not None:
-        coloring._meta['coloring_memory'] = mem_usage() - start_mem
+        coloring._meta["coloring_memory"] = mem_usage() - start_mem
 
     return coloring
 
 
-def compute_total_coloring(problem, mode=None, of=None, wrt=None,
-                           num_full_jacs=_DEF_COMP_SPARSITY_ARGS['num_full_jacs'],
-                           tol=_DEF_COMP_SPARSITY_ARGS['tol'],
-                           orders=_DEF_COMP_SPARSITY_ARGS['orders'],
-                           setup=False, run_model=False, fname=None,
-                           driver=None):
+def compute_total_coloring(
+    problem,
+    mode=None,
+    of=None,
+    wrt=None,
+    num_full_jacs=_DEF_COMP_SPARSITY_ARGS["num_full_jacs"],
+    tol=_DEF_COMP_SPARSITY_ARGS["tol"],
+    orders=_DEF_COMP_SPARSITY_ARGS["orders"],
+    setup=False,
+    run_model=False,
+    fname=None,
+    driver=None,
+):
     """
     Compute simultaneous derivative colorings for the total jacobian of the given problem.
 
@@ -3152,31 +3370,48 @@ def compute_total_coloring(problem, mode=None, of=None, wrt=None,
         mode = problem._orig_mode
 
     if mode != problem._orig_mode and mode != problem._mode:
-        raise RuntimeError("given mode (%s) does not agree with Problem mode (%s)" %
-                           (mode, problem._mode))
+        raise RuntimeError(
+            "given mode (%s) does not agree with Problem mode (%s)" % (mode, problem._mode)
+        )
 
     if model._approx_schemes:  # need to use total approx coloring
         if driver and len(ofs) != len(driver._responses):
-            raise NotImplementedError("Currently there is no support for approx coloring when "
-                                      "linear constraint derivatives are computed separately "
-                                      "from nonlinear ones.")
+            raise NotImplementedError(
+                "Currently there is no support for approx coloring when "
+                "linear constraint derivatives are computed separately "
+                "from nonlinear ones."
+            )
         _initialize_model_approx(model, driver, ofs, wrts)
         if model._coloring_info.coloring is None:
-            kwargs = {n: v for n, v in model._coloring_info
-                      if n in _DEF_COMP_SPARSITY_ARGS and v is not None}
-            if 'use_scaling' in kwargs:
-                del kwargs['use_scaling']
-            kwargs['method'] = list(model._approx_schemes)[0]
+            kwargs = {
+                n: v
+                for n, v in model._coloring_info
+                if n in _DEF_COMP_SPARSITY_ARGS and v is not None
+            }
+            if "use_scaling" in kwargs:
+                del kwargs["use_scaling"]
+            kwargs["method"] = list(model._approx_schemes)[0]
             model.declare_coloring(**kwargs)
         if run_model:
             problem.run_model()
-        coloring = model._compute_coloring(method=list(model._approx_schemes)[0],
-                                           num_full_jacs=num_full_jacs, tol=tol, orders=orders)[0]
+        coloring = model._compute_coloring(
+            method=list(model._approx_schemes)[0],
+            num_full_jacs=num_full_jacs,
+            tol=tol,
+            orders=orders,
+        )[0]
     else:
-        J, sparsity_info = _get_total_jac_sparsity(problem, num_full_jacs=num_full_jacs, tol=tol,
-                                                   orders=orders, setup=setup,
-                                                   run_model=run_model, of=ofs, wrt=wrts,
-                                                   driver=driver)
+        J, sparsity_info = _get_total_jac_sparsity(
+            problem,
+            num_full_jacs=num_full_jacs,
+            tol=tol,
+            orders=orders,
+            setup=setup,
+            run_model=run_model,
+            of=ofs,
+            wrt=wrts,
+            driver=driver,
+        )
         if driver:
             coloring = _compute_coloring(J, mode, direct=driver._coloring_info.direct)
         else:
@@ -3184,16 +3419,17 @@ def compute_total_coloring(problem, mode=None, of=None, wrt=None,
 
         if coloring is not None:
             coloring._row_vars = list(ofs)
-            coloring._row_var_sizes = [m['size'] for m in ofs.values()]
+            coloring._row_var_sizes = [m["size"] for m in ofs.values()]
             coloring._col_vars = list(wrts)
-            coloring._col_var_sizes = [m['size'] for m in wrts.values()]
+            coloring._col_var_sizes = [m["size"] for m in wrts.values()]
 
             # save metadata we used to create the coloring
             coloring._meta.update(sparsity_info)
 
             if fname is not None:
-                if ((model._full_comm is not None and model._full_comm.rank == 0) or
-                        (model._full_comm is None and model.comm.rank == 0)):
+                if (model._full_comm is not None and model._full_comm.rank == 0) or (
+                    model._full_comm is None and model.comm.rank == 0
+                ):
                     coloring.save(fname)
 
     if coloring is not None:
@@ -3208,8 +3444,8 @@ def compute_total_coloring(problem, mode=None, of=None, wrt=None,
             coloring = problem.comm.bcast(None, root=0)
 
     if coloring is not None:
-        coloring._meta['timestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        coloring._meta['source'] = problem._metadata['pathname']
+        coloring._meta["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        coloring._meta["source"] = problem._metadata["pathname"]
 
     return coloring
 
@@ -3246,14 +3482,24 @@ def dynamic_total_coloring(driver, run_model=True, fname=None, of=None, wrt=None
 
     problem.driver._coloring_info.coloring = None
 
-    num_full_jacs = driver._coloring_info.get('num_full_jacs',
-                                              _DEF_COMP_SPARSITY_ARGS['num_full_jacs'])
-    tol = driver._coloring_info.get('tol', _DEF_COMP_SPARSITY_ARGS['tol'])
-    orders = driver._coloring_info.get('orders', _DEF_COMP_SPARSITY_ARGS['orders'])
+    num_full_jacs = driver._coloring_info.get(
+        "num_full_jacs", _DEF_COMP_SPARSITY_ARGS["num_full_jacs"]
+    )
+    tol = driver._coloring_info.get("tol", _DEF_COMP_SPARSITY_ARGS["tol"])
+    orders = driver._coloring_info.get("orders", _DEF_COMP_SPARSITY_ARGS["orders"])
 
-    coloring = compute_total_coloring(problem, of=of, wrt=wrt, num_full_jacs=num_full_jacs, tol=tol,
-                                      orders=orders, setup=False, run_model=run_model, fname=fname,
-                                      driver=driver)
+    coloring = compute_total_coloring(
+        problem,
+        of=of,
+        wrt=wrt,
+        num_full_jacs=num_full_jacs,
+        tol=tol,
+        orders=orders,
+        setup=False,
+        run_model=run_model,
+        fname=fname,
+        driver=driver,
+    )
 
     driver._coloring_info.coloring = coloring
 
@@ -3268,16 +3514,21 @@ def dynamic_total_coloring(driver, run_model=True, fname=None, of=None, wrt=None
 
 def _run_total_coloring_report(driver):
     reports_dir = driver._problem().get_reports_dir()
-    htmlpath = reports_dir / 'total_coloring.html'
+    htmlpath = reports_dir / "total_coloring.html"
 
-    display_coloring(source=driver, output_file=htmlpath,
-                     as_text=not bokeh_available, show=False)
+    display_coloring(source=driver, output_file=htmlpath, as_text=not bokeh_available, show=False)
 
 
 # entry point for coloring report
 def _total_coloring_report_register():
-    register_report('total_coloring', _run_total_coloring_report, 'Total coloring', 'Driver',
-                    '_get_coloring', 'post')
+    register_report(
+        "total_coloring",
+        _run_total_coloring_report,
+        "Total coloring",
+        "Driver",
+        "_get_coloring",
+        "post",
+    )
 
 
 def _total_coloring_setup_parser(parser):
@@ -3289,22 +3540,48 @@ def _total_coloring_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('-o', action='store', dest='outfile', help='output file (pickle format)')
-    parser.add_argument('-n', action='store', dest='num_jacs', type=int,
-                        help='number of times to repeat derivative computation when '
-                        'computing sparsity')
-    parser.add_argument('--orders', action='store', dest='orders', type=int,
-                        help='Number of orders (+/-) used in the tolerance sweep.')
-    parser.add_argument('-t', '--tol', action='store', dest='tolerance', type=float,
-                        help='tolerance used to determine if a jacobian entry is nonzero')
-    parser.add_argument('--view', action='store_true', dest='show_sparsity',
-                        help="Display a visualization of the final jacobian used to "
-                        "compute the coloring.")
-    parser.add_argument('--textview', action='store_true', dest='show_sparsity_text',
-                        help="Display a text-based visualization of the colored jacobian.")
-    parser.add_argument('--profile', action='store_true', dest='profile',
-                        help="Do profiling on the coloring process.")
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument("-o", action="store", dest="outfile", help="output file (pickle format)")
+    parser.add_argument(
+        "-n",
+        action="store",
+        dest="num_jacs",
+        type=int,
+        help="number of times to repeat derivative computation when computing sparsity",
+    )
+    parser.add_argument(
+        "--orders",
+        action="store",
+        dest="orders",
+        type=int,
+        help="Number of orders (+/-) used in the tolerance sweep.",
+    )
+    parser.add_argument(
+        "-t",
+        "--tol",
+        action="store",
+        dest="tolerance",
+        type=float,
+        help="tolerance used to determine if a jacobian entry is nonzero",
+    )
+    parser.add_argument(
+        "--view",
+        action="store_true",
+        dest="show_sparsity",
+        help="Display a visualization of the final jacobian used to compute the coloring.",
+    )
+    parser.add_argument(
+        "--textview",
+        action="store_true",
+        dest="show_sparsity_text",
+        help="Display a text-based visualization of the colored jacobian.",
+    )
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        dest="profile",
+        help="Do profiling on the coloring process.",
+    )
 
 
 def _total_coloring_cmd(options, user_args):
@@ -3327,11 +3604,11 @@ def _total_coloring_cmd(options, user_args):
 
     def _total_coloring(prob):
         if prob.model._use_derivatives:
-            hooks._unregister_hook('final_setup', 'Problem')  # avoid recursive loop
+            hooks._unregister_hook("final_setup", "Problem")  # avoid recursive loop
             if options.outfile:
                 outfile = os.path.abspath(options.outfile)
             else:
-                outfile = os.path.join(prob.options['coloring_dir'], 'total_coloring.pkl')
+                outfile = os.path.join(prob.options["coloring_dir"], "total_coloring.pkl")
 
             coloring_info = prob.driver._coloring_info.copy()
             if options.tolerance is not None:
@@ -3343,18 +3620,23 @@ def _total_coloring_cmd(options, user_args):
             if options.show_sparsity:
                 coloring_info.show_sparsity = options.show_sparsity
 
-            with profiling('coloring_profile.out') if options.profile else do_nothing_context():
-                coloring_info.coloring = \
-                    compute_total_coloring(prob, num_full_jacs=coloring_info.num_full_jacs,
-                                           tol=coloring_info.tol, orders=coloring_info.orders,
-                                           setup=False, run_model=True, fname=outfile,
-                                           driver=prob.driver)
+            with profiling("coloring_profile.out") if options.profile else do_nothing_context():
+                coloring_info.coloring = compute_total_coloring(
+                    prob,
+                    num_full_jacs=coloring_info.num_full_jacs,
+                    tol=coloring_info.tol,
+                    orders=coloring_info.orders,
+                    setup=False,
+                    run_model=True,
+                    fname=outfile,
+                    driver=prob.driver,
+                )
 
             coloring_info.display()
         else:
             print("Derivatives are turned off.  Cannot compute simul coloring.")
 
-    hooks._register_hook('final_setup', 'Problem', post=_total_coloring, exit=True)
+    hooks._register_hook("final_setup", "Problem", post=_total_coloring, exit=True)
 
     _load_and_exec(options.file[0], user_args)
 
@@ -3368,58 +3650,114 @@ def _partial_coloring_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('--no_recurse', action='store_true', dest='norecurse',
-                        help='Do not recurse from the provided system down.')
-    parser.add_argument('--system', action='store', dest='system', default='',
-                        help='pathname of system to color or to start recursing from.')
-    parser.add_argument('-c', '--class', action='append', dest='classes', default=[],
-                        help='compute a coloring for instances of the given class. '
-                        'This option may be be used multiple times to specify multiple classes. '
-                        'Class name can optionally contain the full module path.')
-    parser.add_argument('--compute_decl_partials', action='store_true', dest='compute_decls',
-                        help="Display declare_partials() calls required to specify computed "
-                        "sparsity.")
-    parser.add_argument('--method', action='store', dest='method',
-                        help='approximation method ("fd" or "cs").')
-    parser.add_argument('--step', action='store', dest='step',
-                        help='approximation step size.')
-    parser.add_argument('--form', action='store', dest='form',
-                        help='approximation form ("forward", "backward", "central"). Only applies '
-                        'to "fd" method.')
-    parser.add_argument('--perturbation', action='store', dest='perturb_size', default=1e-3,
-                        type=float, help='random perturbation size used when computing sparsity.')
-    parser.add_argument('-n', action='store', dest='num_full_jacs', default=3, type=int,
-                        help='number of times to repeat derivative computation when '
-                        'computing sparsity')
-    parser.add_argument('--tol', action='store', dest='tol', default=1.e-15, type=float,
-                        help='tolerance used to determine if a jacobian entry is nonzero')
-    parser.add_argument('--per_instance', action='store', dest='per_instance',
-                        help='Generate a coloring file per instance, rather than a coloring file '
-                        'per class.')
-    parser.add_argument('--view', action='store_true', dest='show_sparsity',
-                        help="Display a visualization of the colored jacobian.")
-    parser.add_argument('--textview', action='store_true', dest='show_sparsity_text',
-                        help="Display a text-based visualization of the colored jacobian.")
-    parser.add_argument('--profile', action='store_true', dest='profile',
-                        help="Do profiling on the coloring process.")
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument(
+        "--no_recurse",
+        action="store_true",
+        dest="norecurse",
+        help="Do not recurse from the provided system down.",
+    )
+    parser.add_argument(
+        "--system",
+        action="store",
+        dest="system",
+        default="",
+        help="pathname of system to color or to start recursing from.",
+    )
+    parser.add_argument(
+        "-c",
+        "--class",
+        action="append",
+        dest="classes",
+        default=[],
+        help="compute a coloring for instances of the given class. "
+        "This option may be be used multiple times to specify multiple classes. "
+        "Class name can optionally contain the full module path.",
+    )
+    parser.add_argument(
+        "--compute_decl_partials",
+        action="store_true",
+        dest="compute_decls",
+        help="Display declare_partials() calls required to specify computed sparsity.",
+    )
+    parser.add_argument(
+        "--method", action="store", dest="method", help='approximation method ("fd" or "cs").'
+    )
+    parser.add_argument("--step", action="store", dest="step", help="approximation step size.")
+    parser.add_argument(
+        "--form",
+        action="store",
+        dest="form",
+        help='approximation form ("forward", "backward", "central"). Only applies to "fd" method.',
+    )
+    parser.add_argument(
+        "--perturbation",
+        action="store",
+        dest="perturb_size",
+        default=1e-3,
+        type=float,
+        help="random perturbation size used when computing sparsity.",
+    )
+    parser.add_argument(
+        "-n",
+        action="store",
+        dest="num_full_jacs",
+        default=3,
+        type=int,
+        help="number of times to repeat derivative computation when computing sparsity",
+    )
+    parser.add_argument(
+        "--tol",
+        action="store",
+        dest="tol",
+        default=1.0e-15,
+        type=float,
+        help="tolerance used to determine if a jacobian entry is nonzero",
+    )
+    parser.add_argument(
+        "--per_instance",
+        action="store",
+        dest="per_instance",
+        help="Generate a coloring file per instance, rather than a coloring file per class.",
+    )
+    parser.add_argument(
+        "--view",
+        action="store_true",
+        dest="show_sparsity",
+        help="Display a visualization of the colored jacobian.",
+    )
+    parser.add_argument(
+        "--textview",
+        action="store_true",
+        dest="show_sparsity_text",
+        help="Display a text-based visualization of the colored jacobian.",
+    )
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        dest="profile",
+        help="Do profiling on the coloring process.",
+    )
 
 
 def _get_partial_coloring_kwargs(system, options):
-    if options.system != '' and options.classes:
+    if options.system != "" and options.classes:
         raise RuntimeError("Can't specify --system and --class together.")
 
     kwargs = {}
-    names = ('method', 'form', 'step', 'num_full_jacs', 'perturb_size', 'tol')
+    names = ("method", "form", "step", "num_full_jacs", "perturb_size", "tol")
     for name in names:
         if getattr(options, name) is not None:
             kwargs[name] = getattr(options, name)
 
-    kwargs['recurse'] = not options.norecurse and system._subsystems_allprocs
+    kwargs["recurse"] = not options.norecurse and system._subsystems_allprocs
 
-    per_instance = getattr(options, 'per_instance')
-    kwargs['per_instance'] = (per_instance is None or
-                              per_instance.lower() not in ['false', '0', 'no'])
+    per_instance = getattr(options, "per_instance")
+    kwargs["per_instance"] = per_instance is None or per_instance.lower() not in [
+        "false",
+        "0",
+        "no",
+    ]
 
     return kwargs
 
@@ -3446,33 +3784,36 @@ def _partial_coloring_cmd(options, user_args):
     _force_dyn_coloring = True
 
     def _show(system, options, coloring):
-        if options.show_sparsity_text and not coloring._meta.get('show_sparsity'):
+        if options.show_sparsity_text and not coloring._meta.get("show_sparsity"):
             coloring.display_txt()
-            print('\n')
+            print("\n")
 
-        if options.show_sparsity and not coloring._meta.get('show_sparsity'):
+        if options.show_sparsity and not coloring._meta.get("show_sparsity"):
             coloring.display_bokeh(show=True)
-            print('\n')
+            print("\n")
 
-        if not coloring._meta.get('show_summary'):  # avoids double printing of summary
-            print("\nApprox coloring for '%s' (class %s)" % (system.pathname,
-                                                             type(system).__name__))
+        if not coloring._meta.get("show_summary"):  # avoids double printing of summary
+            print(
+                "\nApprox coloring for '%s' (class %s)" % (system.pathname, type(system).__name__)
+            )
             coloring.summary()
-            print('\n')
+            print("\n")
 
         if options.compute_decls and isinstance(system, Component):
-            print('\n    # add the following lines to class %s to declare sparsity' %
-                  type(system).__name__)
+            print(
+                "\n    # add the following lines to class %s to declare sparsity"
+                % type(system).__name__
+            )
             print(coloring.get_declare_partials_calls())
 
     def _partial_coloring(prob):
         if prob.model._use_derivatives:
-            hooks._unregister_hook('final_setup', 'Problem')  # avoid recursive loop
+            hooks._unregister_hook("final_setup", "Problem")  # avoid recursive loop
 
             prob.run_model()  # get a consistent starting values for inputs and outputs
 
-            with profiling('coloring_profile.out') if options.profile else do_nothing_context():
-                if options.system == '':
+            with profiling("coloring_profile.out") if options.profile else do_nothing_context():
+                if options.system == "":
                     system = prob.model
                     if not options.classes:
                         _initialize_model_approx(system, prob.driver)
@@ -3486,26 +3827,32 @@ def _partial_coloring_cmd(options, user_args):
                 if options.classes:
                     to_find = set(options.classes)
                     found = set()
-                    kwargs['recurse'] = False
+                    kwargs["recurse"] = False
                     for s in system.system_iter(include_self=True, recurse=True):
                         for c in options.classes:
                             klasses = [m.__name__ for m in inspect.getmro(s.__class__)][:-1]
                             mods = [m.__module__ for m in inspect.getmro(s.__class__)][:-1]
                             for klass, mod in zip(klasses, mods):
                                 mod = s.__class__.__module__
-                                if c == klass or c == '.'.join([mod, klass]):
+                                if c == klass or c == ".".join([mod, klass]):
                                     found.add(c)
-                                    if len(s._var_allprocs_abs2meta['input']) == 0 or \
-                                            len(s._var_allprocs_abs2meta['output']) == 0:
-                                        print(f"Skipping {s.pathname} <class {klass}> because it "
-                                              "has either no inputs or no outputs.")
+                                    if (
+                                        len(s._var_allprocs_abs2meta["input"]) == 0
+                                        or len(s._var_allprocs_abs2meta["output"]) == 0
+                                    ):
+                                        print(
+                                            f"Skipping {s.pathname} <class {klass}> because it "
+                                            "has either no inputs or no outputs."
+                                        )
                                         continue
                                     try:
                                         coloring = s._compute_coloring(**kwargs)[0]
                                     except Exception:
                                         tb = traceback.format_exc()
-                                        print("The following error occurred while attempting to "
-                                              f"compute coloring for {s.pathname}:\n {tb}")
+                                        print(
+                                            "The following error occurred while attempting to "
+                                            f"compute coloring for {s.pathname}:\n {tb}"
+                                        )
                                     else:
                                         if coloring is not None:
                                             _show(s, options, coloring)
@@ -3515,8 +3862,10 @@ def _partial_coloring_cmd(options, user_args):
                                 break
                     else:
                         if to_find - found:
-                            raise RuntimeError("Failed to find any instance of classes %s" %
-                                               sorted(to_find - found))
+                            raise RuntimeError(
+                                "Failed to find any instance of classes %s"
+                                % sorted(to_find - found)
+                            )
                 else:
                     colorings = system._compute_coloring(**kwargs)
                     if not colorings:
@@ -3524,13 +3873,13 @@ def _partial_coloring_cmd(options, user_args):
                     else:
                         for c in colorings:
                             if c is not None:
-                                path = c._meta['pathname']
+                                path = c._meta["pathname"]
                                 s = prob.model._get_subsystem(path) if path else prob.model
                                 _show(s, options, c)
         else:
             print("Derivatives are turned off.  Cannot compute simul coloring.")
 
-    hooks._register_hook('final_setup', 'Problem', post=_partial_coloring, exit=True)
+    hooks._register_hook("final_setup", "Problem", post=_partial_coloring, exit=True)
 
     _load_and_exec(options.file[0], user_args)
 
@@ -3544,18 +3893,35 @@ def _view_coloring_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.add_argument('file', nargs=1, help='coloring file.')
-    parser.add_argument('--view', action='store_true', dest='show_sparsity',
-                        help="Display a visualization of the colored jacobian.")
-    parser.add_argument('--textview', action='store_true', dest='show_sparsity_text',
-                        help="Display a text-based visualization of the colored jacobian.")
-    parser.add_argument('-s', action='store_true', dest='subjac_sparsity',
-                        help="Display sparsity patterns for subjacs.")
-    parser.add_argument('-m', action='store_true', dest='show_meta',
-                        help="Display coloring metadata.")
-    parser.add_argument('-v', '--var', action='store', dest='color_var',
-                        help='show the coloring (number of fwd and rev solves needed) '
-                        'for a particular variable.')
+    parser.add_argument("file", nargs=1, help="coloring file.")
+    parser.add_argument(
+        "--view",
+        action="store_true",
+        dest="show_sparsity",
+        help="Display a visualization of the colored jacobian.",
+    )
+    parser.add_argument(
+        "--textview",
+        action="store_true",
+        dest="show_sparsity_text",
+        help="Display a text-based visualization of the colored jacobian.",
+    )
+    parser.add_argument(
+        "-s",
+        action="store_true",
+        dest="subjac_sparsity",
+        help="Display sparsity patterns for subjacs.",
+    )
+    parser.add_argument(
+        "-m", action="store_true", dest="show_meta", help="Display coloring metadata."
+    )
+    parser.add_argument(
+        "-v",
+        "--var",
+        action="store",
+        dest="color_var",
+        help="show the coloring (number of fwd and rev solves needed) for a particular variable.",
+    )
 
 
 def _view_coloring_exec(options, user_args):
@@ -3604,10 +3970,13 @@ def _initialize_model_approx(model, driver, of=None, wrt=None):
         of, wrt, _ = model._get_totals_metadata(driver, of, wrt)
 
     # Initialization based on driver (or user) -requested "of" and "wrt".
-    if (not model._owns_approx_jac or model._owns_approx_of is None or
-            model._owns_approx_of != of or model._owns_approx_wrt is None or
-            model._owns_approx_wrt != wrt):
-
+    if (
+        not model._owns_approx_jac
+        or model._owns_approx_of is None
+        or model._owns_approx_of != of
+        or model._owns_approx_wrt is None
+        or model._owns_approx_wrt != wrt
+    ):
         model._owns_approx_of = of
         model._owns_approx_wrt = wrt
 
@@ -3719,12 +4088,12 @@ class _ColSparsityJac(object):
             data = np.concatenate(data)
 
             # scale the data
-            data *= (1. / np.max(data))
+            data *= 1.0 / np.max(data)
 
             info = _tol_sweep(data, coloring_info.tol, coloring_info.orders)
-            info['J_shape'] = self.shape
-            info['nz_entries'] = np.count_nonzero(data)
-            data = data > info['good_tol']  # data is now a bool
+            info["J_shape"] = self.shape
+            info["nz_entries"] = np.count_nonzero(data)
+            data = data > info["good_tol"]  # data is now a bool
             rows = rows[data]
             cols = cols[data]
             data = data[data]
@@ -3733,20 +4102,21 @@ class _ColSparsityJac(object):
             cols = np.zeros(0, dtype=int)
             data = np.zeros(0, dtype=bool)
             info = {
-                'tol': coloring_info.tol,
-                'orders': coloring_info.orders,
-                'good_tol': coloring_info.tol,
-                'nz_matches': 0,
-                'n_tested': 0,
-                'nz_entries': 0,
-                'J_shape': (0, 0),
+                "tol": coloring_info.tol,
+                "orders": coloring_info.orders,
+                "good_tol": coloring_info.tol,
+                "nz_matches": 0,
+                "n_tested": 0,
+                "nz_entries": 0,
+                "J_shape": (0, 0),
             }
 
         return coo_matrix((data, (rows, cols)), shape=(self._nrows, self._ncols)), info
 
 
-def display_coloring(source, output_file='total_coloring.html', as_text=False, show=True,
-                     max_colors=200):
+def display_coloring(
+    source, output_file="total_coloring.html", as_text=False, show=True, max_colors=200
+):
     """
     Display the coloring information from source to html format.
 
@@ -3774,31 +4144,34 @@ def display_coloring(source, output_file='total_coloring.html', as_text=False, s
         coloring = Coloring.load(source)
     elif isinstance(source, Coloring):
         coloring = source
-    elif hasattr(source, '_coloring_info'):
+    elif hasattr(source, "_coloring_info"):
         coloring = source._coloring_info.coloring
     else:
-        raise ValueError(f'display_coloring was expecting the source to be a valid '
-                         f'coloring file or an instance of Coloring or driver '
-                         f'but instead got f{type(source)}')
+        raise ValueError(
+            f"display_coloring was expecting the source to be a valid "
+            f"coloring file or an instance of Coloring or driver "
+            f"but instead got f{type(source)}"
+        )
 
     if coloring is None:
         return
 
     if as_text or not bokeh_available:
         if not bokeh_available and not as_text:
-            issue_warning("bokeh is not installed.\n"
-                          "display_coloring will render output in plain text.")
+            issue_warning(
+                "bokeh is not installed.\ndisplay_coloring will render output in plain text."
+            )
 
         if output_file is None:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".html", delete=False) as f:
                 output_file = f.name
                 coloring.display_txt(out_stream=f, html=True)
         else:
-            with open(output_file, 'w') as f:
+            with open(output_file, "w") as f:
                 coloring.display_txt(out_stream=f, html=True)
 
         if show:
-            webbrowser.open(f'file://{output_file}')
+            webbrowser.open(f"file://{output_file}")
 
     else:
         coloring.display_bokeh(output_file, show=show, max_colors=max_colors)

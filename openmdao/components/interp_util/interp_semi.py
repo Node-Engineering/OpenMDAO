@@ -1,6 +1,7 @@
 """
 Base class for interpolation methods that work on a semi-structured grid.
 """
+
 import numpy as np
 
 from openmdao.components.interp_util.interp_akima import InterpAkimaSemi
@@ -11,10 +12,10 @@ from openmdao.components.interp_util.outofbounds_error import OutOfBoundsError
 
 
 INTERP_METHODS = {
-    'slinear': InterpLinearSemi,
-    'lagrange2': InterpLagrange2Semi,
-    'lagrange3': InterpLagrange3Semi,
-    'akima': InterpAkimaSemi,
+    "slinear": InterpLinearSemi,
+    "lagrange2": InterpLagrange2Semi,
+    "lagrange3": InterpLagrange3Semi,
+    "akima": InterpAkimaSemi,
 }
 
 TABLE_METHODS = [method for method in INTERP_METHODS.keys()]
@@ -78,11 +79,12 @@ class InterpNDSemi(object):
             msg = "Argument 'method' should be a string."
             raise ValueError(msg)
         elif method not in INTERP_METHODS:
-            all_m = ', '.join(['"' + m + '"' for m in INTERP_METHODS])
-            raise ValueError('Interpolation method "%s" is not defined. Valid methods are '
-                             '%s.' % (method, all_m))
+            all_m = ", ".join(['"' + m + '"' for m in INTERP_METHODS])
+            raise ValueError(
+                'Interpolation method "%s" is not defined. Valid methods are %s.' % (method, all_m)
+            )
 
-        if hasattr(values, 'dtype') and hasattr(values, 'astype'):
+        if hasattr(values, "dtype") and hasattr(values, "astype"):
             if not np.issubdtype(values.dtype, np.inexact):
                 values = values.astype(float)
 
@@ -161,21 +163,32 @@ class InterpNDSemi(object):
         if not self.extrapolate:
             for i, p in enumerate(xi.T):
                 if np.isnan(p).any():
-                    raise OutOfBoundsError("One of the requested xi contains a NaN",
-                                           i, np.nan, self.grid[i][0], self.grid[i][-1])
+                    raise OutOfBoundsError(
+                        "One of the requested xi contains a NaN",
+                        i,
+                        np.nan,
+                        self.grid[i][0],
+                        self.grid[i][-1],
+                    )
 
         if self._compute_d_dvalues:
             # If the table grid or values are component inputs, then we need to create a new table
             # each iteration.
             interp = self._interp
-            self.table = interp(self.grid, self.values, interp, extrapolate=self.extrapolate,
-                                compute_d_dvalues=True, **self._interp_options)
+            self.table = interp(
+                self.grid,
+                self.values,
+                interp,
+                extrapolate=self.extrapolate,
+                compute_d_dvalues=True,
+                **self._interp_options,
+            )
 
         table = self.table
 
         xi = np.atleast_2d(xi)
         n_nodes, nx = xi.shape
-        result = np.empty((n_nodes, ), dtype=xi.dtype)
+        result = np.empty((n_nodes,), dtype=xi.dtype)
         derivs_x = np.empty((n_nodes, nx), dtype=xi.dtype)
         if self._compute_d_dvalues:
             derivs_val = np.zeros((n_nodes, len(self.values)), dtype=xi.dtype)

@@ -1,6 +1,7 @@
 """
 Helper function to find all the `cite` attributes throughout a model.
 """
+
 from collections import OrderedDict
 import inspect
 import sys
@@ -81,7 +82,7 @@ def _filter_citations(citations, classes):
 
     cits = OrderedDict()
     for klass, cit in citations.items():
-        if klass.__name__ in classes or '.'.join((klass.__module__, klass.__name__)) in classes:
+        if klass.__name__ in classes or ".".join((klass.__module__, klass.__name__)) in classes:
             cits[klass] = cit
     return cits
 
@@ -107,7 +108,7 @@ def print_citations(prob, classes=None, out_stream=_DEFAULT_OUT_STREAM):
 
     if out_stream:
         for klass, cite in citations.items():
-            out_stream.write("Class: {}".format(klass) + '\n')
-            lines = cite.split('\n')
+            out_stream.write("Class: {}".format(klass) + "\n")
+            lines = cite.split("\n")
             for line in lines:
-                out_stream.write("    {}".format(line) + '\n')
+                out_stream.write("    {}".format(line) + "\n")

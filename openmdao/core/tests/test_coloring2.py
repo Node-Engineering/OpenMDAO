@@ -1,4 +1,3 @@
-
 import unittest
 import numpy as np
 
@@ -8,7 +7,7 @@ from openmdao.utils.testing_utils import use_tempdirs
 
 from openmdao.core.tests.test_coloring import build_multipoint_problem
 
-OPT, OPTIMIZER = set_pyoptsparse_opt('SNOPT')
+OPT, OPTIMIZER = set_pyoptsparse_opt("SNOPT")
 
 try:
     from openmdao.vectors.petsc_vector import PETScVector
@@ -33,16 +32,16 @@ class MatMultMultipointMPI2TestCase(unittest.TestCase):
 
         for i in range(num_pts):
             with multi_proc_exception_check(p.comm):
-                A1 = p.get_val('par1.comp%d.A'%i, get_remote=True)
+                A1 = p.get_val("par1.comp%d.A" % i, get_remote=True)
             with multi_proc_exception_check(p.comm):
-                A2 = p.get_val('par2.comp%d.A'%i, get_remote=True)
-            norm = np.linalg.norm(J['par2.comp%d.y'%i,'indep%d.x'%i] - A2.dot(A1))
+                A2 = p.get_val("par2.comp%d.A" % i, get_remote=True)
+            norm = np.linalg.norm(J["par2.comp%d.y" % i, "indep%d.x" % i] - A2.dot(A1))
             with multi_proc_exception_check(p.comm):
-                self.assertLess(norm, 1.e-7)
+                self.assertLess(norm, 1.0e-7)
 
         with multi_proc_exception_check(p.comm):
-            print("final obj:", p['obj.y'])
+            print("final obj:", p["obj.y"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

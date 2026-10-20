@@ -86,8 +86,9 @@ class DenseMatrix(Matrix):
 
         if has_repeated:
             # we have repeated indices, so we need to keep a COO representation
-            self._coo = coo_matrix((np.zeros(end, dtype=dtype), (rows, cols)),
-                                   shape=(num_rows, num_cols))
+            self._coo = coo_matrix(
+                (np.zeros(end, dtype=dtype), (rows, cols)), shape=(num_rows, num_cols)
+            )
         else:
             self._coo_slices = None
             self._coo = None
@@ -123,7 +124,7 @@ class DenseMatrix(Matrix):
         ndarray
             vector resulting from the product.
         """
-        if mode == 'fwd':
+        if mode == "fwd":
             if mask is None:
                 return self._matrix @ in_vec
             else:
@@ -148,11 +149,11 @@ class DenseMatrix(Matrix):
         if dtype.kind != self.dtype.kind:
             if self._coo is None:
                 self.dtype = dtype
-                mat = self._matrix if dtype.kind == 'c' else self._matrix.real
+                mat = self._matrix if dtype.kind == "c" else self._matrix.real
                 self._matrix = np.ascontiguousarray(mat, dtype=dtype)
             else:
                 self.dtype = dtype
-                data = self._coo.data if dtype.kind == 'c' else self._coo.data.real
+                data = self._coo.data if dtype.kind == "c" else self._coo.data.real
                 self._coo.data = np.ascontiguousarray(data, dtype=dtype)
                 self._matrix = None
 
@@ -163,7 +164,7 @@ class DenseMatrix(Matrix):
         if self._coo is None:
             if subjac.dense:
                 view = self._matrix[subjac.row_slice, subjac.col_slice]
-                val = subjac.info['val'] if randgen is None else subjac.get_rand_val(randgen)
+                val = subjac.info["val"] if randgen is None else subjac.get_rand_val(randgen)
                 if subjac.src_indices is not None:
                     view[:, subjac.src_indices] = val
                 else:

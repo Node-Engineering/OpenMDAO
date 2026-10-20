@@ -1,4 +1,5 @@
 """Define the DictionaryJacobian class."""
+
 import numpy as np
 
 from openmdao.jacobians.jacobian import Jacobian
@@ -48,7 +49,7 @@ class DictionaryJacobian(Jacobian):
         mode : str
             'fwd' or 'rev'.
         """
-        fwd = mode == 'fwd'
+        fwd = mode == "fwd"
         d_out_names = d_outputs._names
         d_res_names = d_residuals._names
         d_inp_names = d_inputs._names
@@ -120,7 +121,7 @@ class _CheckingJacobian(DictionaryJacobian):
     nonzero values found in the column being set.
     """
 
-    def __init__(self, system, uncovered_threshold=1.0E-16):
+    def __init__(self, system, uncovered_threshold=1.0e-16):
         self._uncovered_threshold = uncovered_threshold
         super().__init__(system)
 
@@ -139,8 +140,8 @@ class _CheckingJacobian(DictionaryJacobian):
             meta = subjac.info
             if self._is_explicitcomp and key[0] == key[1]:
                 continue
-            if 'directional' in meta:
-                yield key, np.atleast_2d(meta['val']).T
+            if "directional" in meta:
+                yield key, np.atleast_2d(meta["val"]).T
             else:
                 yield key, subjac.todense()
 
@@ -157,9 +158,8 @@ class _CheckingJacobian(DictionaryJacobian):
             nrows = end - start
             for wrt, wstart, wend, vec, _, _ in system._get_jac_wrts():
                 if local_opts:
-                    loc_wrt = wrt.rsplit('.', 1)[-1]
-                    directional = (loc_wrt in local_opts and
-                                   local_opts[loc_wrt]['directional'])
+                    loc_wrt = wrt.rsplit(".", 1)[-1]
+                    directional = loc_wrt in local_opts and local_opts[loc_wrt]["directional"]
                 else:
                     directional = False
                 key = (of, wrt)
@@ -169,17 +169,17 @@ class _CheckingJacobian(DictionaryJacobian):
                     # Note that this is our own copy of _subjacs_info so when this instance is
                     # destroyed, any extra allocated subjacs will be garbage collected.
                     self._subjacs_info[key] = subjac = SUBJAC_META_DEFAULTS.copy()
-                    subjac['val'] = np.zeros((nrows, 1 if directional else ncols))
-                    subjac['shape'] = subjac['val'].shape
+                    subjac["val"] = np.zeros((nrows, 1 if directional else ncols))
+                    subjac["shape"] = subjac["val"].shape
 
                 elif directional:
-                    shape = self._subjacs_info[key]['val'].shape
+                    shape = self._subjacs_info[key]["val"].shape
                     if shape[-1] != 1:
                         self._subjacs_info[key] = meta = self._subjacs_info[key].copy()
                         if len(shape) > 1:
-                            meta['val'] = np.atleast_2d(meta['val'][:, 0]).T
+                            meta["val"] = np.atleast_2d(meta["val"][:, 0]).T
                         else:
-                            meta['val'] = np.atleast_1d(meta['val'])
+                            meta["val"] = np.atleast_1d(meta["val"])
 
     def set_col(self, system, icol, column):
         """
@@ -208,9 +208,8 @@ class _CheckingJacobian(DictionaryJacobian):
         # If we are doing a directional derivative, then the sparsity will be violated.
         # Skip sparsity check if that is the case.
         options = system._get_check_partial_options()
-        loc_wrt = wrt.rpartition('.')[2]
-        directional = (options is not None and loc_wrt in options and
-                       options[loc_wrt]['directional'])
+        loc_wrt = wrt.rpartition(".")[2]
+        directional = options is not None and loc_wrt in options and options[loc_wrt]["directional"]
 
         subjacs = self._get_subjacs(system)
 
@@ -219,14 +218,14 @@ class _CheckingJacobian(DictionaryJacobian):
             if key in subjacs:
                 subjac = subjacs[key]
                 info = subjac.info
-                if info['diagonal']:
+                if info["diagonal"]:
                     subjac.set_col(loc_idx, column[start:end], self._uncovered_threshold)
                     if directional:
-                        info['directional'] = True
-                elif info['cols'] is not None:
+                        info["directional"] = True
+                elif info["cols"] is not None:
                     subjac.set_col(loc_idx, column[start:end], self._uncovered_threshold)
                     if directional:
-                        info['directional'] = True
+                        info["directional"] = True
                         continue
                 else:
                     subjac.set_col(loc_idx, column[start:end], self._uncovered_threshold)
@@ -267,9 +266,11 @@ class ExplicitDictionaryJacobian(Jacobian):
         """
         if not self._initialized:
             if not self._is_explicitcomp:
-                msginfo = system.msginfo if system else ''
-                raise RuntimeError(f"{msginfo}: ExplicitDictionaryJacobian is only intended to be "
-                                   "used with ExplicitComponents.")
+                msginfo = system.msginfo if system else ""
+                raise RuntimeError(
+                    f"{msginfo}: ExplicitDictionaryJacobian is only intended to be "
+                    "used with ExplicitComponents."
+                )
 
             rel_subjacs, irrelevant_subjacs = self._get_relevant_subjacs_info(system)
             self._subjacs = {}
@@ -309,7 +310,7 @@ class ExplicitDictionaryJacobian(Jacobian):
         with system._unscaled_context(outputs=(d_outputs,), residuals=(d_residuals,)):
             dresids = d_residuals.asarray()
 
-            if mode == 'fwd':
+            if mode == "fwd":
                 if d_outputs._names:
                     # apply dr/do of -I
                     dresids -= d_outputs.asarray()

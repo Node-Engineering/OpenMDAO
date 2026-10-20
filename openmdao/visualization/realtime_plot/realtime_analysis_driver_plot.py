@@ -26,6 +26,7 @@ try:
     from bokeh.transform import transform
     from bokeh.plotting import figure
     from bokeh.palettes import Viridis256
+
     bokeh_and_dependencies_available = True
 except ImportError:
     bokeh_and_dependencies_available = False
@@ -122,9 +123,7 @@ def _elide_variable_name_with_units(variable_name, units):
         un_elided_string_length = len(f"{variable_name} ({units})")
     else:
         un_elided_string_length = len(variable_name)
-    chop_length = max(
-        un_elided_string_length - _max_label_length + len(_elide_string), 0
-    )
+    chop_length = max(un_elided_string_length - _max_label_length + len(_elide_string), 0)
     if chop_length:
         variable_name = _elide_string + variable_name[chop_length:]
     if units:
@@ -153,15 +152,11 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
         The name of the script used to create the case recorder file.
     """
 
-    def __init__(
-        self, case_tracker, callback_period, doc, pid_of_calling_script, script
-    ):
+    def __init__(self, case_tracker, callback_period, doc, pid_of_calling_script, script):
         """
         Construct and initialize _RealTimeAnalysisDriverPlot instance.
         """
-        super().__init__(
-            case_tracker, callback_period, doc, pid_of_calling_script, script
-        )
+        super().__init__(case_tracker, callback_period, doc, pid_of_calling_script, script)
 
         # lists of the sampled variables in the analysis and the responses
         self._sampled_variables = None
@@ -227,9 +222,7 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
     def _setup_data_source(self):
         self._source_dict = {}
 
-        responses = list(
-            self._case_tracker.get_case_reader().problem_metadata["responses"].keys()
-        )
+        responses = list(self._case_tracker.get_case_reader().problem_metadata["responses"].keys())
 
         # convert to promoted names
         self._prom_responses = []
@@ -243,8 +236,9 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
         if not self._prom_responses:
             raise RuntimeError("Need at least one response variable.")
 
-        outputs = self._case_tracker.get_case_reader().list_source_vars(
-            "driver", out_stream=None)["outputs"]
+        outputs = self._case_tracker.get_case_reader().list_source_vars("driver", out_stream=None)[
+            "outputs"
+        ]
         # Don't include response variables in sampled variables.
         # Also, split up the remaining sampled variables into scalars and
         # non-scalars
@@ -279,9 +273,7 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
 
         self._set_initial_number_initial_visible_sampled_variables()
         visible_variables = [
-            var
-            for var in self._sampled_variables
-            if self._sampled_variables_visibility[var]
+            var for var in self._sampled_variables if self._sampled_variables_visibility[var]
         ]
 
         # Create a color mapper
@@ -315,9 +307,9 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
         for response in self._prom_responses:
             self._source_stream_dict[response] = np.array([new_case.get_val(response).item()])
         for sampled_variable in self._sampled_variables:
-            self._source_stream_dict[sampled_variable] = np.array([new_case.get_val(
-                sampled_variable
-            ).item()])
+            self._source_stream_dict[sampled_variable] = np.array(
+                [new_case.get_val(sampled_variable).item()]
+            )
         self._source.stream(self._source_stream_dict)
 
     def _update_scatter_plots(self, new_case):
@@ -439,17 +431,13 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
                 irow = i // self._num_sampled_variables
                 # only do the lower half
                 if var_along_columns != var_along_rows:
-                    self._scatter_plots_figure[
-                        (var_along_columns, var_along_rows)
-                    ].visible = (
+                    self._scatter_plots_figure[(var_along_columns, var_along_rows)].visible = (
                         icolumn < irow
                         and self._sampled_variables_visibility[var_along_columns]
                         and self._sampled_variables_visibility[var_along_rows]
                     )
 
-        sampled_variables_checkbox_group.on_change(
-            "active", _sampled_variable_checkbox_callback
-        )
+        sampled_variables_checkbox_group.on_change("active", _sampled_variable_checkbox_callback)
 
         # Create the non scalar variables list for the GUI
         sampled_variables_non_scalar_label = Div(
@@ -465,9 +453,7 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
                 stylesheets=[_page_styles],
                 css_classes=["sampled_variables_text"],
             )
-            sampled_variables_non_scalar_text_list.append(
-                sampled_variables_non_scalar_text
-            )
+            sampled_variables_non_scalar_text_list.append(sampled_variables_non_scalar_text)
         sampled_variables_non_scalar_column = Column(
             children=sampled_variables_non_scalar_text_list,
         )
@@ -521,9 +507,7 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
 
             return toggle_callback
 
-        response_variable_menu.on_change(
-            "value", cb_select_response_variable(color_bar_figure)
-        )
+        response_variable_menu.on_change("value", cb_select_response_variable(color_bar_figure))
 
         variables_box = Column(
             response_variable_header,
@@ -560,7 +544,7 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
             width=0,
             toolbar_location=None,
             x_axis_type=None,
-            y_axis_type=None
+            y_axis_type=None,
         )
         p.grid.visible = False
         p.outline_line_alpha = 0
@@ -587,9 +571,7 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
                     height=_grid_plot_height_and_width,
                     output_backend="webgl",
                 )
-                self._scatter_plots_figure[(var_along_columns, var_along_rows)] = (
-                    plot_figure
-                )
+                self._scatter_plots_figure[(var_along_columns, var_along_rows)] = plot_figure
                 plot_figure.axis.visible = True
                 self._scatter_plots.append(
                     plot_figure.scatter(
@@ -636,8 +618,10 @@ class _RealTimeAnalysisDriverPlot(_RealTimePlot):
                 plot_figure = None
             else:
                 # is it visible based on what the user has selected
-                plot_figure.visible = self._sampled_variables_visibility[var_along_columns] \
+                plot_figure.visible = (
+                    self._sampled_variables_visibility[var_along_columns]
                     and self._sampled_variables_visibility[var_along_rows]
+                )
 
             plots_and_labels_in_grid.append(plot_figure)
 

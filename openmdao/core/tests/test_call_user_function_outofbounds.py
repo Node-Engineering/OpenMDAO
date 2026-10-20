@@ -36,11 +36,11 @@ class RaisesOutOfBoundsComp(om.ExplicitComponent):
     """
 
     def setup(self):
-        self.add_input('x', val=0.5)
-        self.add_output('y', val=1.0)
+        self.add_input("x", val=0.5)
+        self.add_output("y", val=1.0)
 
     def compute(self, inputs, outputs):
-        x = float(inputs['x'].flat[0])
+        x = float(inputs["x"].flat[0])
         lower, upper = 0.0, 1.0
         if x < lower or x > upper:
             raise OutOfBoundsError(
@@ -50,7 +50,7 @@ class RaisesOutOfBoundsComp(om.ExplicitComponent):
                 lower=lower,
                 upper=upper,
             )
-        outputs['y'] = x ** 2
+        outputs["y"] = x**2
 
 
 @use_tempdirs
@@ -68,9 +68,9 @@ class TestCallUserFunctionOutOfBounds(unittest.TestCase):
     def test_outofbounds_not_masked_by_typeerror(self):
         """OutOfBoundsError in compute() must not be hidden by a secondary TypeError."""
         p = om.Problem()
-        p.model.add_subsystem('comp', RaisesOutOfBoundsComp())
+        p.model.add_subsystem("comp", RaisesOutOfBoundsComp())
         p.setup()
-        p.set_val('comp.x', 2.0)  # outside [0, 1] — will trigger OutOfBoundsError
+        p.set_val("comp.x", 2.0)  # outside [0, 1] — will trigger OutOfBoundsError
 
         # Before the fix this raises:
         #   TypeError: OutOfBoundsError.__init__() missing 4 required positional arguments
@@ -80,9 +80,12 @@ class TestCallUserFunctionOutOfBounds(unittest.TestCase):
         with self.assertRaises((OutOfBoundsError)) as ctx:
             p.run_model()
 
-        self.assertEqual("'comp' <class RaisesOutOfBoundsComp>: Error calling compute(), "
-                         "Input x=2.0 is outside the interpolation range [0.0, 1.0].",
-                         str(ctx.exception))
+        self.assertEqual(
+            "'comp' <class RaisesOutOfBoundsComp>: Error calling compute(), "
+            "Input x=2.0 is outside the interpolation range [0.0, 1.0].",
+            str(ctx.exception),
+        )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -22,7 +22,7 @@ def _test_func_name(func, num, param):
     args = []
     for p in param.args:
         if isinstance(p, str):
-            p = {p.replace('.', '_')}
+            p = {p.replace(".", "_")}
         elif not isinstance(p, Iterable):
             p = {p}
         for item in p:
@@ -31,40 +31,44 @@ def _test_func_name(func, num, param):
             except Exception:
                 arg = str(item)
             args.append(arg)
-    return func.__name__ + '_' + '_'.join(args)
+    return func.__name__ + "_" + "_".join(args)
 
 
 class PathCompEx(om.ExplicitComponent):
-    def __init__(self, s=''):
+    def __init__(self, s=""):
         super().__init__()
         self.s = s
 
     def setup(self):
-        self.add_discrete_input('x', val=self.s)
-        self.add_discrete_output('y', val=self.s)
+        self.add_discrete_input("x", val=self.s)
+        self.add_discrete_output("y", val=self.s)
 
     def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
-        discrete_outputs['y'] = discrete_inputs['x'] + self.pathname + '/'
+        discrete_outputs["y"] = discrete_inputs["x"] + self.pathname + "/"
 
 
 class SerialTests(unittest.TestCase):
-    @parameterized.expand([(3, 'par.C1.x', True),
-                           (3, 'par.C2.x', True),
-                           (3, 'indeps.x', False)],
-                          name_func=_test_func_name)
+    @parameterized.expand(
+        [(3, "par.C1.x", True), (3, "par.C2.x", True), (3, "indeps.x", False)],
+        name_func=_test_func_name,
+    )
     def test_fan_out(self, size, toset, auto):
         p = om.Problem()
         model = p.model
         if not auto:
-            ivc = model.add_subsystem('indeps', om.IndepVarComp())
-            ivc.add_output('x', np.ones(size))
+            ivc = model.add_subsystem("indeps", om.IndepVarComp())
+            ivc.add_output("x", np.ones(size))
 
-        par = model.add_subsystem('par', om.ParallelGroup())
-        par.add_subsystem('C1', om.ExecComp('y = 3 * x', x=np.ones(size), y=np.ones(size)), promotes_inputs=['x'])
-        par.add_subsystem('C2', om.ExecComp('y = 5 * x', x=np.ones(size), y=np.ones(size)), promotes_inputs=['x'])
+        par = model.add_subsystem("par", om.ParallelGroup())
+        par.add_subsystem(
+            "C1", om.ExecComp("y = 3 * x", x=np.ones(size), y=np.ones(size)), promotes_inputs=["x"]
+        )
+        par.add_subsystem(
+            "C2", om.ExecComp("y = 5 * x", x=np.ones(size), y=np.ones(size)), promotes_inputs=["x"]
+        )
 
         if not auto:
-            model.connect('indeps.x', 'par.x')
+            model.connect("indeps.x", "par.x")
 
         p.setup()
 
@@ -73,24 +77,32 @@ class SerialTests(unittest.TestCase):
         p[toset] = inval
         p.run_model()
 
-        np.testing.assert_allclose(p.get_val('par.C1.y', get_remote=True), inval * 3.)
-        np.testing.assert_allclose(p.get_val('par.C2.y', get_remote=True), inval * 5.)
+        np.testing.assert_allclose(p.get_val("par.C1.y", get_remote=True), inval * 3.0)
+        np.testing.assert_allclose(p.get_val("par.C2.y", get_remote=True), inval * 5.0)
 
-        of = ['par.C1.y', 'par.C2.y']
+        of = ["par.C1.y", "par.C2.y"]
         if auto:
-            wrt = ['par.x']
+            wrt = ["par.x"]
         else:
-            wrt = ['indeps.x']
+            wrt = ["indeps.x"]
 
-        J = p.compute_totals(of=of, wrt=wrt, return_format='flat_dict')
-        np.testing.assert_allclose(J['par.C1.y', wrt[0]], 3. * np.eye(size))
-        np.testing.assert_allclose(J['par.C2.y', wrt[0]], 5. * np.eye(size))
+        J = p.compute_totals(of=of, wrt=wrt, return_format="flat_dict")
+        np.testing.assert_allclose(J["par.C1.y", wrt[0]], 3.0 * np.eye(size))
+        np.testing.assert_allclose(J["par.C2.y", wrt[0]], 5.0 * np.eye(size))
 
-    @parameterized.expand([(3, 'par.C1.x', True, True), (3, 'par.C1.x', True, False),
-                           (3, 'par.C2.x', True, True), (3, 'par.C2.x', True, False),
-                           (3, 'C3.x', True, True), (3, 'C3.x', True, False),
-                           (3, 'indeps.x', False, True), (3, 'indeps.x', False, False)],
-                          name_func=_test_func_name)
+    @parameterized.expand(
+        [
+            (3, "par.C1.x", True, True),
+            (3, "par.C1.x", True, False),
+            (3, "par.C2.x", True, True),
+            (3, "par.C2.x", True, False),
+            (3, "C3.x", True, True),
+            (3, "C3.x", True, False),
+            (3, "indeps.x", False, True),
+            (3, "indeps.x", False, False),
+        ],
+        name_func=_test_func_name,
+    )
     def test_fan_out_with_dup(self, size, toset, auto, before):
         # this connects an auto_ivc to 3 variables.  2 are under a parallel group and 1 is
         # duplicated in all procs
@@ -98,23 +110,27 @@ class SerialTests(unittest.TestCase):
         model = p.model
 
         if not auto:
-            ivc = model.add_subsystem('indeps', om.IndepVarComp())
-            ivc.add_output('x', np.ones(size))
+            ivc = model.add_subsystem("indeps", om.IndepVarComp())
+            ivc.add_output("x", np.ones(size))
 
-        c3 = om.ExecComp('y = 4. * x', x=np.ones(size), y=np.ones(size))
+        c3 = om.ExecComp("y = 4. * x", x=np.ones(size), y=np.ones(size))
 
         if before:
-            model.add_subsystem('C3', c3, promotes_inputs=['x'])
+            model.add_subsystem("C3", c3, promotes_inputs=["x"])
 
-        par = model.add_subsystem('par', om.ParallelGroup(), promotes_inputs=['x'])
-        par.add_subsystem('C1', om.ExecComp('y = 3 * x', x=np.ones(size), y=np.ones(size)), promotes_inputs=['x'])
-        par.add_subsystem('C2', om.ExecComp('y = 5 * x', x=np.ones(size), y=np.ones(size)), promotes_inputs=['x'])
+        par = model.add_subsystem("par", om.ParallelGroup(), promotes_inputs=["x"])
+        par.add_subsystem(
+            "C1", om.ExecComp("y = 3 * x", x=np.ones(size), y=np.ones(size)), promotes_inputs=["x"]
+        )
+        par.add_subsystem(
+            "C2", om.ExecComp("y = 5 * x", x=np.ones(size), y=np.ones(size)), promotes_inputs=["x"]
+        )
 
         if not before:
-            model.add_subsystem('C3', c3, promotes_inputs=['x'])
+            model.add_subsystem("C3", c3, promotes_inputs=["x"])
 
         if not auto:
-            model.connect('indeps.x', 'x')
+            model.connect("indeps.x", "x")
 
         p.setup()
 
@@ -123,54 +139,60 @@ class SerialTests(unittest.TestCase):
         p[toset] = inval
         p.run_model()
 
-        np.testing.assert_allclose(p.get_val('par.C1.y', get_remote=True), inval * 3.)
-        np.testing.assert_allclose(p.get_val('par.C2.y', get_remote=True), inval * 5.)
-        np.testing.assert_allclose(p.get_val('C3.y', get_remote=True), inval * 4.)
+        np.testing.assert_allclose(p.get_val("par.C1.y", get_remote=True), inval * 3.0)
+        np.testing.assert_allclose(p.get_val("par.C2.y", get_remote=True), inval * 5.0)
+        np.testing.assert_allclose(p.get_val("C3.y", get_remote=True), inval * 4.0)
 
-        of = ['par.C1.y', 'par.C2.y', 'C3.y']
+        of = ["par.C1.y", "par.C2.y", "C3.y"]
 
         if auto:
-            wrt = ['x']
+            wrt = ["x"]
         else:
-            wrt = ['indeps.x']
+            wrt = ["indeps.x"]
 
-        J = p.compute_totals(of=of, wrt=wrt, return_format='flat_dict')
-        np.testing.assert_allclose(J['par.C1.y', wrt[0]], 3. * np.eye(size))
-        np.testing.assert_allclose(J['par.C2.y', wrt[0]], 5. * np.eye(size))
-        np.testing.assert_allclose(J['C3.y', wrt[0]], 4. * np.eye(size))
+        J = p.compute_totals(of=of, wrt=wrt, return_format="flat_dict")
+        np.testing.assert_allclose(J["par.C1.y", wrt[0]], 3.0 * np.eye(size))
+        np.testing.assert_allclose(J["par.C2.y", wrt[0]], 5.0 * np.eye(size))
+        np.testing.assert_allclose(J["C3.y", wrt[0]], 4.0 * np.eye(size))
 
         # try with absolute names
         if not auto:
-            J = p.compute_totals(of=of, wrt=['indeps.x'], return_format='flat_dict')
-            np.testing.assert_allclose(J['par.C1.y', 'indeps.x'], 3. * np.eye(size))
-            np.testing.assert_allclose(J['par.C2.y', 'indeps.x'], 5. * np.eye(size))
-            np.testing.assert_allclose(J['C3.y', 'indeps.x'], 4. * np.eye(size))
+            J = p.compute_totals(of=of, wrt=["indeps.x"], return_format="flat_dict")
+            np.testing.assert_allclose(J["par.C1.y", "indeps.x"], 3.0 * np.eye(size))
+            np.testing.assert_allclose(J["par.C2.y", "indeps.x"], 5.0 * np.eye(size))
+            np.testing.assert_allclose(J["C3.y", "indeps.x"], 4.0 * np.eye(size))
 
-    @parameterized.expand([(3, 'par.C1.x', 'par.C2.x', True),
-                           (3, 'par.C1.x', 'par.C2.x', True),
-                           (3, 'indeps1.x', 'indeps2.x', False)],
-                          name_func=_test_func_name)
+    @parameterized.expand(
+        [
+            (3, "par.C1.x", "par.C2.x", True),
+            (3, "par.C1.x", "par.C2.x", True),
+            (3, "indeps1.x", "indeps2.x", False),
+        ],
+        name_func=_test_func_name,
+    )
     def test_fan_in(self, size, toset1, toset2, auto):
         p = om.Problem()
         model = p.model
         if not auto:
-            ivc = model.add_subsystem('indeps1', om.IndepVarComp())
-            ivc.add_output('x', np.ones(size))
-            ivc = model.add_subsystem('indeps2', om.IndepVarComp())
-            ivc.add_output('x', np.ones(size))
+            ivc = model.add_subsystem("indeps1", om.IndepVarComp())
+            ivc.add_output("x", np.ones(size))
+            ivc = model.add_subsystem("indeps2", om.IndepVarComp())
+            ivc.add_output("x", np.ones(size))
 
-        par = model.add_subsystem('par', om.ParallelGroup())
-        par.add_subsystem('C1', om.ExecComp('y = 3 * x', x=np.ones(size), y=np.ones(size)))
-        par.add_subsystem('C2', om.ExecComp('y = 5 * x', x=np.ones(size), y=np.ones(size)))
+        par = model.add_subsystem("par", om.ParallelGroup())
+        par.add_subsystem("C1", om.ExecComp("y = 3 * x", x=np.ones(size), y=np.ones(size)))
+        par.add_subsystem("C2", om.ExecComp("y = 5 * x", x=np.ones(size), y=np.ones(size)))
 
-        model.add_subsystem('sum', om.ExecComp('z = x + y', x=np.ones(size), y=np.ones(size), z=np.ones(size)))
+        model.add_subsystem(
+            "sum", om.ExecComp("z = x + y", x=np.ones(size), y=np.ones(size), z=np.ones(size))
+        )
 
         if not auto:
-            model.connect('indeps1.x', 'par.C1.x')
-            model.connect('indeps2.x', 'par.C2.x')
+            model.connect("indeps1.x", "par.C1.x")
+            model.connect("indeps2.x", "par.C2.x")
 
-        model.connect('par.C1.y', 'sum.x')
-        model.connect('par.C2.y', 'sum.y')
+        model.connect("par.C1.y", "sum.x")
+        model.connect("par.C2.y", "sum.y")
 
         p.setup()
 
@@ -181,31 +203,31 @@ class SerialTests(unittest.TestCase):
         p[toset2] = inval2
 
         p.run_model()
-        np.testing.assert_allclose(p['sum.z'], inval1 * 3. + inval2 * 5.)
+        np.testing.assert_allclose(p["sum.z"], inval1 * 3.0 + inval2 * 5.0)
 
     def test_discrete_fan_out1(self):
         p = om.Problem()
         model = p.model
-        par = model.add_subsystem('par', om.ParallelGroup(), promotes=['x'])
-        par.add_subsystem('C1', PathCompEx(), promotes=['x'])
-        par.add_subsystem('C2', PathCompEx(), promotes=['x'])
+        par = model.add_subsystem("par", om.ParallelGroup(), promotes=["x"])
+        par.add_subsystem("C1", PathCompEx(), promotes=["x"])
+        par.add_subsystem("C2", PathCompEx(), promotes=["x"])
         p.setup()
         p.run_model()
-        self.assertEqual(p.get_val('par.C1.y', get_remote=True), 'par.C1/')
-        self.assertEqual(p.get_val('par.C2.y', get_remote=True), 'par.C2/')
+        self.assertEqual(p.get_val("par.C1.y", get_remote=True), "par.C1/")
+        self.assertEqual(p.get_val("par.C2.y", get_remote=True), "par.C2/")
 
     def test_discrete_fan_out2(self):
-        p = om.Problem(name='discrete_fan_out2')
+        p = om.Problem(name="discrete_fan_out2")
         model = p.model
-        par = model.add_subsystem('par', om.ParallelGroup(), promotes=['x'])
-        par.add_subsystem('C1', PathCompEx('foo'), promotes=['x'])
-        par.add_subsystem('C2', PathCompEx('bar'), promotes=['x'])
+        par = model.add_subsystem("par", om.ParallelGroup(), promotes=["x"])
+        par.add_subsystem("C1", PathCompEx("foo"), promotes=["x"])
+        par.add_subsystem("C2", PathCompEx("bar"), promotes=["x"])
 
         try:
             p.setup()
             p.final_setup()
         except Exception as err:
-            msg = ("\nCollected errors for problem 'discrete_fan_out2':\n   <model> <class Group>: The following inputs promoted to 'x' have different values, so the value of 'x' is ambiguous:\n    \n   par.C1.x    foo\n   par.C2.x    bar\n    \n   Call model.set_input_defaults('x', val=?) to remove the ambiguity.")
+            msg = "\nCollected errors for problem 'discrete_fan_out2':\n   <model> <class Group>: The following inputs promoted to 'x' have different values, so the value of 'x' is ambiguous:\n    \n   par.C1.x    foo\n   par.C2.x    bar\n    \n   Call model.set_input_defaults('x', val=?) to remove the ambiguity."
             self.assertTrue(msg in err.args[0])
         else:
             self.fail("Exception expected.")
@@ -213,73 +235,80 @@ class SerialTests(unittest.TestCase):
     def test_obj_using_input_name(self):
         class Phase(om.Group):
             def setup(self):
-                self.add_subsystem('C1', om.ExecComp('y=.5*x'))
-                self.add_subsystem('C2', om.ExecComp('y=g*x'))
-                self.add_subsystem('C3', om.ExecComp('y=-x'))
+                self.add_subsystem("C1", om.ExecComp("y=.5*x"))
+                self.add_subsystem("C2", om.ExecComp("y=g*x"))
+                self.add_subsystem("C3", om.ExecComp("y=-x"))
 
                 # this is the culprit.  Bug when objective is added in group using input name
-                self.add_objective('C2.g')
-                self.add_design_var('C2.g')
+                self.add_objective("C2.g")
+                self.add_design_var("C2.g")
 
-                self.connect('C1.y', 'C2.x')
-                self.connect('C2.y', 'C3.x')
+                self.connect("C1.y", "C2.x")
+                self.connect("C2.y", "C3.x")
 
         p = om.Problem()
-        indep = p.model.add_subsystem('indep', om.IndepVarComp('x'))
-        indep.add_output('g')
+        indep = p.model.add_subsystem("indep", om.IndepVarComp("x"))
+        indep.add_output("g")
 
-        p.model.add_subsystem('phase0', Phase())
+        p.model.add_subsystem("phase0", Phase())
 
-        p.model.connect('indep.x', 'phase0.C1.x')
+        p.model.connect("indep.x", "phase0.C1.x")
 
-        p.model.add_design_var('indep.x')
-        p.model.add_constraint('phase0.C3.y', equals=0.0)
+        p.model.add_design_var("indep.x")
+        p.model.add_constraint("phase0.C3.y", equals=0.0)
 
         p.setup(force_alloc_complex=True)
-        p['indep.x'] = [9.9]
-        p['indep.g'] = 9.80665
+        p["indep.x"] = [9.9]
+        p["indep.g"] = 9.80665
         p.run_model()
-        assert_check_totals(p.check_totals(show_only_incorrect=True, method='cs', out_stream=None))
+        assert_check_totals(p.check_totals(show_only_incorrect=True, method="cs", out_stream=None))
 
     def test_set_val_auto_ivc(self):
         p = om.Problem()
-        p.model.add_subsystem('exec',
-                              om.ExecComp('z = a + b**2 + c**3',
-                                          z={'shape': (100,)},
-                                          a={'shape': (100,)},
-                                          b={'shape': (100,)},
-                                          c={'shape': (100,)}))
+        p.model.add_subsystem(
+            "exec",
+            om.ExecComp(
+                "z = a + b**2 + c**3",
+                z={"shape": (100,)},
+                a={"shape": (100,)},
+                b={"shape": (100,)},
+                c={"shape": (100,)},
+            ),
+        )
 
         p.setup()
 
-        p.set_val('exec.a', np.linspace(5, 10, 100))
+        p.set_val("exec.a", np.linspace(5, 10, 100))
 
         with self.assertRaises(ValueError) as cm:
-            p.set_val('exec.b', np.linspace(10, 20, 15))
+            p.set_val("exec.b", np.linspace(10, 20, 15))
 
         # can not broadcast input array from shape (15,) into shape (100,) for exec.b
-        self.assertEqual(str(cm.exception),
-                        "Failed to set value of 'exec.b': cannot reshape array of size 15 into shape (100,).")
+        self.assertEqual(
+            str(cm.exception),
+            "Failed to set value of 'exec.b': cannot reshape array of size 15 into shape (100,).",
+        )
 
 
 @unittest.skipUnless(MPI and PETScVector, "MPI and PETSc are required.")
 class MPITests(SerialTests):
-
     N_PROCS = 2
 
     def test_discrete_fan_out2(self):
-        p = om.Problem(name='discrete_fan_out2')
+        p = om.Problem(name="discrete_fan_out2")
         model = p.model
-        par = model.add_subsystem('par', om.ParallelGroup(), promotes=['x'])
-        par.add_subsystem('C1', PathCompEx('foo'), promotes=['x'])
-        par.add_subsystem('C2', PathCompEx('bar'), promotes=['x'])
+        par = model.add_subsystem("par", om.ParallelGroup(), promotes=["x"])
+        par.add_subsystem("C1", PathCompEx("foo"), promotes=["x"])
+        par.add_subsystem("C2", PathCompEx("bar"), promotes=["x"])
 
         try:
             p.setup()
             p.final_setup()
         except Exception as err:
-            msg = ("\nCollected errors for problem 'discrete_fan_out2':"
-                             "\n   <model> <class Group>: The inputs ['par.C1.x', 'par.C2.x'], promoted to 'x' have different values, so the value of 'x' is ambiguous. Call model.set_input_defaults('x', val=?) to remove the ambiguity.")
+            msg = (
+                "\nCollected errors for problem 'discrete_fan_out2':"
+                "\n   <model> <class Group>: The inputs ['par.C1.x', 'par.C2.x'], promoted to 'x' have different values, so the value of 'x' is ambiguous. Call model.set_input_defaults('x', val=?) to remove the ambiguity."
+            )
             self.assertTrue(msg in err.args[0])
         else:
             self.fail("Exception expected.")

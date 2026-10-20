@@ -49,17 +49,17 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
         """
         parsed_path = urlparse(self.path)
 
-        if parsed_path.path == '/':
+        if parsed_path.path == "/":
             self.serve_main_page()
-        elif parsed_path.path == '/api/graph_info':
+        elif parsed_path.path == "/api/graph_info":
             self.serve_graph_info()
-        elif parsed_path.path.startswith('/api/subsystem/'):
-            subsystem = unquote(parsed_path.path.replace('/api/subsystem/', ''))
+        elif parsed_path.path.startswith("/api/subsystem/"):
+            subsystem = unquote(parsed_path.path.replace("/api/subsystem/", ""))
             self.serve_subsystem_graph(subsystem)
-        elif parsed_path.path.startswith('/api/variable/'):
-            variable = unquote(parsed_path.path.replace('/api/variable/', ''))
+        elif parsed_path.path.startswith("/api/variable/"):
+            variable = unquote(parsed_path.path.replace("/api/variable/", ""))
             self.serve_variable_graph(variable)
-        elif parsed_path.path == '/api/search':
+        elif parsed_path.path == "/api/search":
             self.serve_search()
         else:
             super().do_GET()
@@ -70,7 +70,7 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
         """
         html_content = self.get_html_template()
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
+        self.send_header("Content-type", "text/html")
         self.end_headers()
         self.wfile.write(html_content.encode())
 
@@ -88,19 +88,19 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
                 node_id_json = str(node_id)
 
             nodes_data[json.dumps(node_id_json)] = {
-                'rel_name': node_data.get('rel_name', ''),
-                'pathname': node_data.get('pathname', ''),
-                'io': node_id[0] if isinstance(node_id, tuple) and len(node_id) == 2 else '',
-                'fillcolor': node_data.get('fillcolor', '')
+                "rel_name": node_data.get("rel_name", ""),
+                "pathname": node_data.get("pathname", ""),
+                "io": node_id[0] if isinstance(node_id, tuple) and len(node_id) == 2 else "",
+                "fillcolor": node_data.get("fillcolor", ""),
             }
 
         info = {
-            'success': True,
-            'nodes': len(self.conn_graph.nodes()),
-            'edges': len(self.conn_graph.edges()),
-            'subsystems': self.get_subsystems(),
-            'nodes_data': nodes_data,
-            'graph_colors': GRAPH_COLORS
+            "success": True,
+            "nodes": len(self.conn_graph.nodes()),
+            "edges": len(self.conn_graph.edges()),
+            "subsystems": self.get_subsystems(),
+            "nodes_data": nodes_data,
+            "graph_colors": GRAPH_COLORS,
         }
         self.send_json_response(info)
 
@@ -122,24 +122,24 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
             incolor = outcolor = None
             for node_id, node_data in subgraph.nodes(data=True):
                 # Look for input nodes (starting with 'i')
-                if incolor is None and node_id[0] == 'i':
-                    incolor = node_data.get('fillcolor', None)
+                if incolor is None and node_id[0] == "i":
+                    incolor = node_data.get("fillcolor", None)
                 # Look for output nodes (starting with 'o')
-                elif outcolor is None and node_id[0] == 'o':
-                    outcolor = node_data.get('fillcolor', None)
+                elif outcolor is None and node_id[0] == "o":
+                    outcolor = node_data.get("fillcolor", None)
                 # Stop once we have both colors
                 if incolor is not None and outcolor is not None:
                     break
 
-            help_colors = {'i': incolor, 'o': outcolor}
+            help_colors = {"i": incolor, "o": outcolor}
 
             # Convert nodes to a format the frontend can use
             nodes_data = {}
             for node_id, node_data in subgraph.nodes(data=True):
                 # Extract the actual variable information from the node metadata
                 # The node_data contains the original rel_name and pathname
-                rel_name = node_data.get('rel_name', '')
-                pathname = node_data.get('pathname', '')
+                rel_name = node_data.get("rel_name", "")
+                pathname = node_data.get("pathname", "")
                 io_type = node_id[0]
 
                 # If io_type is not in node_data, extract from node_id tuple
@@ -147,32 +147,31 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
                     io_type = node_id[0]  # 'i' or 'o'
 
                 nodes_data[str(node_id)] = {
-                    'rel_name': rel_name,
-                    'pathname': pathname,
-                    'io': io_type,
-                    'fillcolor': node_data.get('fillcolor', '')
+                    "rel_name": rel_name,
+                    "pathname": pathname,
+                    "io": io_type,
+                    "fillcolor": node_data.get("fillcolor", ""),
                 }
 
             response = {
-                'success': True,
-                'subsystem': subsystem,
-                'nodes': len(subgraph.nodes()),
-                'edges': len(subgraph.edges()),
-                'nodes_data': nodes_data,
-                'help_colors': help_colors,
-                'dot': dot_string,
+                "success": True,
+                "subsystem": subsystem,
+                "nodes": len(subgraph.nodes()),
+                "edges": len(subgraph.edges()),
+                "nodes_data": nodes_data,
+                "help_colors": help_colors,
+                "dot": dot_string,
             }
         except Exception as e:
             print(f"Error in serve_subsystem_graph: {e}")
             # Provide more helpful error message
             error_msg = str(e)
             if "not found" in error_msg.lower():
-                error_msg = f"Subsystem '{subsystem}' not found. Try searching for a different " \
+                error_msg = (
+                    f"Subsystem '{subsystem}' not found. Try searching for a different "
                     "subsystem name."
-            response = {
-                'success': False,
-                'error': error_msg
-            }
+                )
+            response = {"success": False, "error": error_msg}
 
         self.send_json_response(response)
 
@@ -195,19 +194,20 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
             edges_count = len(subgraph.edges())
 
             response = {
-                'success': True,
-                'variable': variable,
-                'nodes': nodes_count,
-                'edges': edges_count,
-                'dot': dot_string
+                "success": True,
+                "variable": variable,
+                "nodes": nodes_count,
+                "edges": edges_count,
+                "dot": dot_string,
             }
         except Exception as e:
             # Provide more helpful error message
             error_msg = str(e)
             if "not found" in error_msg.lower():
-                error_msg = f"Variable '{variable}' not found. Try searching for a different " \
-                    "variable name."
-            response = {'success': False, 'error': error_msg}
+                error_msg = (
+                    f"Variable '{variable}' not found. Try searching for a different variable name."
+                )
+            response = {"success": False, "error": error_msg}
 
         self.send_json_response(response)
 
@@ -215,9 +215,9 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
         """
         Serve search results.
         """
-        query = self.get_query_param('q', '').lower()
+        query = self.get_query_param("q", "").lower()
         if not query:
-            self.send_json_response({'results': []})
+            self.send_json_response({"results": []})
             return
 
         results = []
@@ -225,26 +225,24 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
         # Search nodes
         for node_id, node_data in self.conn_graph.nodes(data=True):
             # Try different name fields
-            name = node_data['rel_name']
+            name = node_data["rel_name"]
             if query in name.lower():
-                results.append({
-                    'type': 'variable',
-                    'name': name,
-                    'path': node_data['pathname'],
-                    'io_type': node_id[0]
-                })
+                results.append(
+                    {
+                        "type": "variable",
+                        "name": name,
+                        "path": node_data["pathname"],
+                        "io_type": node_id[0],
+                    }
+                )
 
         # Search subsystems
         subsystems = self.get_subsystems()
         for subsystem in subsystems:
             if query in subsystem.lower():
-                results.append({
-                    'type': 'subsystem',
-                    'name': subsystem,
-                    'path': subsystem
-                })
+                results.append({"type": "subsystem", "name": subsystem, "path": subsystem})
 
-        self.send_json_response({'results': results[:20]})
+        self.send_json_response({"results": results[:20]})
 
     def get_subsystems(self):
         """
@@ -255,9 +253,9 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
         list of str
             Sorted list of subsystem pathnames.
         """
-        subsystems = {'model'}
+        subsystems = {"model"}
         for _, node_data in self.conn_graph.nodes(data=True):
-            pathname = node_data.get('pathname', '')
+            pathname = node_data.get("pathname", "")
             if pathname:
                 subsystems.add(pathname)
 
@@ -280,34 +278,34 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
             HTML string containing a simple graph representation.
         """
         html = '<div style="font-family: monospace; padding: 20px;">'
-        html += f'<h3>{title}</h3>'
-        html += f'<p><strong>Nodes:</strong> {len(subgraph.nodes())}</p>'
+        html += f"<h3>{title}</h3>"
+        html += f"<p><strong>Nodes:</strong> {len(subgraph.nodes())}</p>"
 
         # Show nodes
-        html += '<h4>Variables:</h4><ul>'
+        html += "<h4>Variables:</h4><ul>"
         for node_id, node_data in subgraph.nodes(data=True):
-            name = node_data['rel_name']
+            name = node_data["rel_name"]
             io_type = node_id[0]
-            io_label = 'Input' if io_type == 'i' else 'Output'
-            html += f'<li><strong>{name}</strong> ({io_label})</li>'
-        html += '</ul>'
+            io_label = "Input" if io_type == "i" else "Output"
+            html += f"<li><strong>{name}</strong> ({io_label})</li>"
+        html += "</ul>"
 
         # Show connections
-        html += '<h4>Connections:</h4><ul>'
+        html += "<h4>Connections:</h4><ul>"
         for edge in subgraph.edges():
-            source_data = subgraph.nodes[edge[0]]['attrs']
-            target_data = subgraph.nodes[edge[1]]['attrs']
-            source_name = source_data['rel_name']
-            target_name = target_data['rel_name']
-            html += f'<li>{source_name} → {target_name}</li>'
-        html += '</ul>'
+            source_data = subgraph.nodes[edge[0]]["attrs"]
+            target_data = subgraph.nodes[edge[1]]["attrs"]
+            source_name = source_data["rel_name"]
+            target_name = target_data["rel_name"]
+            html += f"<li>{source_name} → {target_name}</li>"
+        html += "</ul>"
 
-        html += '<p><em>Note: Using text representation due to graph generation error</em></p>'
-        html += '</div>'
+        html += "<p><em>Note: Using text representation due to graph generation error</em></p>"
+        html += "</div>"
 
         return html
 
-    def get_query_param(self, param, default=''):
+    def get_query_param(self, param, default=""):
         """
         Get query parameter value.
 
@@ -337,7 +335,7 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
             Object to serialize as JSON.
         """
         self.send_response(200)
-        self.send_header('Content-type', 'application/json')
+        self.send_header("Content-type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
 
@@ -350,7 +348,7 @@ class ConnGraphHandler(SimpleHTTPRequestHandler):
         str
             HTML template content.
         """
-        fpath = os.path.join(os.path.dirname(__file__), 'conn_graph_ui_template.html')
+        fpath = os.path.join(os.path.dirname(__file__), "conn_graph_ui_template.html")
         with open(fpath, "r", encoding="utf-8") as f:
             html_content = f.read()
         return html_content
@@ -365,13 +363,19 @@ def _conn_graph_setup_parser(parser):
     parser : argparse subparser
         The parser we're adding options to.
     """
-    parser.description = ('This command displays the connection graph for the specified variable '
-                          'or system.')
-    parser.add_argument('file', nargs=1, help='Python file containing the model.')
-    parser.add_argument('--problem', action='store', dest='problem', help='Problem name')
-    parser.add_argument('-v', '--varname', action='store', dest='varname',
-                        help='Show connection tree containing the given variable.')
-    parser.add_argument('--port', action='store', dest='port', help='Port number')
+    parser.description = (
+        "This command displays the connection graph for the specified variable or system."
+    )
+    parser.add_argument("file", nargs=1, help="Python file containing the model.")
+    parser.add_argument("--problem", action="store", dest="problem", help="Problem name")
+    parser.add_argument(
+        "-v",
+        "--varname",
+        action="store",
+        dest="varname",
+        help="Show connection tree containing the given variable.",
+    )
+    parser.add_argument("--port", action="store", dest="port", help="Port number")
 
 
 def _conn_graph_cmd(options, user_args):
@@ -385,6 +389,7 @@ def _conn_graph_cmd(options, user_args):
     user_args : list of str
         Args to be passed to the user script.
     """
+
     def _view_graph(model):
         """
         Serve the connection graph UI.
@@ -409,10 +414,11 @@ def _conn_graph_cmd(options, user_args):
         prob : Problem
             Problem instance being set up.
         """
-        hooks._register_hook('_setup_part2', class_name='Group', inst_id='',
-                             post=_view_graph, exit=True)
+        hooks._register_hook(
+            "_setup_part2", class_name="Group", inst_id="", post=_view_graph, exit=True
+        )
         hooks._setup_hooks(prob.model)
 
     # register the hooks
-    hooks._register_hook('setup', 'Problem', pre=_set_dyn_hook, ncalls=1)
+    hooks._register_hook("setup", "Problem", pre=_set_dyn_hook, ncalls=1)
     _load_and_exec(options.file[0], user_args)

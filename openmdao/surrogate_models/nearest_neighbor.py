@@ -6,16 +6,13 @@ https://github.com/SMarone/NDInterp
 
 from collections import OrderedDict
 from openmdao.surrogate_models.surrogate_model import SurrogateModel
-from openmdao.surrogate_models.nn_interpolators.linear_interpolator import \
-    LinearInterpolator
-from openmdao.surrogate_models.nn_interpolators.weighted_interpolator import \
-    WeightedInterpolator
-from openmdao.surrogate_models.nn_interpolators.rbf_interpolator import \
-    RBFInterpolator
+from openmdao.surrogate_models.nn_interpolators.linear_interpolator import LinearInterpolator
+from openmdao.surrogate_models.nn_interpolators.weighted_interpolator import WeightedInterpolator
+from openmdao.surrogate_models.nn_interpolators.rbf_interpolator import RBFInterpolator
 
-_interpolators = OrderedDict([('linear', LinearInterpolator),
-                              ('weighted', WeightedInterpolator),
-                              ('rbf', RBFInterpolator)])
+_interpolators = OrderedDict(
+    [("linear", LinearInterpolator), ("weighted", WeightedInterpolator), ("rbf", RBFInterpolator)]
+)
 
 
 class NearestNeighbor(SurrogateModel):
@@ -48,8 +45,8 @@ class NearestNeighbor(SurrogateModel):
 
         # Note: don't pass kwargs to parent because most of them are specific to choice of
         # interpolant.
-        if 'interpolant_type' in kwargs:
-            self.options['interpolant_type'] = kwargs.pop('interpolant_type')
+        if "interpolant_type" in kwargs:
+            self.options["interpolant_type"] = kwargs.pop("interpolant_type")
         self.interpolant_init_args = kwargs
         self.interpolant = None
 
@@ -57,9 +54,12 @@ class NearestNeighbor(SurrogateModel):
         """
         Declare options before kwargs are processed in the init method.
         """
-        self.options.declare('interpolant_type', default='rbf',
-                             values=['linear', 'weighted', 'rbf'],
-                             desc="Type of interpolant, must be 'linear', 'weighted', or 'rbf'")
+        self.options.declare(
+            "interpolant_type",
+            default="rbf",
+            values=["linear", "weighted", "rbf"],
+            desc="Type of interpolant, must be 'linear', 'weighted', or 'rbf'",
+        )
 
     def train(self, x, y):
         """
@@ -73,8 +73,9 @@ class NearestNeighbor(SurrogateModel):
             Model responses at given inputs.
         """
         super().train(x, y)
-        self.interpolant = _interpolators[self.options['interpolant_type']](
-            x, y, **self.interpolant_init_args)
+        self.interpolant = _interpolators[self.options["interpolant_type"]](
+            x, y, **self.interpolant_init_args
+        )
 
     def predict(self, x, **kwargs):
         """

@@ -1,4 +1,5 @@
 """Define the ExecComp class, a component that evaluates an expression."""
+
 import re
 import time
 from itertools import product
@@ -17,19 +18,49 @@ from openmdao.utils.array_utils import get_random_arr
 
 
 # regex to check for variable names.
-VAR_RGX = re.compile(r'([.]*[_a-zA-Z]\w*[ ]*\(?)')
+VAR_RGX = re.compile(r"([.]*[_a-zA-Z]\w*[ ]*\(?)")
 
 # Names of metadata entries allowed for ExecComp variables.
-_allowed_meta = {'value', 'val', 'shape', 'units', 'res_units', 'desc',
-                 'ref', 'ref0', 'res_ref', 'lower', 'upper', 'src_indices',
-                 'flat_src_indices', 'tags', 'shape_by_conn', 'copy_shape', 'compute_shape',
-                 'units_by_conn', 'copy_units', 'compute_units',
-                 'constant'}
+_allowed_meta = {
+    "value",
+    "val",
+    "shape",
+    "units",
+    "res_units",
+    "desc",
+    "ref",
+    "ref0",
+    "res_ref",
+    "lower",
+    "upper",
+    "src_indices",
+    "flat_src_indices",
+    "tags",
+    "shape_by_conn",
+    "copy_shape",
+    "compute_shape",
+    "units_by_conn",
+    "copy_units",
+    "compute_units",
+    "constant",
+}
 
 # Names that are not allowed for input or output variables (keywords for options)
-_option_names = {'has_diag_partials', 'units', 'shape', 'default_shape', 'shape_by_conn',
-                 'run_root_only', 'constant', 'do_coloring', 'assembled_jac_type', 'derivs_method',
-                 'distributed', 'always_opt', 'use_jit'}
+_option_names = {
+    "has_diag_partials",
+    "units",
+    "shape",
+    "default_shape",
+    "shape_by_conn",
+    "run_root_only",
+    "constant",
+    "do_coloring",
+    "assembled_jac_type",
+    "derivs_method",
+    "distributed",
+    "always_opt",
+    "use_jit",
+}
 
 
 def check_option(option, value):
@@ -47,7 +78,7 @@ def check_option(option, value):
     ------
     ValueError
     """
-    if option == 'units' and value is not None and not valid_units(value):
+    if option == "units" and value is not None and not valid_units(value):
         raise ValueError("The units '%s' are invalid." % value)
 
 
@@ -220,11 +251,11 @@ class ExecComp(ExplicitComponent):
         super().__init__(**options)
 
         # change default coloring values
-        self._coloring_info.method = 'cs'
+        self._coloring_info.method = "cs"
         self._coloring_info.num_full_jacs = 2
 
         # if complex step is used for derivatives, this is the stepsize
-        self.complex_stepsize = 1.e-40
+        self.complex_stepsize = 1.0e-40
 
         if isinstance(exprs, str):
             exprs = [exprs]
@@ -248,29 +279,50 @@ class ExecComp(ExplicitComponent):
         """
         Declare options.
         """
-        self.options.declare('has_diag_partials', types=bool, default=False,
-                             desc='If True, treat all array/array partials as diagonal if both '
-                                  'arrays have size > 1. All arrays with size > 1 must have the '
-                                  'same flattened size or an exception will be raised.')
+        self.options.declare(
+            "has_diag_partials",
+            types=bool,
+            default=False,
+            desc="If True, treat all array/array partials as diagonal if both "
+            "arrays have size > 1. All arrays with size > 1 must have the "
+            "same flattened size or an exception will be raised.",
+        )
 
-        self.options.declare('units', types=str, allow_none=True, default=None,
-                             desc='Units to be assigned to all variables in this component. '
-                                  'Default is None, which means units may be provided for variables'
-                                  ' individually.',
-                             check_valid=check_option)
+        self.options.declare(
+            "units",
+            types=str,
+            allow_none=True,
+            default=None,
+            desc="Units to be assigned to all variables in this component. "
+            "Default is None, which means units may be provided for variables"
+            " individually.",
+            check_valid=check_option,
+        )
 
-        self.options.declare('shape', types=(int, tuple, list), allow_none=True, default=None,
-                             desc='Shape to be assigned to all variables in this component. '
-                                  'Default is None, which means shape may be provided for variables'
-                                  ' individually.')
+        self.options.declare(
+            "shape",
+            types=(int, tuple, list),
+            allow_none=True,
+            default=None,
+            desc="Shape to be assigned to all variables in this component. "
+            "Default is None, which means shape may be provided for variables"
+            " individually.",
+        )
 
-        self.options.declare('shape_by_conn', types=bool, default=False,
-                             desc='If True, shape all inputs and outputs based on their '
-                                  'connection. Default is False.')
+        self.options.declare(
+            "shape_by_conn",
+            types=bool,
+            default=False,
+            desc="If True, shape all inputs and outputs based on their "
+            "connection. Default is False.",
+        )
 
-        self.options.declare('do_coloring', types=bool, default=True,
-                             desc='If True (the default), compute the partial jacobian '
-                             'coloring for this component.')
+        self.options.declare(
+            "do_coloring",
+            types=bool,
+            default=True,
+            desc="If True (the default), compute the partial jacobian coloring for this component.",
+        )
 
         self.options.undeclare("distributed")
 
@@ -291,18 +343,22 @@ class ExecComp(ExplicitComponent):
         global _expr_dict, _not_complex_safe
 
         if not callable(callable_obj):
-            raise TypeError(f"{cls.__name__}: '{name}' passed to register() of type "
-                            f"'{type(callable_obj).__name__}' is not callable.")
+            raise TypeError(
+                f"{cls.__name__}: '{name}' passed to register() of type "
+                f"'{type(callable_obj).__name__}' is not callable."
+            )
         if name in _expr_dict:
             raise NameError(f"{cls.__name__}: '{name}' has already been registered.")
 
         if name in _option_names:
-            raise NameError(f"{cls.__name__}: cannot register name '{name}' because "
-                            "it's a reserved keyword.")
+            raise NameError(
+                f"{cls.__name__}: cannot register name '{name}' because it's a reserved keyword."
+            )
 
-        if '.' in name:
-            raise NameError(f"{cls.__name__}: cannot register name '{name}' because "
-                            "it contains '.'.")
+        if "." in name:
+            raise NameError(
+                f"{cls.__name__}: cannot register name '{name}' because it contains '.'."
+            )
         _expr_dict[name] = callable_obj
 
         if not complex_safe:
@@ -326,8 +382,8 @@ class ExecComp(ExplicitComponent):
         exprs = self._exprs
         kwargs = self._kwargs
 
-        shape = self.options['shape']
-        shape_by_conn = self.options['shape_by_conn']
+        shape = self.options["shape"]
+        shape_by_conn = self.options["shape_by_conn"]
 
         if shape is not None and shape_by_conn:
             raise RuntimeError(f"{self.msginfo}: Can't set both shape and shape_by_conn.")
@@ -339,12 +395,17 @@ class ExecComp(ExplicitComponent):
         self._requires_fd = {}
 
         for expr in exprs:
-            lhs, _, rhs = expr.partition('=')
+            lhs, _, rhs = expr.partition("=")
             onames = self._parse_for_out_vars(lhs)
             vnames, fnames = self._parse_for_names(rhs)
 
-            constants.update([n for n, val in kwargs.items()
-                              if isinstance(val, dict) and 'constant' in val and val['constant']])
+            constants.update(
+                [
+                    n
+                    for n, val in kwargs.items()
+                    if isinstance(val, dict) and "constant" in val and val["constant"]
+                ]
+            )
             # remove constants
             vnames = vnames.difference(constants)
 
@@ -354,9 +415,11 @@ class ExecComp(ExplicitComponent):
             if onames.intersection(allvars):
                 # we have a used-before-calculated output
                 violators = sorted([n for n in onames if n in allvars])
-                raise RuntimeError(f"{self.msginfo}: Outputs {violators} are used before "
-                                   "being calculated, so this ExecComp is not a valid explicit "
-                                   "component.")
+                raise RuntimeError(
+                    f"{self.msginfo}: Outputs {violators} are used before "
+                    "being calculated, so this ExecComp is not a valid explicit "
+                    "component."
+                )
 
             exprs_info.append((onames, vnames, fnames))
             if _not_complex_safe.intersection(fnames):
@@ -372,100 +435,122 @@ class ExecComp(ExplicitComponent):
                 self._requires_fd[out] = (iset, funcs)
                 inps.extend(iset)
             self._no_check_partials = False
-            self.set_check_partial_options(wrt=inps, method='fd')
+            self.set_check_partial_options(wrt=inps, method="fd")
 
         kwargs2 = {}
         init_vals = {}
-        units = self.options['units']
+        units = self.options["units"]
 
         # make sure all kwargs are legit
         for varname, val in kwargs.items():
-
             if varname not in allvars and varname not in constants:
-                msg = f"{self.msginfo}: arg '{varname}' in call to ExecComp() " \
-                      f"does not refer to any variable in the expressions {exprs}"
-                if varname in ('promotes', 'promotes_inputs', 'promotes_outputs'):
+                msg = (
+                    f"{self.msginfo}: arg '{varname}' in call to ExecComp() "
+                    f"does not refer to any variable in the expressions {exprs}"
+                )
+                if varname in ("promotes", "promotes_inputs", "promotes_outputs"):
                     msg += ". Did you intend to promote variables in the 'add_subsystem' call?"
                 raise RuntimeError(msg)
 
             if isinstance(val, dict):
                 dct = val
-                vval = dct.get('val')
-                vshape = dct.get('shape')
-                vshape_by_conn = dct.get('shape_by_conn')
-                vcopy_shape = dct.get('copy_shape')
-                vcompute_shape = dct.get('compute_shape')
-                vconstant = dct.get('constant')
-                vunits = dct.get('units')
+                vval = dct.get("val")
+                vshape = dct.get("shape")
+                vshape_by_conn = dct.get("shape_by_conn")
+                vcopy_shape = dct.get("copy_shape")
+                vcompute_shape = dct.get("compute_shape")
+                vconstant = dct.get("constant")
+                vunits = dct.get("units")
 
                 if vconstant:
                     if vval is None:
-                        raise RuntimeError(f"{self.msginfo}: arg '{varname}' in call to ExecComp() "
-                                           "is a constant but no value is given")
-                    for ignored_meta in ['units', 'shape']:
+                        raise RuntimeError(
+                            f"{self.msginfo}: arg '{varname}' in call to ExecComp() "
+                            "is a constant but no value is given"
+                        )
+                    for ignored_meta in ["units", "shape"]:
                         if ignored_meta in dct:
-                            issue_warning(f"arg '{varname}' in call to ExecComp() "
-                                          f"is a constant. The {ignored_meta} will be ignored",
-                                          prefix=self.msginfo, category=SetupWarning)
+                            issue_warning(
+                                f"arg '{varname}' in call to ExecComp() "
+                                f"is a constant. The {ignored_meta} will be ignored",
+                                prefix=self.msginfo,
+                                category=SetupWarning,
+                            )
 
                     self._constants[varname] = vval
                     continue  # TODO should still do some checking here!
 
                 diff = set(dct.keys()) - _allowed_meta
                 if diff:
-                    raise RuntimeError("%s: the following metadata names were not "
-                                       "recognized for variable '%s': %s" %
-                                       (self.msginfo, varname, sorted(diff)))
+                    raise RuntimeError(
+                        "%s: the following metadata names were not "
+                        "recognized for variable '%s': %s" % (self.msginfo, varname, sorted(diff))
+                    )
 
                 kwargs2[varname] = dct.copy()
 
                 if units is not None:
                     if vunits is not None and vunits != units:
-                        raise RuntimeError("%s: units of '%s' have been specified for "
-                                           "variable '%s', but units of '%s' have been "
-                                           "specified for the entire component." %
-                                           (self.msginfo, vunits, varname, units))
+                        raise RuntimeError(
+                            "%s: units of '%s' have been specified for "
+                            "variable '%s', but units of '%s' have been "
+                            "specified for the entire component."
+                            % (self.msginfo, vunits, varname, units)
+                        )
                     else:
-                        kwargs2[varname]['units'] = units
+                        kwargs2[varname]["units"] = units
 
                 if shape is not None:
                     if vshape is not None and vshape != shape:
-                        raise RuntimeError("%s: shape of %s has been specified for "
-                                           "variable '%s', but shape of %s has been "
-                                           "specified for the entire component." %
-                                           (self.msginfo, vshape, varname, shape))
+                        raise RuntimeError(
+                            "%s: shape of %s has been specified for "
+                            "variable '%s', but shape of %s has been "
+                            "specified for the entire component."
+                            % (self.msginfo, vshape, varname, shape)
+                        )
                     elif vval is not None:
-                        if (shape and np.atleast_1d(vval).shape != shape) or \
-                           (not shape and np.asarray(vval).shape != shape):
-                            raise RuntimeError("%s: value of shape %s has been specified for "
-                                               "variable '%s', but shape of %s has been "
-                                               "specified for the entire component." %
-                                               (self.msginfo, np.atleast_1d(vval).shape,
-                                                varname, shape))
+                        if (shape and np.atleast_1d(vval).shape != shape) or (
+                            not shape and np.asarray(vval).shape != shape
+                        ):
+                            raise RuntimeError(
+                                "%s: value of shape %s has been specified for "
+                                "variable '%s', but shape of %s has been "
+                                "specified for the entire component."
+                                % (self.msginfo, np.atleast_1d(vval).shape, varname, shape)
+                            )
                     else:
                         init_vals[varname] = np.ones(shape)
 
                 if vval is not None:
                     init_vals[varname] = vval
-                    del kwargs2[varname]['val']
+                    del kwargs2[varname]["val"]
 
                 if vshape_by_conn or vcopy_shape or vcompute_shape:
                     if vshape is not None or vval is not None:
-                        raise RuntimeError(f"{self.msginfo}: Can't set 'shape' or 'val' for "
-                                           f"variable '{varname}' along with 'copy_shape', "
-                                           "compute_shape, or 'shape_by_conn'.")
+                        raise RuntimeError(
+                            f"{self.msginfo}: Can't set 'shape' or 'val' for "
+                            f"variable '{varname}' along with 'copy_shape', "
+                            "compute_shape, or 'shape_by_conn'."
+                        )
 
                 if vshape is not None:
                     if varname not in init_vals:
                         init_vals[varname] = np.ones(vshape)
-                    elif (vshape and np.atleast_1d(init_vals[varname]).shape != vshape) or \
-                         (vshape == () and np.asarray(init_vals[varname]).shape != vshape):
-                        raise RuntimeError("%s: shape of %s has been specified for variable "
-                                           "'%s', but a value of shape %s has been provided." %
-                                           (self.msginfo, str(vshape), varname,
-                                            str(np.atleast_1d(init_vals[varname]).shape)))
+                    elif (vshape and np.atleast_1d(init_vals[varname]).shape != vshape) or (
+                        vshape == () and np.asarray(init_vals[varname]).shape != vshape
+                    ):
+                        raise RuntimeError(
+                            "%s: shape of %s has been specified for variable "
+                            "'%s', but a value of shape %s has been provided."
+                            % (
+                                self.msginfo,
+                                str(vshape),
+                                varname,
+                                str(np.atleast_1d(init_vals[varname]).shape),
+                            )
+                        )
                     if shape is not None:
-                        del kwargs2[varname]['shape']
+                        del kwargs2[varname]["shape"]
             else:
                 init_vals[varname] = val
 
@@ -475,10 +560,9 @@ class ExecComp(ExplicitComponent):
             var_rel2meta = self._var_rel2meta
 
         for var in sorted(allvars):
-            meta = kwargs2.get(var, {
-                'units': units,
-                'shape': shape,
-                'shape_by_conn': shape_by_conn})
+            meta = kwargs2.get(
+                var, {"units": units, "shape": shape, "shape_by_conn": shape_by_conn}
+            )
 
             # if user supplied an initial value, use it, otherwise set to 1.0
             if var in init_vals:
@@ -495,22 +579,22 @@ class ExecComp(ExplicitComponent):
                     if kvalue is not None:
                         current_meta[kname] = kvalue
 
-                new_val = kwargs[var].get('val')
+                new_val = kwargs[var].get("val")
                 if new_val is not None:
                     # val is normally ensured to be a numpy array in add_input/add_output,
                     # do the same here...
-                    current_meta['val'] = np.atleast_1d(new_val)
+                    current_meta["val"] = np.atleast_1d(new_val)
             else:
                 # new input and/or output.
                 if var in outs:
                     current_meta = self.add_output(var, val, **meta)
                 else:
-                    if 'constant' in meta:
-                        meta.pop('constant', None)
+                    if "constant" in meta:
+                        meta.pop("constant", None)
                     current_meta = self.add_input(var, val, **meta)
 
             if var not in init_vals:
-                init_vals[var] = current_meta['val']
+                init_vals[var] = current_meta["val"]
 
         self._codes = self._compile_exprs(self._exprs)
 
@@ -539,8 +623,9 @@ class ExecComp(ExplicitComponent):
         self._exprs.append(expr)
         for name in kwargs:
             if name in self._kwargs:
-                raise NameError(f"Defaults for '{name}' have already been defined in a previous "
-                                "expression.")
+                raise NameError(
+                    f"Defaults for '{name}' have already been defined in a previous expression."
+                )
 
         self._kwargs.update(kwargs)
 
@@ -551,59 +636,74 @@ class ExecComp(ExplicitComponent):
         compiled = []
         outputs = set()
         for i, expr in enumerate(exprs):
-
             # Quick dupe check.
-            lhs_name = expr.partition('=')[0].strip()
+            lhs_name = expr.partition("=")[0].strip()
             if lhs_name in outputs:
                 # Can't add two equations with the same output.
-                raise RuntimeError(f"{self.msginfo}: The output '{lhs_name}' has already been "
-                                   "defined by an expression.")
+                raise RuntimeError(
+                    f"{self.msginfo}: The output '{lhs_name}' has already been "
+                    "defined by an expression."
+                )
             else:
                 outputs.add(lhs_name)
 
             try:
-                compiled.append(compile(expr, expr, 'exec'))
+                compiled.append(compile(expr, expr, "exec"))
             except Exception:
-                raise RuntimeError("%s: failed to compile expression '%s'." %
-                                   (self.msginfo, exprs[i]))
+                raise RuntimeError(
+                    "%s: failed to compile expression '%s'." % (self.msginfo, exprs[i])
+                )
         return compiled
 
     def _parse_for_out_vars(self, s):
-        vnames = set([x.strip() for x in re.findall(VAR_RGX, s)
-                      if not x.endswith('(') and not x.startswith('.')])
+        vnames = set(
+            [
+                x.strip()
+                for x in re.findall(VAR_RGX, s)
+                if not x.endswith("(") and not x.startswith(".")
+            ]
+        )
         for v in vnames:
             if v in _expr_dict:
-                raise NameError("%s: cannot assign to variable '%s' "
-                                "because it's already defined as an internal "
-                                "function or constant." % (self.msginfo, v))
+                raise NameError(
+                    "%s: cannot assign to variable '%s' "
+                    "because it's already defined as an internal "
+                    "function or constant." % (self.msginfo, v)
+                )
         return vnames
 
     def _parse_for_names(self, s):
-        names = [x.strip() for x in re.findall(VAR_RGX, s) if not x.startswith('.')]
+        names = [x.strip() for x in re.findall(VAR_RGX, s) if not x.startswith(".")]
         vnames = set()
         for n in names:
-            if n.endswith('('):
+            if n.endswith("("):
                 continue
             vnames.add(n)
-        fnames = [n[:-1] for n in names if n[-1] == '(']
+        fnames = [n[:-1] for n in names if n[-1] == "("]
         to_remove = []
         for v in vnames:
             if v in _option_names:
-                raise NameError("%s: cannot use variable name '%s' because "
-                                "it's a reserved keyword." % (self.msginfo, v))
+                raise NameError(
+                    "%s: cannot use variable name '%s' because "
+                    "it's a reserved keyword." % (self.msginfo, v)
+                )
             if v in _expr_dict:
                 expvar = _expr_dict[v]
                 if callable(expvar):
-                    raise NameError("%s: cannot use '%s' as a variable because "
-                                    "it's already defined as an internal "
-                                    "function or constant." % (self.msginfo, v))
+                    raise NameError(
+                        "%s: cannot use '%s' as a variable because "
+                        "it's already defined as an internal "
+                        "function or constant." % (self.msginfo, v)
+                    )
                 else:
                     to_remove.append(v)
 
         for f in fnames:
             if f not in _expr_dict:
-                raise NameError(f"{self.msginfo}: can't use '{f}' as a function because "
-                                "it hasn't been registered.")
+                raise NameError(
+                    f"{self.msginfo}: can't use '{f}' as a function because "
+                    "it hasn't been registered."
+                )
 
         return vnames.difference(to_remove), fnames
 
@@ -617,7 +717,7 @@ class ExecComp(ExplicitComponent):
             State to get.
         """
         state = self.__dict__.copy()
-        del state['_codes']
+        del state["_codes"]
         return state
 
     def __setstate__(self, state):
@@ -648,12 +748,15 @@ class ExecComp(ExplicitComponent):
         dict
             Metadata dict for the specified partial(s).
         """
-        if 'method' not in kwargs or kwargs['method'] not in ('cs', 'fd'):
-            raise RuntimeError(f"{self.msginfo}: declare_partials must be called with method='cs' "
-                               "or method='fd'.")
-        if self.options['has_diag_partials']:
-            raise RuntimeError(f"{self.msginfo}: declare_partials cannot be called manually if "
-                               "has_diag_partials has been set.")
+        if "method" not in kwargs or kwargs["method"] not in ("cs", "fd"):
+            raise RuntimeError(
+                f"{self.msginfo}: declare_partials must be called with method='cs' or method='fd'."
+            )
+        if self.options["has_diag_partials"]:
+            raise RuntimeError(
+                f"{self.msginfo}: declare_partials cannot be called manually if "
+                "has_diag_partials has been set."
+            )
 
         self._manual_decl_partials = True
         return super().declare_partials(*args, **kwargs)
@@ -669,27 +772,28 @@ class ExecComp(ExplicitComponent):
         Coloring or None
             Coloring object, possible loaded from a file or dynamically generated, or None
         """
-        if self.options['do_coloring']:
+        if self.options["do_coloring"]:
             return super()._get_coloring()
 
     def _setup_partials(self):
         """
         Check that all partials are declared.
         """
-        has_diag_partials = self.options['has_diag_partials']
+        has_diag_partials = self.options["has_diag_partials"]
         if not self._manual_decl_partials:
-            if self.options['do_coloring'] and not has_diag_partials:
+            if self.options["do_coloring"] and not has_diag_partials:
                 rank = self.comm.rank
                 sizes = self._var_sizes
-                if not self._has_distrib_vars and (sum(sizes['input'][rank]) > 1 and
-                                                   sum(sizes['output'][rank]) > 1):
+                if not self._has_distrib_vars and (
+                    sum(sizes["input"][rank]) > 1 and sum(sizes["output"][rank]) > 1
+                ):
                     if not self._coloring_declared:
-                        super().declare_coloring(wrt=('*', ), method='cs', show_summary=False)
+                        super().declare_coloring(wrt=("*",), method="cs", show_summary=False)
                         self._coloring_info.dynamic = True
                         self._manual_decl_partials = False  # this gets reset in declare_partials
                         self._declared_partials_patterns = {}
                 else:
-                    self.options['do_coloring'] = False
+                    self.options["do_coloring"] = False
                     self._coloring_info.dynamic = False
 
             decl_partials = super().declare_partials
@@ -699,15 +803,16 @@ class ExecComp(ExplicitComponent):
                 for out in sorted(outs):
                     for inp in ins:
                         if has_diag_partials:
-                            ival = nodes[('i', self.pathname + '.' + inp)]['attrs'].val
-                            oval = nodes[('o', self.pathname + '.' + out)]['attrs'].val
+                            ival = nodes[("i", self.pathname + "." + inp)]["attrs"].val
+                            oval = nodes[("o", self.pathname + "." + out)]["attrs"].val
                             iarray = isinstance(ival, ndarray) and ival.size > 1
                             if iarray and isinstance(oval, ndarray) and oval.size > 1:
                                 if oval.size != ival.size:
                                     raise RuntimeError(
                                         "%s: has_diag_partials is True but partial(%s, %s) "
-                                        "is not square (shape=(%d, %d))." %
-                                        (self.msginfo, out, inp, oval.size, ival.size))
+                                        "is not square (shape=(%d, %d))."
+                                        % (self.msginfo, out, inp, oval.size, ival.size)
+                                    )
                                 # partial will be declared as diagonal
                                 decl_partials(of=out, wrt=inp, diagonal=True)
                             else:
@@ -722,18 +827,22 @@ class ExecComp(ExplicitComponent):
             for outs, vs, _ in self._exprs_info:
                 ins = sorted(set(vs).difference(outs))
                 for out in sorted(outs):
-                    out = '.'.join((self.pathname, out))
+                    out = ".".join((self.pathname, out))
                     for inp in ins:
-                        inp = '.'.join((self.pathname, inp))
+                        inp = ".".join((self.pathname, inp))
                         if (out, inp) not in self._subjacs_info:
                             undeclared.append((out, inp))
             if undeclared:
                 idx = len(self.pathname) + 1
-                undeclared = ', '.join([' wrt '.join((f"'{of[idx:]}'", f"'{wrt[idx:]}'"))
-                                        for of, wrt in undeclared])
-                issue_warning(f"The following partial derivatives have not been "
-                              f"declared so they are assumed to be zero: [{undeclared}].",
-                              prefix=self.msginfo, category=DerivativesWarning)
+                undeclared = ", ".join(
+                    [" wrt ".join((f"'{of[idx:]}'", f"'{wrt[idx:]}'")) for of, wrt in undeclared]
+                )
+                issue_warning(
+                    f"The following partial derivatives have not been "
+                    f"declared so they are assumed to be zero: [{undeclared}].",
+                    prefix=self.msginfo,
+                    category=DerivativesWarning,
+                )
 
     def _setup_vectors(self, parent_vectors=None):
         """
@@ -785,8 +894,9 @@ class ExecComp(ExplicitComponent):
             # combine lookup dicts for faster exec calls
             viewdict = self._indict.copy()
             viewdict.update(outdict)
-            viewdict.update({n: (np.atleast_1d(v), np.isscalar(v))
-                             for n, v in self._constants.items()})
+            viewdict.update(
+                {n: (np.atleast_1d(v), np.isscalar(v)) for n, v in self._constants.items()}
+            )
             self._viewdict = _ViewDict(viewdict)
 
     def compute(self, inputs, outputs):
@@ -824,8 +934,9 @@ class ExecComp(ExplicitComponent):
                 exec(expr, _expr_dict, self._iodict)  # nosec:
                 # limited to _expr_dict
             except Exception as err:
-                raise RuntimeError(f"{self.msginfo}: Error occurred evaluating '{self._exprs[i]}':"
-                                   f"\n{err}")
+                raise RuntimeError(
+                    f"{self.msginfo}: Error occurred evaluating '{self._exprs[i]}':\n{err}"
+                )
 
     def _linearize(self, sub_do_ln=False):
         """
@@ -840,33 +951,37 @@ class ExecComp(ExplicitComponent):
 
         # perform complex safe check
         if self._requires_fd:
-            if 'fd' in self._approx_schemes:
-                fdins = {wrt.rsplit('.', 1)[1] for wrt in self._approx_schemes['fd']._wrt_meta}
+            if "fd" in self._approx_schemes:
+                fdins = {wrt.rsplit(".", 1)[1] for wrt in self._approx_schemes["fd"]._wrt_meta}
             else:
                 fdins = set()
 
             for _, (inps, funcs) in self._requires_fd.items():
                 diff = inps.difference(fdins)
                 if diff:
-                    raise RuntimeError(f"{self.msginfo}: expression contains functions "
-                                       f"{sorted(funcs)} that are not complex safe. To fix this, "
-                                       f"call declare_partials('*', {sorted(diff)}, method='fd') "
-                                       f"on this component prior to setup.")
+                    raise RuntimeError(
+                        f"{self.msginfo}: expression contains functions "
+                        f"{sorted(funcs)} that are not complex safe. To fix this, "
+                        f"call declare_partials('*', {sorted(diff)}, method='fd') "
+                        f"on this component prior to setup."
+                    )
             self._requires_fd = False  # only need to do this check the first time around
 
-    def declare_coloring(self,
-                         wrt=_DEFAULT_COLORING_META['wrt_patterns'],
-                         method=_DEFAULT_COLORING_META['method'],
-                         form=None,
-                         step=None,
-                         per_instance=_DEFAULT_COLORING_META['per_instance'],
-                         num_full_jacs=_DEFAULT_COLORING_META['num_full_jacs'],
-                         tol=_DEFAULT_COLORING_META['tol'],
-                         orders=_DEFAULT_COLORING_META['orders'],
-                         perturb_size=_DEFAULT_COLORING_META['perturb_size'],
-                         min_improve_pct=_DEFAULT_COLORING_META['min_improve_pct'],
-                         show_summary=_DEFAULT_COLORING_META['show_summary'],
-                         show_sparsity=_DEFAULT_COLORING_META['show_sparsity']):
+    def declare_coloring(
+        self,
+        wrt=_DEFAULT_COLORING_META["wrt_patterns"],
+        method=_DEFAULT_COLORING_META["method"],
+        form=None,
+        step=None,
+        per_instance=_DEFAULT_COLORING_META["per_instance"],
+        num_full_jacs=_DEFAULT_COLORING_META["num_full_jacs"],
+        tol=_DEFAULT_COLORING_META["tol"],
+        orders=_DEFAULT_COLORING_META["orders"],
+        perturb_size=_DEFAULT_COLORING_META["perturb_size"],
+        min_improve_pct=_DEFAULT_COLORING_META["min_improve_pct"],
+        show_summary=_DEFAULT_COLORING_META["show_summary"],
+        show_sparsity=_DEFAULT_COLORING_META["show_sparsity"],
+    ):
         """
         Set options for deriv coloring of a set of wrt vars matching the given pattern(s).
 
@@ -903,9 +1018,20 @@ class ExecComp(ExplicitComponent):
         show_sparsity : bool
             If True, display sparsity with coloring info after generating coloring.
         """
-        super().declare_coloring(wrt, method, form, step, per_instance, num_full_jacs,
-                                 tol, orders, perturb_size, min_improve_pct,
-                                 show_summary, show_sparsity)
+        super().declare_coloring(
+            wrt,
+            method,
+            form,
+            step,
+            per_instance,
+            num_full_jacs,
+            tol,
+            orders,
+            perturb_size,
+            min_improve_pct,
+            show_summary,
+            show_sparsity,
+        )
         self._coloring_declared = True
         self._manual_decl_partials = True
 
@@ -914,8 +1040,9 @@ class ExecComp(ExplicitComponent):
             try:
                 exec(expr, _expr_dict, self._viewdict)  # nosec:
             except Exception as err:
-                raise RuntimeError(f"{self.msginfo}: Error occurred evaluating "
-                                   f"'{self._exprs[i]}':\n{err}")
+                raise RuntimeError(
+                    f"{self.msginfo}: Error occurred evaluating '{self._exprs[i]}':\n{err}"
+                )
 
     def _compute_coloring(self, recurse=False, **overrides):
         """
@@ -943,19 +1070,21 @@ class ExecComp(ExplicitComponent):
         info = self._coloring_info
         info.update(overrides)
 
-        if not self._coloring_declared and info['method'] is None:
-            info['method'] = 'cs'
+        if not self._coloring_declared and info["method"] is None:
+            info["method"] = "cs"
 
-        if info['method'] != 'cs':
-            raise RuntimeError(f"{self.msginfo}: 'method' for coloring must be 'cs' if partials "
-                               "and/or coloring are not declared manually using declare_partials "
-                               "or declare_coloring.")
+        if info["method"] != "cs":
+            raise RuntimeError(
+                f"{self.msginfo}: 'method' for coloring must be 'cs' if partials "
+                "and/or coloring are not declared manually using declare_partials "
+                "or declare_coloring."
+            )
 
         if info.coloring is None and info.static is None:
-            info['dynamic'] = True
+            info["dynamic"] = True
 
         # match everything
-        info['wrt_matches'] = None
+        info["wrt_matches"] = None
 
         sparsity_start_time = time.perf_counter()
 
@@ -964,7 +1093,7 @@ class ExecComp(ExplicitComponent):
         inarr = self._inarray
         oarr = self._outarray
 
-        if self.options['has_diag_partials']:
+        if self.options["has_diag_partials"]:
             # we should never get here
             raise NotImplementedError("has_diag_partials not supported with coloring yet")
 
@@ -972,12 +1101,12 @@ class ExecComp(ExplicitComponent):
         starting_inputs = self._inputs.asarray(copy=not self._relcopy)
         in_offsets = starting_inputs.copy()
         in_offsets[in_offsets == 0.0] = 1.0
-        in_offsets *= info['perturb_size']
+        in_offsets *= info["perturb_size"]
 
         # use special sparse jacobian to collect sparsity info
         jac = _ColSparsityJac(self)
 
-        for i in range(info['num_full_jacs']):
+        for i in range(info["num_full_jacs"]):
             inarr[:] = starting_inputs + in_offsets * get_random_arr(in_offsets.size, self.comm)
 
             for i in range(inarr.size):
@@ -993,7 +1122,7 @@ class ExecComp(ExplicitComponent):
         sparsity_time = time.perf_counter() - sparsity_start_time
         self._update_subjac_sparsity(self.subjac_sparsity_iter(sparsity=sparsity))
 
-        coloring = _compute_coloring(sparsity, 'fwd')
+        coloring = _compute_coloring(sparsity, "fwd")
 
         if not self._finalize_coloring(coloring, info, sp_info, sparsity_time):
             return [None]
@@ -1027,7 +1156,7 @@ class ExecComp(ExplicitComponent):
         inv_stepsize = 1.0 / self.complex_stepsize
         inarr = self._inarray
         oarr = self._outarray
-        out_names = self._var_rel_names['output']
+        out_names = self._var_rel_names["output"]
 
         inarr[:] = self._inputs.asarray(copy=False)
         scratch = np.empty(oarr.size)
@@ -1035,7 +1164,7 @@ class ExecComp(ExplicitComponent):
         out_slices = self._out_slices
         in_slices = self._in_slices
 
-        for icols, nzrowlists in self._coloring_info.coloring.color_nonzero_iter('fwd'):
+        for icols, nzrowlists in self._coloring_info.coloring.color_nonzero_iter("fwd"):
             # set a complex input value
             inarr[icols] += step
 
@@ -1043,7 +1172,7 @@ class ExecComp(ExplicitComponent):
             self._exec()
 
             imag_oar = imag(oarr * inv_stepsize)
-            scratch[:] = 0.
+            scratch[:] = 0.0
 
             for icol, rows in zip(icols, nzrowlists):
                 scratch[rows] = imag_oar[rows]
@@ -1055,7 +1184,7 @@ class ExecComp(ExplicitComponent):
                         # set the column in the Jacobian entry
                         part = scratch[out_slices[out_name]]
                         partials[key][:, loc_i] = part
-                        part[:] = 0.
+                        part[:] = 0.0
 
             # restore old input value
             inarr[icols] -= step
@@ -1075,18 +1204,20 @@ class ExecComp(ExplicitComponent):
             return
 
         if self.under_complex_step:
-            raise RuntimeError(f"{self.msginfo}: Can't compute complex step partials when higher "
-                               "level system is using complex step unless you manually call "
-                               "declare_partials and/or declare_coloring on this ExecComp.")
+            raise RuntimeError(
+                f"{self.msginfo}: Can't compute complex step partials when higher "
+                "level system is using complex step unless you manually call "
+                "declare_partials and/or declare_coloring on this ExecComp."
+            )
 
         if self._coloring_info.coloring is not None:
             self._compute_colored_partials(partials)
             return
 
         step = self.complex_stepsize * 1j
-        out_names = self._var_rel_names['output']
+        out_names = self._var_rel_names["output"]
         inv_stepsize = 1.0 / self.complex_stepsize
-        has_diag_partials = self.options['has_diag_partials']
+        has_diag_partials = self.options["has_diag_partials"]
         inarr = self._inarray
         vdict = self._viewdict.dct
 
@@ -1245,7 +1376,7 @@ def _import_functs(mod, dct, names=None):
             name, alias = name
         else:
             alias = name
-        if not name[0] == '_':
+        if not name[0] == "_":
             dct[name] = getattr(mod, name)
             dct[alias] = dct[name]
 
@@ -1254,20 +1385,52 @@ _expr_dict = {}  # this dict will act as the local scope when we eval our expres
 _not_complex_safe = set()  # this is the set of registered functions that are not complex safe
 
 
-_import_functs(np, _expr_dict,
-               names=['arange', 'ones', 'zeros', 'linspace',  # Array creation
-                      'e', 'pi',  # Constants
-                      'isinf', 'isnan',  # Logic
-                      'log', 'log10', 'log1p', 'power',  # Math operations
-                      'exp', 'expm1', 'fmax', 'min', 'max', 'diff',
-                      'fmin', 'maximum', 'minimum',
-                      'sum', 'dot', 'prod',  # Reductions
-                      'tensordot', 'matmul',  # Linear algebra
-                      'outer', 'inner', 'kron',
-                      'sin', 'cos', 'tan', ('arcsin', 'asin'),  # Trig
-                      ('arccos', 'acos'), ('arctan', 'atan'),
-                      'sinh', 'cosh', 'tanh', ('arcsinh', 'asinh'),  # Hyperbolic trig
-                      ('arccosh', 'acosh')])
+_import_functs(
+    np,
+    _expr_dict,
+    names=[
+        "arange",
+        "ones",
+        "zeros",
+        "linspace",  # Array creation
+        "e",
+        "pi",  # Constants
+        "isinf",
+        "isnan",  # Logic
+        "log",
+        "log10",
+        "log1p",
+        "power",  # Math operations
+        "exp",
+        "expm1",
+        "fmax",
+        "min",
+        "max",
+        "diff",
+        "fmin",
+        "maximum",
+        "minimum",
+        "sum",
+        "dot",
+        "prod",  # Reductions
+        "tensordot",
+        "matmul",  # Linear algebra
+        "outer",
+        "inner",
+        "kron",
+        "sin",
+        "cos",
+        "tan",
+        ("arcsin", "asin"),  # Trig
+        ("arccos", "acos"),
+        ("arctan", "atan"),
+        "sinh",
+        "cosh",
+        "tanh",
+        ("arcsinh", "asinh"),  # Hyperbolic trig
+        ("arccosh", "acosh"),
+    ],
+)
 
 
 # if scipy is available, add some functions
@@ -1276,13 +1439,13 @@ try:
 except ImportError:
     pass
 else:
-    _import_functs(scipy.special, _expr_dict, names=['erf', 'erfc'])
+    _import_functs(scipy.special, _expr_dict, names=["erf", "erfc"])
 
 
 # put any functions that need custom complex-safe versions here
 
-_expr_dict['abs'] = cs_safe.abs
-_expr_dict['arctan2'] = cs_safe.arctan2
+_expr_dict["abs"] = cs_safe.abs
+_expr_dict["arctan2"] = cs_safe.arctan2
 
 
 class _NumpyMsg(object):
@@ -1315,14 +1478,19 @@ class _NumpyMsg(object):
         RuntimeError
             When an attempt is made to access any attribute/function.
         """
-        raise RuntimeError('\n'.join([
-            "    ExecComp supports a subset of numpy functions directly, without the '%s' prefix.",
-            "    '%s' is %ssupported (See the documentation)."
-        ]) % (self.namespace, name, '' if name in _expr_dict else 'not '))
+        raise RuntimeError(
+            "\n".join(
+                [
+                    "    ExecComp supports a subset of numpy functions directly, without the '%s' prefix.",
+                    "    '%s' is %ssupported (See the documentation).",
+                ]
+            )
+            % (self.namespace, name, "" if name in _expr_dict else "not ")
+        )
 
 
-_expr_dict['np'] = _NumpyMsg('np')
-_expr_dict['numpy'] = _NumpyMsg('numpy')
+_expr_dict["np"] = _NumpyMsg("np")
+_expr_dict["numpy"] = _NumpyMsg("numpy")
 
 
 @contextmanager

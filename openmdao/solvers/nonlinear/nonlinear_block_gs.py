@@ -24,7 +24,7 @@ class NonlinearBlockGS(NonlinearSolver):
         option is turned on.
     """
 
-    SOLVER = 'NL: NLBGS'
+    SOLVER = "NL: NLBGS"
 
     def __init__(self, **kwargs):
         """
@@ -49,8 +49,11 @@ class NonlinearBlockGS(NonlinearSolver):
         super()._setup_solvers(system, depth)
 
         if len(system._subsystems_allprocs) != len(system._subsystems_myproc):
-            raise RuntimeError('{}: Nonlinear Gauss-Seidel cannot be used on a '
-                               'parallel group.'.format(self.msginfo))
+            raise RuntimeError(
+                "{}: Nonlinear Gauss-Seidel cannot be used on a parallel group.".format(
+                    self.msginfo
+                )
+            )
 
     def _declare_options(self):
         """
@@ -58,24 +61,40 @@ class NonlinearBlockGS(NonlinearSolver):
         """
         super()._declare_options()
 
-        self.options.declare('use_aitken', types=bool, default=False,
-                             desc='set to True to use Aitken relaxation')
-        self.options.declare('aitken_min_factor', default=0.1,
-                             desc='lower limit for Aitken relaxation factor')
-        self.options.declare('aitken_max_factor', default=1.5,
-                             desc='upper limit for Aitken relaxation factor')
-        self.options.declare('aitken_initial_factor', default=1.0,
-                             desc='initial value for Aitken relaxation factor')
-        self.options.declare('cs_reconverge', types=bool, default=True,
-                             desc='When True, when this driver solves under a complex step, nudge '
-                             'the Solution vector by a small amount so that it reconverges.')
-        self.options.declare('use_apply_nonlinear', types=bool, default=False,
-                             desc="Set to True to always call apply_nonlinear on the solver's "
-                             "system after solve_nonlinear has been called.")
-        self.options.declare('reraise_child_analysiserror', types=bool, default=False,
-                             desc='When the option is true, a solver will reraise any '
-                             'AnalysisError that arises during subsolve; when false, it will '
-                             'continue solving.')
+        self.options.declare(
+            "use_aitken", types=bool, default=False, desc="set to True to use Aitken relaxation"
+        )
+        self.options.declare(
+            "aitken_min_factor", default=0.1, desc="lower limit for Aitken relaxation factor"
+        )
+        self.options.declare(
+            "aitken_max_factor", default=1.5, desc="upper limit for Aitken relaxation factor"
+        )
+        self.options.declare(
+            "aitken_initial_factor", default=1.0, desc="initial value for Aitken relaxation factor"
+        )
+        self.options.declare(
+            "cs_reconverge",
+            types=bool,
+            default=True,
+            desc="When True, when this driver solves under a complex step, nudge "
+            "the Solution vector by a small amount so that it reconverges.",
+        )
+        self.options.declare(
+            "use_apply_nonlinear",
+            types=bool,
+            default=False,
+            desc="Set to True to always call apply_nonlinear on the solver's "
+            "system after solve_nonlinear has been called.",
+        )
+        self.options.declare(
+            "reraise_child_analysiserror",
+            types=bool,
+            default=False,
+            desc="When the option is true, a solver will reraise any "
+            "AnalysisError that arises during subsolve; when false, it will "
+            "continue solving.",
+        )
 
     def _iter_initialize(self):
         """
@@ -90,9 +109,9 @@ class NonlinearBlockGS(NonlinearSolver):
         """
         system = self._system()
 
-        if self.options['use_aitken']:
+        if self.options["use_aitken"]:
             self._delta_outputs_n_1 = system._outputs.asarray(copy=True)
-            self._theta_n_1 = 1.
+            self._theta_n_1 = 1.0
 
         # When under a complex step from higher in the hierarchy, sometimes the step is too small
         # to trigger reconvergence, so nudge the outputs slightly so that we always get at least
@@ -101,13 +120,13 @@ class NonlinearBlockGS(NonlinearSolver):
         # recomputes them, so a real nudge there would permanently shift the point where the
         # complex step derivative is evaluated (issue #3800), and sizing the nudge from them
         # would let unrelated output values steer the iteration count.
-        if system.under_complex_step and self.options['cs_reconverge']:
+        if system.under_complex_step and self.options["cs_reconverge"]:
             outputs = system._outputs
             arr = outputs.asarray()
             mask = np.ones(arr.size, dtype=bool)
-            abs2meta_out = system._var_allprocs_abs2meta['output']
+            abs2meta_out = system._var_allprocs_abs2meta["output"]
             for name in outputs._abs_iter():
-                if 'openmdao:indep_var' in abs2meta_out[name]['tags']:
+                if "openmdao:indep_var" in abs2meta_out[name]["tags"]:
                     start, stop = outputs.get_range(name)
                     mask[start:stop] = False
             arr[mask] += np.linalg.norm(arr[mask]) * 1e-10
@@ -126,15 +145,15 @@ class NonlinearBlockGS(NonlinearSolver):
         system = self._system()
         outputs = system._outputs
         residuals = system._residuals
-        use_aitken = self.options['use_aitken']
+        use_aitken = self.options["use_aitken"]
 
         if use_aitken:
             # store a copy of the outputs, used to compute the change in outputs later
             delta_outputs_n = outputs.asarray(copy=True)
 
-        if use_aitken or not self.options['use_apply_nonlinear']:
+        if use_aitken or not self.options["use_apply_nonlinear"]:
             # store a copy of the outputs
-            if not self.options['use_apply_nonlinear']:
+            if not self.options["use_apply_nonlinear"]:
                 with system._unscaled_context(outputs=[outputs]):
                     outputs_n = outputs.asarray(copy=True)
             else:
@@ -147,7 +166,7 @@ class NonlinearBlockGS(NonlinearSolver):
         if use_aitken:
             self._aitken_relax(outputs, residuals, outputs_n, delta_outputs_n)
 
-        if not self.options['use_apply_nonlinear']:
+        if not self.options["use_apply_nonlinear"]:
             # Residual is the change in the outputs vector.
             with system._unscaled_context(outputs=[outputs], residuals=[residuals]):
                 residuals.set_val(outputs.asarray() - outputs_n)
@@ -157,15 +176,14 @@ class NonlinearBlockGS(NonlinearSolver):
         Run the apply_nonlinear method on the system.
         """
         system = self._system()
-        maxiter = self.options['maxiter']
+        maxiter = self.options["maxiter"]
         itercount = self._iter_count
 
-        if (maxiter < 2 and itercount < 1) or self.options['use_apply_nonlinear']:
-
+        if (maxiter < 2 and itercount < 1) or self.options["use_apply_nonlinear"]:
             # This option runs apply_nonlinear to calculate the residuals, and thus ends up
             # executing ExplicitComponents twice per iteration.
 
-            self._recording_iter.push(('_run_apply', 0))
+            self._recording_iter.push(("_run_apply", 0))
             try:
                 system._apply_nonlinear()
             finally:
@@ -177,7 +195,7 @@ class NonlinearBlockGS(NonlinearSolver):
             self._iter_count += 1
             outputs = system._outputs
             residuals = system._residuals
-            use_aitken = self.options['use_aitken']
+            use_aitken = self.options["use_aitken"]
 
             if use_aitken:
                 # store a copy of the outputs, used to compute the change in outputs later
@@ -188,7 +206,7 @@ class NonlinearBlockGS(NonlinearSolver):
 
             self._solver_info.append_subsolver()
             for subsys in system._relevance.filter(system._all_subsystem_iter()):
-                system._transfer('nonlinear', 'fwd', subsys.name)
+                system._transfer("nonlinear", "fwd", subsys.name)
                 if subsys._is_local:
                     subsys._solve_nonlinear()
 
@@ -205,13 +223,13 @@ class NonlinearBlockGS(NonlinearSolver):
         """
         system = self._system()
 
-        aitken_min_factor = self.options['aitken_min_factor']
-        aitken_max_factor = self.options['aitken_max_factor']
+        aitken_min_factor = self.options["aitken_min_factor"]
+        aitken_max_factor = self.options["aitken_max_factor"]
 
         # some variables that are used for Aitken's relaxation
         delta_outputs_n_1 = self._delta_outputs_n_1
         theta_n_1 = self._theta_n_1
-        theta_n = self.options['aitken_initial_factor']
+        theta_n = self.options["aitken_initial_factor"]
 
         # compute the change in the outputs after the NLBGS iteration
         delta_outputs_n -= outputs.asarray()
@@ -233,7 +251,7 @@ class NonlinearBlockGS(NonlinearSolver):
             else:
                 temp_norm = np.linalg.norm(temp)
 
-            if temp_norm == 0.:
+            if temp_norm == 0.0:
                 temp_norm = 1e-12  # prevent division by 0 below
 
             # If MPI, piggyback on the output and residual vectors to perform a distributed
@@ -247,7 +265,7 @@ class NonlinearBlockGS(NonlinearSolver):
             else:
                 tddo = temp.dot(delta_outputs_n)
 
-            theta_n = theta_n_1 * (1 - tddo / temp_norm ** 2)
+            theta_n = theta_n_1 * (1 - tddo / temp_norm**2)
 
         else:
             # keep the initial the relaxation factor
@@ -258,7 +276,7 @@ class NonlinearBlockGS(NonlinearSolver):
         # save relaxation factor for the next iteration
         self._theta_n_1 = theta_n
 
-        if not self.options['use_apply_nonlinear']:
+        if not self.options["use_apply_nonlinear"]:
             with system._unscaled_context(outputs=[outputs]):
                 outputs.set_val(outputs_n)
         else:

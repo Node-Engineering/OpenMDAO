@@ -12,8 +12,13 @@ import numpy as np
 from numpy import ndarray, isscalar, ndim, atleast_1d
 from scipy.sparse import issparse, coo_matrix, csr_matrix
 
-from openmdao.core.system import System, _supported_methods, _DEFAULT_COLORING_META, \
-    global_meta_names, _iter_derivs
+from openmdao.core.system import (
+    System,
+    _supported_methods,
+    _DEFAULT_COLORING_META,
+    global_meta_names,
+    _iter_derivs,
+)
 from openmdao.core.constants import INT_DTYPE, _DEFAULT_OUT_STREAM, _SetupStatus
 from openmdao.jacobians.subjac import Subjac
 from openmdao.jacobians.dictionary_jacobian import _CheckingJacobian
@@ -22,19 +27,36 @@ from openmdao.utils.name_maps import abs_key_iter, abs_key2rel_key, rel_key2abs_
 from openmdao.utils.mpi import MPI
 from openmdao.utils.array_utils import shape_to_len, submat_sparsity_iter, sparsity_diff_viz
 from openmdao.utils.deriv_display import _deriv_display, _deriv_display_compact
-from openmdao.utils.general_utils import format_as_float_or_array, ensure_compatible, \
-    find_matches, make_set, inconsistent_across_procs, LocalRangeIterable, collect_errors
+from openmdao.utils.general_utils import (
+    format_as_float_or_array,
+    ensure_compatible,
+    find_matches,
+    make_set,
+    inconsistent_across_procs,
+    LocalRangeIterable,
+    collect_errors,
+)
 import openmdao.utils.coloring as coloring_mod
-from openmdao.utils.om_warnings import issue_warning, MPIWarning, DistributedComponentWarning, \
-    DerivativesWarning, warn_deprecation, OMInvalidCheckDerivativesOptionsWarning
-from openmdao.utils.code_utils import is_lambda, LambdaPickleWrapper, get_function_deps, \
-    get_return_names
+from openmdao.utils.om_warnings import (
+    issue_warning,
+    MPIWarning,
+    DistributedComponentWarning,
+    DerivativesWarning,
+    warn_deprecation,
+    OMInvalidCheckDerivativesOptionsWarning,
+)
+from openmdao.utils.code_utils import (
+    is_lambda,
+    LambdaPickleWrapper,
+    get_function_deps,
+    get_return_names,
+)
 from openmdao.approximation_schemes.complex_step import ComplexStep
 from openmdao.approximation_schemes.finite_difference import FiniteDifference
 
 
-_forbidden_chars = {'.', '*', '?', '!', '[', ']'}
-_whitespace = {' ', '\t', '\r', '\n'}
+_forbidden_chars = {".", "*", "?", "!", "[", "]"}
+_whitespace = {" ", "\t", "\r", "\n"}
 _allowed_types = (list, tuple, ndarray, Iterable)
 
 _no_matvec_scope = (None, frozenset())
@@ -113,10 +135,10 @@ class Component(System):
         """
         super().__init__(**kwargs)
 
-        self._var_rel_names = {'input': [], 'output': []}
+        self._var_rel_names = {"input": [], "output": []}
         self._var_rel2meta = {}
 
-        self._static_var_rel_names = {'input': [], 'output': []}
+        self._static_var_rel_names = {"input": [], "output": []}
         self._static_var_rel2meta = {}
 
         self._declared_partials_patterns = {}
@@ -126,7 +148,7 @@ class Component(System):
         self._compute_primals_out_shape = None
         self._valid_name_map = {}
         self._res_primal_name_map = {}
-        self._orig_compute_primal = getattr(self, 'compute_primal')
+        self._orig_compute_primal = getattr(self, "compute_primal")
 
     def _tree_flatten(self):
         """
@@ -140,14 +162,14 @@ class Component(System):
         Tuple
             A tuple containing continuous and static data.
         """
-        return ((), {'_self_': self, '_statics_': self.get_self_statics()})
+        return ((), {"_self_": self, "_statics_": self.get_self_statics()})
 
     @staticmethod
     def _tree_unflatten(aux_data, children):
         """
         Return the same instance of this component that was returned by the _tree_flatten method.
         """
-        return aux_data['_self_']
+        return aux_data["_self_"]
 
     def _declare_options(self):
         """
@@ -155,25 +177,45 @@ class Component(System):
         """
         super()._declare_options()
 
-        self.options.declare('distributed', types=bool, default=False,
-                             desc='If True, set all variables in this component as distributed '
-                                  'across multiple processes')
-        self.options.declare('run_root_only', types=bool, default=False,
-                             desc='If True, call compute, compute_partials, linearize, '
-                                  'apply_linear, apply_nonlinear, solve_linear, solve_nonlinear, '
-                                  'and compute_jacvec_product only on rank 0 and broadcast the '
-                                  'results to the other ranks.')
-        self.options.declare('always_opt', types=bool, default=False,
-                             desc='If True, force nonlinear operations on this component to be '
-                                  'included in the optimization loop even if this component is not '
-                                  'relevant to the design variables and responses.')
-        self.options.declare('use_jit', types=bool, default=True,
-                             desc='If True, attempt to use jit on compute_primal, assuming jax or '
-                             'some other AD package capable of jitting is active.')
-        self.options.declare('default_shape', types=tuple, default=(1,),
-                             desc='Default shape for variables that do not set val to a non-scalar '
-                             'value or set shape, shape_by_conn, copy_shape, or compute_shape.'
-                             ' Default is (1,).')
+        self.options.declare(
+            "distributed",
+            types=bool,
+            default=False,
+            desc="If True, set all variables in this component as distributed "
+            "across multiple processes",
+        )
+        self.options.declare(
+            "run_root_only",
+            types=bool,
+            default=False,
+            desc="If True, call compute, compute_partials, linearize, "
+            "apply_linear, apply_nonlinear, solve_linear, solve_nonlinear, "
+            "and compute_jacvec_product only on rank 0 and broadcast the "
+            "results to the other ranks.",
+        )
+        self.options.declare(
+            "always_opt",
+            types=bool,
+            default=False,
+            desc="If True, force nonlinear operations on this component to be "
+            "included in the optimization loop even if this component is not "
+            "relevant to the design variables and responses.",
+        )
+        self.options.declare(
+            "use_jit",
+            types=bool,
+            default=True,
+            desc="If True, attempt to use jit on compute_primal, assuming jax or "
+            "some other AD package capable of jitting is active.",
+        )
+        self.options.declare(
+            "default_shape",
+            types=tuple,
+            default=(1,),
+            desc="Default shape for variables that do not set val to a non-scalar "
+            "value or set shape, shape_by_conn, copy_shape, or compute_shape."
+            " Default is (1,).",
+        )
 
     def setup(self):
         """
@@ -208,15 +250,18 @@ class Component(System):
             if comm.size > 1:
                 comm = self._setup_par_fd_procs(comm)
             elif not MPI:
-                issue_warning(f"MPI is not active but num_par_fd = {self._num_par_fd}. No parallel "
-                              "finite difference will be performed.",
-                              prefix=self.msginfo, category=MPIWarning)
+                issue_warning(
+                    f"MPI is not active but num_par_fd = {self._num_par_fd}. No parallel "
+                    "finite difference will be performed.",
+                    prefix=self.msginfo,
+                    category=MPIWarning,
+                )
                 self._num_par_fd = 1
 
         self.comm = comm
 
         # Clear out old variable information so that we can call setup on the component.
-        self._var_rel_names = {'input': [], 'output': []}
+        self._var_rel_names = {"input": [], "output": []}
         self._var_rel2meta = {}
         if comm.size == 1:
             self._has_distrib_vars = self._has_distrib_outputs = False
@@ -224,17 +269,18 @@ class Component(System):
         for meta in self._static_var_rel2meta.values():
             # reset shape if any dynamic shape parameters are set in case this is a resetup
             # NOTE: this is necessary because we allow variables to be added in __init__.
-            if 'shape_by_conn' in meta and (meta['shape_by_conn'] or
-                                            meta['compute_shape'] is not None):
-                meta['shape'] = None
-                if not isscalar(meta['val']):
-                    if meta['val'].size > 0:
-                        meta['val'] = meta['val'].flatten()[0]
+            if "shape_by_conn" in meta and (
+                meta["shape_by_conn"] or meta["compute_shape"] is not None
+            ):
+                meta["shape"] = None
+                if not isscalar(meta["val"]):
+                    if meta["val"].size > 0:
+                        meta["val"] = meta["val"].flatten()[0]
                     else:
-                        meta['val'] = 1.0
+                        meta["val"] = 1.0
 
         self._var_rel2meta.update(self._static_var_rel2meta)
-        for io in ['input', 'output']:
+        for io in ["input", "output"]:
             self._var_rel_names[io].extend(self._static_var_rel_names[io])
 
         self.setup()
@@ -248,10 +294,13 @@ class Component(System):
             if dist_vec_class is not None:
                 self._vector_class = dist_vec_class
             else:
-                issue_warning("Component contains distributed variables, "
-                              "but there is no distributed vector implementation (MPI/PETSc) "
-                              "available. The default non-distributed vectors will be used.",
-                              prefix=self.msginfo, category=DistributedComponentWarning)
+                issue_warning(
+                    "Component contains distributed variables, "
+                    "but there is no distributed vector implementation (MPI/PETSc) "
+                    "available. The default non-distributed vectors will be used.",
+                    prefix=self.msginfo,
+                    category=DistributedComponentWarning,
+                )
 
                 self._vector_class = self._local_vector_class
         else:
@@ -266,15 +315,18 @@ class Component(System):
         # something to color.
         if self._coloring_info.coloring is not None:
             for meta in self._declared_partials_patterns.values():
-                if 'method' in meta and meta['method'] is not None:
+                if "method" in meta and meta["method"] is not None:
                     break
             else:
                 method = self._coloring_info.method
-                issue_warning("declare_coloring or use_fixed_coloring was called but no approx"
-                              " partials were declared.  Declaring all partials as approximated "
-                              f"using default metadata and method='{method}'.", prefix=self.msginfo,
-                              category=DerivativesWarning)
-                self.declare_partials('*', '*', method=method)
+                issue_warning(
+                    "declare_coloring or use_fixed_coloring was called but no approx"
+                    " partials were declared.  Declaring all partials as approximated "
+                    f"using default metadata and method='{method}'.",
+                    prefix=self.msginfo,
+                    category=DerivativesWarning,
+                )
+                self.declare_partials("*", "*", method=method)
 
         super()._configure_check()
 
@@ -285,57 +337,54 @@ class Component(System):
         super()._setup_var_data()
 
         # Compute the prefix for turning rel/prom names into abs names
-        prefix = self.pathname + '.'
+        prefix = self.pathname + "."
         nprocs = self.comm.size
 
-        for io in ['input', 'output']:
+        for io in ["input", "output"]:
             abs2meta = self._var_abs2meta[io]
             allprocs_abs2meta = self._var_allprocs_abs2meta[io]
 
-            is_input = io == 'input'
+            is_input = io == "input"
             for prom_name in self._var_rel_names[io]:
                 abs_name = prefix + prom_name
                 abs2meta[abs_name] = metadata = self._var_rel2meta[prom_name]
 
                 if nprocs == 1:
-                    metadata['distributed'] = False
+                    metadata["distributed"] = False
 
-                self._resolver.add_mapping(abs_name, prom_name, io,
-                                           local=True, distributed=metadata['distributed'])
+                self._resolver.add_mapping(
+                    abs_name, prom_name, io, local=True, distributed=metadata["distributed"]
+                )
 
                 allprocs_abs2meta[abs_name] = {
-                    meta_name: metadata[meta_name]
-                    for meta_name in global_meta_names[io]
+                    meta_name: metadata[meta_name] for meta_name in global_meta_names[io]
                 }
-                if is_input and 'src_inds_list' in metadata:
-                    allprocs_abs2meta[abs_name]['has_src_indices'] = \
-                        bool(metadata['src_inds_list'])
+                if is_input and "src_inds_list" in metadata:
+                    allprocs_abs2meta[abs_name]["has_src_indices"] = bool(metadata["src_inds_list"])
 
             for prom_name, val in self._var_discrete[io].items():
                 abs_name = prefix + prom_name
-                self._resolver.add_mapping(abs_name, prom_name, io,
-                                           local=True, continuous=False)
+                self._resolver.add_mapping(abs_name, prom_name, io, local=True, continuous=False)
 
                 # Compute allprocs_discrete (metadata for discrete vars)
                 self._var_allprocs_discrete[io][abs_name] = v = val.copy()
-                del v['val']
+                del v["val"]
 
-            self._var_allprocs_abs2idx.update(
-                {n: i for i, n in enumerate(allprocs_abs2meta)})
+            self._var_allprocs_abs2idx.update({n: i for i, n in enumerate(allprocs_abs2meta)})
 
-        if self._var_discrete['input'] or self._var_discrete['output']:
-            self._discrete_inputs = _DictValues(self._var_discrete['input'])
-            self._discrete_outputs = _DictValues(self._var_discrete['output'])
+        if self._var_discrete["input"] or self._var_discrete["output"]:
+            self._discrete_inputs = _DictValues(self._var_discrete["input"])
+            self._discrete_outputs = _DictValues(self._var_discrete["output"])
         else:
             self._discrete_inputs = self._discrete_outputs = {}
 
         if self.comm.size > 1:
             # check that same variables are declared on all procs
-            vnames = (list(self._var_rel_names['output']), list(self._var_rel_names['input']))
+            vnames = (list(self._var_rel_names["output"]), list(self._var_rel_names["input"]))
             allnames = self.comm.gather(vnames, root=0)
             if self.comm.rank == 0:
                 outset, inset = vnames
-                msg = ''
+                msg = ""
                 for oset, iset in allnames:
                     if iset != inset or oset != outset:
                         msg = self._missing_vars_error(allnames)
@@ -355,7 +404,7 @@ class Component(System):
         self._inconsistent_keys = set()
 
     def _missing_vars_error(self, allnames):
-        msg = ''
+        msg = ""
         outset, inset = allnames[0]
         for rank, (olist, ilist) in enumerate(allnames):
             if rank != 0 and (olist != outset or ilist != inset):
@@ -370,9 +419,11 @@ class Component(System):
                 else:
                     varmsg = "Variables have not been declared in the same order on all ranks."
 
-                msg = (f"{self.msginfo}: {varmsg} A component must declare all variables in "
-                       "the same order on all ranks, even if the size of the variable is 0 on "
-                       "some ranks.")
+                msg = (
+                    f"{self.msginfo}: {varmsg} A component must declare all variables in "
+                    "the same order on all ranks, even if the size of the variable is 0 on "
+                    "some ranks."
+                )
                 break
         return msg
 
@@ -383,19 +434,20 @@ class Component(System):
         """
         iproc = self.comm.rank
 
-        for io in ('input', 'output'):
-            sizes = self._var_sizes[io] = np.zeros((self.comm.size, len(self._var_rel_names[io])),
-                                                   dtype=INT_DTYPE)
+        for io in ("input", "output"):
+            sizes = self._var_sizes[io] = np.zeros(
+                (self.comm.size, len(self._var_rel_names[io])), dtype=INT_DTYPE
+            )
 
             for i, (name, metadata) in enumerate(self._var_allprocs_abs2meta[io].items()):
-                sz = metadata['size']
+                sz = metadata["size"]
                 sizes[iproc, i] = 0 if sz is None else sz
 
             if self.comm.size > 1:
                 my_sizes = sizes[iproc, :].copy()
                 self.comm.Allgather(my_sizes, sizes)
 
-        self._owned_output_sizes = self._var_sizes['output']
+        self._owned_output_sizes = self._var_sizes["output"]
 
     def _setup_partials(self):
         """
@@ -405,28 +457,33 @@ class Component(System):
 
         self.setup_partials()  # hook for component writers to specify sparsity patterns
 
-        if self.options['derivs_method'] in ('cs', 'fd'):
+        if self.options["derivs_method"] in ("cs", "fd"):
             if self.matrix_free:
-                raise RuntimeError(f"{self.msginfo}: derivs_method of 'cs' or 'fd' is not "
-                                   "allowed for a matrix free component.")
+                raise RuntimeError(
+                    f"{self.msginfo}: derivs_method of 'cs' or 'fd' is not "
+                    "allowed for a matrix free component."
+                )
             self._has_approx = True
-            method = self.options['derivs_method']
-            if method in ('cs', 'fd'):
+            method = self.options["derivs_method"]
+            if method in ("cs", "fd"):
                 self._get_approx_scheme(method)
             if not self._declared_partials_patterns:
                 if self.compute_primal is None:
-                    raise RuntimeError(f"{self.msginfo}: compute_primal must be defined if using "
-                                       "a derivs_method option of 'cs' or 'fd'")
+                    raise RuntimeError(
+                        f"{self.msginfo}: compute_primal must be defined if using "
+                        "a derivs_method option of 'cs' or 'fd'"
+                    )
                 # declare all partials as 'cs' or 'fd'
-                for of, wrt in get_function_deps(self._orig_compute_primal,
-                                                 self._var_rel_names['output']):
+                for of, wrt in get_function_deps(
+                    self._orig_compute_primal, self._var_rel_names["output"]
+                ):
                     if of in self._discrete_outputs or wrt in self._discrete_inputs:
                         continue
                     self.declare_partials(of, wrt, method=method)
             else:
                 # update only those partials that have been declared
                 for meta in self._declared_partials_patterns.values():
-                    meta['method'] = method
+                    meta["method"] = method
 
         # check to make sure that if num_par_fd > 1 that this system is actually doing FD.
         # Unfortunately we have to do this check after system setup has been called because that's
@@ -434,8 +491,11 @@ class Component(System):
         # resetting the value of num_par_fd (because the comm has already been split and possibly
         # used by the system setup).
         orig_comm = self._full_comm if self._full_comm is not None else self.comm
-        if self._num_par_fd > 1 and orig_comm.size > 1 and not (self._owns_approx_jac or
-                                                                self._approx_schemes):
+        if (
+            self._num_par_fd > 1
+            and orig_comm.size > 1
+            and not (self._owns_approx_jac or self._approx_schemes)
+        ):
             raise RuntimeError("%s: num_par_fd is > 1 but no FD is active." % self.msginfo)
 
         for key, pattern_meta in self._declared_partials_patterns.items():
@@ -478,8 +538,10 @@ class Component(System):
         missing : dict
             Dictionary containing set of missing derivatives keyed by system pathname.
         """
-        if ('*', '*') in self._declared_partials_patterns or \
-                (('*',), ('*',)) in self._declared_partials_patterns:
+        if ("*", "*") in self._declared_partials_patterns or (
+            ("*",),
+            ("*",),
+        ) in self._declared_partials_patterns:
             return
 
         # keep old default behavior where matrix free components are assumed to have
@@ -489,8 +551,8 @@ class Component(System):
 
         keyset = self._subjacs_info
         mset = set()
-        for of in self._var_allprocs_abs2meta['output']:
-            for wrt in self._var_allprocs_abs2meta['input']:
+        for of in self._var_allprocs_abs2meta["output"]:
+            for wrt in self._var_allprocs_abs2meta["input"]:
                 if (of, wrt) not in keyset:
                     mset.add((of, wrt))
 
@@ -507,7 +569,7 @@ class Component(System):
         bool
             True if we're running within check_partials or check_totals.
         """
-        return self._problem_meta is not None and self._problem_meta['checking']
+        return self._problem_meta is not None and self._problem_meta["checking"]
 
     def _run_root_only(self):
         """
@@ -518,27 +580,46 @@ class Component(System):
         bool
             True if run_root_only is active.
         """
-        if self.options['run_root_only']:
+        if self.options["run_root_only"]:
             if self.comm.size > 1 or (self._full_comm is not None and self._full_comm.size > 1):
                 if self._has_distrib_vars:
-                    raise RuntimeError(f"{self.msginfo}: Can't set 'run_root_only' option when "
-                                       "a component has distributed variables.")
+                    raise RuntimeError(
+                        f"{self.msginfo}: Can't set 'run_root_only' option when "
+                        "a component has distributed variables."
+                    )
                 if self._num_par_fd > 1:
-                    raise RuntimeError(f"{self.msginfo}: Can't set 'run_root_only' option when "
-                                       "using parallel FD.")
-                if self._problem_meta['has_par_deriv_color']:
-                    raise RuntimeError(f"{self.msginfo}: Can't set 'run_root_only' option when "
-                                       "using parallel_deriv_color.")
+                    raise RuntimeError(
+                        f"{self.msginfo}: Can't set 'run_root_only' option when using parallel FD."
+                    )
+                if self._problem_meta["has_par_deriv_color"]:
+                    raise RuntimeError(
+                        f"{self.msginfo}: Can't set 'run_root_only' option when "
+                        "using parallel_deriv_color."
+                    )
                 return True
         return False
 
     def _promoted_wrt_iter(self):
         yield from self._get_partials_wrts()
 
-    def add_input(self, name, val=1.0, shape=None, units=None, desc='', tags=None,
-                  shape_by_conn=False, copy_shape=None, compute_shape=None,
-                  units_by_conn=False, copy_units=None, compute_units=None,
-                  require_connection=False, distributed=None, primal_name=None):
+    def add_input(
+        self,
+        name,
+        val=1.0,
+        shape=None,
+        units=None,
+        desc="",
+        tags=None,
+        shape_by_conn=False,
+        copy_shape=None,
+        compute_shape=None,
+        units_by_conn=False,
+        copy_units=None,
+        compute_units=None,
+        require_connection=False,
+        distributed=None,
+        primal_name=None,
+    ):
         """
         Add an input variable to the component.
 
@@ -591,60 +672,78 @@ class Component(System):
         """
         # First, type check all arguments
         if not isinstance(name, str):
-            raise TypeError('%s: The name argument should be a string.' % self.msginfo)
+            raise TypeError("%s: The name argument should be a string." % self.msginfo)
         if not _valid_var_name(name):
             raise NameError("%s: '%s' is not a valid input name." % (self.msginfo, name))
 
         if not isscalar(val) and not isinstance(val, _allowed_types):
-            raise TypeError('%s: The val argument should be a float, list, tuple, ndarray or '
-                            'Iterable' % self.msginfo)
+            raise TypeError(
+                "%s: The val argument should be a float, list, tuple, ndarray or "
+                "Iterable" % self.msginfo
+            )
         if shape is not None and not isinstance(shape, (Integral, tuple, list)):
-            raise TypeError("%s: The shape argument should be an int, tuple, or list but "
-                            "a '%s' was given" % (self.msginfo, type(shape)))
+            raise TypeError(
+                "%s: The shape argument should be an int, tuple, or list but "
+                "a '%s' was given" % (self.msginfo, type(shape))
+            )
         if units is not None:
             if not isinstance(units, str):
-                raise TypeError('%s: The units argument should be a str or None.' % self.msginfo)
+                raise TypeError("%s: The units argument should be a str or None." % self.msginfo)
             units = simplify_unit(units, msginfo=self.msginfo)
 
         if tags is not None and not isinstance(tags, (str, list, set)):
-            raise TypeError('The tags argument should be a str, set, or list')
+            raise TypeError("The tags argument should be a str, set, or list")
 
         if copy_shape and compute_shape:
-            raise ValueError(f"{self.msginfo}: Only one of 'copy_shape' or 'compute_shape' can "
-                             "be specified.")
+            raise ValueError(
+                f"{self.msginfo}: Only one of 'copy_shape' or 'compute_shape' can be specified."
+            )
         if copy_units and compute_units:
-            raise ValueError(f"{self.msginfo}: Only one of 'copy_units' or 'compute_units' can "
-                             "be specified.")
+            raise ValueError(
+                f"{self.msginfo}: Only one of 'copy_units' or 'compute_units' can be specified."
+            )
 
         if copy_shape and not isinstance(copy_shape, str):
-            raise TypeError(f"{self.msginfo}: The copy_shape argument should be a str or None but "
-                            f"a '{type(copy_shape).__name__}' was given.")
+            raise TypeError(
+                f"{self.msginfo}: The copy_shape argument should be a str or None but "
+                f"a '{type(copy_shape).__name__}' was given."
+            )
         if copy_units and not isinstance(copy_units, str):
-            raise TypeError(f"{self.msginfo}: The copy_units argument should be a str or None but "
-                            f"a '{type(copy_units).__name__}' was given.")
+            raise TypeError(
+                f"{self.msginfo}: The copy_units argument should be a str or None but "
+                f"a '{type(copy_units).__name__}' was given."
+            )
 
         if compute_shape and not callable(compute_shape):
-            raise TypeError(f"{self.msginfo}: The compute_shape argument should be callable but "
-                            f"a '{type(compute_shape).__name__}' was given.")
+            raise TypeError(
+                f"{self.msginfo}: The compute_shape argument should be callable but "
+                f"a '{type(compute_shape).__name__}' was given."
+            )
         if compute_units and not callable(compute_units):
-            raise TypeError(f"{self.msginfo}: The compute_units argument should be callable but "
-                            f"a '{type(compute_units).__name__}' was given.")
+            raise TypeError(
+                f"{self.msginfo}: The compute_units argument should be callable but "
+                f"a '{type(compute_units).__name__}' was given."
+            )
 
         if shape_by_conn or copy_shape or compute_shape:
             if shape or ndim(val) > 0:
-                raise ValueError("%s: If shape is to be set dynamically, 'shape' and 'val' should "
-                                 "be a scalar, but shape of '%s' and val of '%s' was given for "
-                                 "variable '%s'." % (self.msginfo, shape, val, name))
+                raise ValueError(
+                    "%s: If shape is to be set dynamically, 'shape' and 'val' should "
+                    "be a scalar, but shape of '%s' and val of '%s' was given for "
+                    "variable '%s'." % (self.msginfo, shape, val, name)
+                )
         else:
             # value, shape: based on args, making sure they are compatible
-            val, shape = ensure_compatible(name, val, shape,
-                                           default_shape=self.options['default_shape'])
+            val, shape = ensure_compatible(
+                name, val, shape, default_shape=self.options["default_shape"]
+            )
 
         if (units_by_conn or copy_units or compute_units) and units is not None:
-            raise ValueError("%s: If units is to be set dynamically using 'units_by_conn', "
-                             "'copy_units', or 'compute_units', 'units' should be None, but "
-                             "units of '%s' was given for variable '%s'."
-                             % (self.msginfo, units, name))
+            raise ValueError(
+                "%s: If units is to be set dynamically using 'units_by_conn', "
+                "'copy_units', or 'compute_units', 'units' should be None, but "
+                "units of '%s' was given for variable '%s'." % (self.msginfo, units, name)
+            )
 
         # until we get rid of component level distributed option, handle the case where
         # component distributed has been set to True but variable distributed has been set
@@ -653,8 +752,9 @@ class Component(System):
             if distributed is None:
                 distributed = False
             # using ._dict below to avoid tons of deprecation warnings
-            distributed = distributed or ('distributed' in self.options and
-                                          self.options._dict['distributed']['val'])
+            distributed = distributed or (
+                "distributed" in self.options and self.options._dict["distributed"]["val"]
+            )
 
         if compute_shape is not None and is_lambda(compute_shape):
             compute_shape = LambdaPickleWrapper(compute_shape)
@@ -665,21 +765,21 @@ class Component(System):
             self._valid_name_map[name] = primal_name
 
         metadata = {
-            'val': val,
-            'shape': shape,
-            'size': shape_to_len(shape),
-            'src_inds_list': None,
-            'units': units,
-            'desc': desc,
-            'tags': make_set(tags),
-            'shape_by_conn': shape_by_conn,
-            'compute_shape': compute_shape,
-            'copy_shape': copy_shape,
-            'units_by_conn': units_by_conn,
-            'compute_units': compute_units,
-            'copy_units': copy_units,
-            'require_connection': require_connection,
-            'distributed': distributed,
+            "val": val,
+            "shape": shape,
+            "size": shape_to_len(shape),
+            "src_inds_list": None,
+            "units": units,
+            "desc": desc,
+            "tags": make_set(tags),
+            "shape_by_conn": shape_by_conn,
+            "compute_shape": compute_shape,
+            "copy_shape": copy_shape,
+            "units_by_conn": units_by_conn,
+            "compute_units": compute_units,
+            "copy_units": copy_units,
+            "require_connection": require_connection,
+            "distributed": distributed,
         }
 
         # this will get reset later if comm size is 1
@@ -697,13 +797,13 @@ class Component(System):
             raise ValueError("{}: Variable name '{}' already exists.".format(self.msginfo, name))
 
         var_rel2meta[name] = metadata
-        var_rel_names['input'].append(name)
+        var_rel_names["input"].append(name)
 
         self._var_added(name)
 
         return metadata
 
-    def add_discrete_input(self, name, val, desc='', tags=None, primal_name=None):
+    def add_discrete_input(self, name, val, desc="", tags=None, primal_name=None):
         """
         Add a discrete input variable to the component.
 
@@ -729,26 +829,28 @@ class Component(System):
         """
         # First, type check all arguments
         if not isinstance(name, str):
-            raise TypeError('%s: The name argument should be a string.' % self.msginfo)
+            raise TypeError("%s: The name argument should be a string." % self.msginfo)
         if not _valid_var_name(name):
             raise NameError("%s: '%s' is not a valid input name." % (self.msginfo, name))
         if tags is not None and not isinstance(tags, (str, list)):
-            raise TypeError('%s: The tags argument should be a str or list' % self.msginfo)
+            raise TypeError("%s: The tags argument should be a str or list" % self.msginfo)
 
         if primal_name is not None:
             self._valid_name_map[name] = primal_name
 
         metadata = {}
 
-        metadata.update({
-            'val': val,
-            'type': type(val),
-            'desc': desc,
-            'tags': make_set(tags),
-        })
+        metadata.update(
+            {
+                "val": val,
+                "type": type(val),
+                "desc": desc,
+                "tags": make_set(tags),
+            }
+        )
 
-        if metadata['type'] == np.ndarray:
-            metadata.update({'shape': val.shape})
+        if metadata["type"] == np.ndarray:
+            metadata.update({"shape": val.shape})
 
         if self._static_mode:
             var_rel2meta = self._static_var_rel2meta
@@ -759,17 +861,36 @@ class Component(System):
         if name in var_rel2meta:
             raise ValueError("{}: Variable name '{}' already exists.".format(self.msginfo, name))
 
-        var_rel2meta[name] = self._var_discrete['input'][name] = metadata
+        var_rel2meta[name] = self._var_discrete["input"][name] = metadata
 
         self._var_added(name)
 
         return metadata
 
-    def add_output(self, name, val=1.0, shape=None, units=None, res_units=None, desc='',
-                   lower=None, upper=None, ref=1.0, ref0=0.0, res_ref=None, tags=None,
-                   shape_by_conn=False, copy_shape=None, compute_shape=None,
-                   units_by_conn=False, copy_units=None, compute_units=None,
-                   distributed=None, primal_name=None, res_primal_name=None):
+    def add_output(
+        self,
+        name,
+        val=1.0,
+        shape=None,
+        units=None,
+        res_units=None,
+        desc="",
+        lower=None,
+        upper=None,
+        ref=1.0,
+        ref0=0.0,
+        res_ref=None,
+        tags=None,
+        shape_by_conn=False,
+        copy_shape=None,
+        compute_shape=None,
+        units_by_conn=False,
+        copy_units=None,
+        compute_units=None,
+        distributed=None,
+        primal_name=None,
+        res_primal_name=None,
+    ):
         """
         Add an output variable to the component.
 
@@ -845,45 +966,50 @@ class Component(System):
         """
         # First, type check all arguments
         if (shape_by_conn or copy_shape or compute_shape) and (shape is not None or ndim(val) > 0):
-            raise ValueError("%s: If shape is to be set dynamically using 'shape_by_conn', "
-                             "'copy_shape', or 'compute_shape', 'shape' and 'val' should be scalar,"
-                             " but shape of '%s' and val of '%s' was given for variable '%s'."
-                             % (self.msginfo, shape, val, name))
+            raise ValueError(
+                "%s: If shape is to be set dynamically using 'shape_by_conn', "
+                "'copy_shape', or 'compute_shape', 'shape' and 'val' should be scalar,"
+                " but shape of '%s' and val of '%s' was given for variable '%s'."
+                % (self.msginfo, shape, val, name)
+            )
 
         if (units_by_conn or copy_units or compute_units) and units is not None:
-            raise ValueError("%s: If units is to be set dynamically using 'units_by_conn', "
-                             "'copy_units', or 'compute_units', 'units' should be None, but "
-                             "units of '%s' was given for variable '%s'."
-                             % (self.msginfo, units, name))
+            raise ValueError(
+                "%s: If units is to be set dynamically using 'units_by_conn', "
+                "'copy_units', or 'compute_units', 'units' should be None, but "
+                "units of '%s' was given for variable '%s'." % (self.msginfo, units, name)
+            )
 
         if not isinstance(name, str):
-            raise TypeError('%s: The name argument should be a string.' % self.msginfo)
+            raise TypeError("%s: The name argument should be a string." % self.msginfo)
         if not _valid_var_name(name):
             raise NameError("%s: '%s' is not a valid output name." % (self.msginfo, name))
 
         if shape is not None and not isinstance(shape, (int, tuple, list, np.integer)):
-            raise TypeError("%s: The shape argument should be an int, tuple, or list but "
-                            "a '%s' was given" % (self.msginfo, type(shape)))
+            raise TypeError(
+                "%s: The shape argument should be an int, tuple, or list but "
+                "a '%s' was given" % (self.msginfo, type(shape))
+            )
         if res_units is not None:
             if not isinstance(res_units, str):
-                msg = '%s: The res_units argument should be a str or None' % self.msginfo
+                msg = "%s: The res_units argument should be a str or None" % self.msginfo
                 raise TypeError(msg)
             res_units = simplify_unit(res_units, msginfo=self.msginfo)
 
         if units is not None:
             if not isinstance(units, str):
-                raise TypeError('%s: The units argument should be a str or None' % self.msginfo)
+                raise TypeError("%s: The units argument should be a str or None" % self.msginfo)
             units = simplify_unit(units, msginfo=self.msginfo)
 
         if tags is not None and not isinstance(tags, (str, set, list)):
-            raise TypeError('The tags argument should be a str, set, or list')
+            raise TypeError("The tags argument should be a str, set, or list")
 
         if not (copy_shape or shape_by_conn or compute_shape):
             if not isscalar(val) and not isinstance(val, _allowed_types):
-                msg = '%s: The val argument should be a float, list, tuple, ndarray or Iterable'
+                msg = "%s: The val argument should be a float, list, tuple, ndarray or Iterable"
                 raise TypeError(msg % self.msginfo)
 
-            default_shape = self.options['default_shape']
+            default_shape = self.options["default_shape"]
             # value, shape: based on args, making sure they are compatible
             val, shape = ensure_compatible(name, val, shape, default_shape=default_shape)
 
@@ -895,17 +1021,21 @@ class Component(System):
                 self._has_bounds = True
 
             # All refs: check the shape if necessary
-            for item, item_name in zip([ref, ref0, res_ref], ['ref', 'ref0', 'res_ref']):
+            for item, item_name in zip([ref, ref0, res_ref], ["ref", "ref0", "res_ref"]):
                 if item is not None and not isscalar(item):
                     if not isinstance(item, _allowed_types):
-                        raise TypeError(f'{self.msginfo}: The {item_name} argument should be a '
-                                        'float, list, tuple, ndarray or Iterable')
+                        raise TypeError(
+                            f"{self.msginfo}: The {item_name} argument should be a "
+                            "float, list, tuple, ndarray or Iterable"
+                        )
 
                     it = atleast_1d(item)
                     if it.shape != shape:
-                        raise ValueError(f"{self.msginfo}: When adding output '{name}', expected "
-                                         f"shape {shape} but got shape {it.shape} for argument "
-                                         f"'{item_name}'.")
+                        raise ValueError(
+                            f"{self.msginfo}: When adding output '{name}', expected "
+                            f"shape {shape} but got shape {it.shape} for argument "
+                            f"'{item_name}'."
+                        )
 
         if isscalar(ref):
             self._has_output_scaling |= ref != 1.0
@@ -932,29 +1062,40 @@ class Component(System):
             if distributed is None:
                 distributed = False
             # using ._dict below to avoid tons of deprecation warnings
-            distributed = distributed or ('distributed' in self.options and
-                                          self.options._dict['distributed']['val'])
+            distributed = distributed or (
+                "distributed" in self.options and self.options._dict["distributed"]["val"]
+            )
 
         if copy_shape and compute_shape:
-            raise ValueError(f"{self.msginfo}: Only one of 'copy_shape' or 'compute_shape' can "
-                             "be specified.")
+            raise ValueError(
+                f"{self.msginfo}: Only one of 'copy_shape' or 'compute_shape' can be specified."
+            )
         if copy_units and compute_units:
-            raise ValueError(f"{self.msginfo}: Only one of 'copy_units' or 'compute_units' can "
-                             "be specified.")
+            raise ValueError(
+                f"{self.msginfo}: Only one of 'copy_units' or 'compute_units' can be specified."
+            )
 
         if copy_shape and not isinstance(copy_shape, str):
-            raise TypeError(f"{self.msginfo}: The copy_shape argument should be a str or None but "
-                            f"a '{type(copy_shape).__name__}' was given.")
+            raise TypeError(
+                f"{self.msginfo}: The copy_shape argument should be a str or None but "
+                f"a '{type(copy_shape).__name__}' was given."
+            )
         if copy_units and not isinstance(copy_units, str):
-            raise TypeError(f"{self.msginfo}: The copy_units argument should be a str or None but "
-                            f"a '{type(copy_units).__name__}' was given.")
+            raise TypeError(
+                f"{self.msginfo}: The copy_units argument should be a str or None but "
+                f"a '{type(copy_units).__name__}' was given."
+            )
 
         if compute_shape and not callable(compute_shape):
-            raise TypeError(f"{self.msginfo}: The compute_shape argument should be callable but "
-                            f"a '{type(compute_shape).__name__}' was given.")
+            raise TypeError(
+                f"{self.msginfo}: The compute_shape argument should be callable but "
+                f"a '{type(compute_shape).__name__}' was given."
+            )
         if compute_units and not callable(compute_units):
-            raise TypeError(f"{self.msginfo}: The compute_units argument should be callable but "
-                            f"a '{type(compute_units).__name__}' was given.")
+            raise TypeError(
+                f"{self.msginfo}: The compute_units argument should be callable but "
+                f"a '{type(compute_units).__name__}' was given."
+            )
 
         if compute_shape is not None and is_lambda(compute_shape):
             compute_shape = LambdaPickleWrapper(compute_shape)
@@ -967,25 +1108,25 @@ class Component(System):
             self._res_primal_name_map[name] = res_primal_name
 
         metadata = {
-            'val': val,
-            'shape': shape,
-            'size': shape_to_len(shape),
-            'units': units,
-            'res_units': res_units,
-            'desc': desc,
-            'distributed': distributed,
-            'tags': make_set(tags),
-            'ref': format_as_float_or_array('ref', ref, flatten=True),
-            'ref0': format_as_float_or_array('ref0', ref0, flatten=True),
-            'res_ref': format_as_float_or_array('res_ref', res_ref, flatten=True, val_if_none=None),
-            'lower': lower,
-            'upper': upper,
-            'shape_by_conn': shape_by_conn,
-            'compute_shape': compute_shape,
-            'copy_shape': copy_shape,
-            'units_by_conn': units_by_conn,
-            'compute_units': compute_units,
-            'copy_units': copy_units,
+            "val": val,
+            "shape": shape,
+            "size": shape_to_len(shape),
+            "units": units,
+            "res_units": res_units,
+            "desc": desc,
+            "distributed": distributed,
+            "tags": make_set(tags),
+            "ref": format_as_float_or_array("ref", ref, flatten=True),
+            "ref0": format_as_float_or_array("ref0", ref0, flatten=True),
+            "res_ref": format_as_float_or_array("res_ref", res_ref, flatten=True, val_if_none=None),
+            "lower": lower,
+            "upper": upper,
+            "shape_by_conn": shape_by_conn,
+            "compute_shape": compute_shape,
+            "copy_shape": copy_shape,
+            "units_by_conn": units_by_conn,
+            "compute_units": compute_units,
+            "copy_units": copy_units,
         }
 
         # this will get reset later if comm size is 1
@@ -1005,13 +1146,13 @@ class Component(System):
             raise ValueError("{}: Variable name '{}' already exists.".format(self.msginfo, name))
 
         var_rel2meta[name] = metadata
-        var_rel_names['output'].append(name)
+        var_rel_names["output"].append(name)
 
         self._var_added(name)
 
         return metadata
 
-    def add_discrete_output(self, name, val, desc='', tags=None, primal_name=None):
+    def add_discrete_output(self, name, val, desc="", tags=None, primal_name=None):
         """
         Add an output variable to the component.
 
@@ -1036,26 +1177,21 @@ class Component(System):
             Metadata for added variable.
         """
         if not isinstance(name, str):
-            raise TypeError('%s: The name argument should be a string.' % self.msginfo)
+            raise TypeError("%s: The name argument should be a string." % self.msginfo)
         if not _valid_var_name(name):
             raise NameError("%s: '%s' is not a valid output name." % (self.msginfo, name))
         if tags is not None and not isinstance(tags, (str, set, list)):
-            raise TypeError('%s: The tags argument should be a str, set, or list' % self.msginfo)
+            raise TypeError("%s: The tags argument should be a str, set, or list" % self.msginfo)
 
         if primal_name is not None:
             self._valid_name_map[name] = primal_name
 
         metadata = {}
 
-        metadata.update({
-            'val': val,
-            'type': type(val),
-            'desc': desc,
-            'tags': make_set(tags)
-        })
+        metadata.update({"val": val, "type": type(val), "desc": desc, "tags": make_set(tags)})
 
-        if metadata['type'] == np.ndarray:
-            metadata.update({'shape': val.shape})
+        if metadata["type"] == np.ndarray:
+            metadata.update({"shape": val.shape})
 
         if self._static_mode:
             var_rel2meta = self._static_var_rel2meta
@@ -1066,7 +1202,7 @@ class Component(System):
         if name in var_rel2meta:
             raise ValueError("{}: Variable name '{}' already exists.".format(self.msginfo, name))
 
-        var_rel2meta[name] = self._var_discrete['output'][name] = metadata
+        var_rel2meta[name] = self._var_discrete["output"][name] = metadata
 
         self._var_added(name)
 
@@ -1081,10 +1217,10 @@ class Component(System):
         name : str
             Name of the added variable.
         """
-        if self._problem_meta is not None and self._problem_meta['config_info'] is not None:
-            self._problem_meta['config_info']._var_added(self.pathname, name)
+        if self._problem_meta is not None and self._problem_meta["config_info"] is not None:
+            self._problem_meta["config_info"]._var_added(self.pathname, name)
 
-    def _approx_partials(self, of, wrt, method='fd', **kwargs):
+    def _approx_partials(self, of, wrt, method="fd", **kwargs):
         """
         Inform the framework that the specified derivatives are to be approximated.
 
@@ -1108,12 +1244,24 @@ class Component(System):
 
         for abs_key in self._matching_key_iter(of, wrt):
             meta = info[abs_key]
-            meta['method'] = method
+            meta["method"] = method
             meta.update(kwargs)
 
-    def declare_partials(self, of, wrt, dependent=True, rows=None, cols=None, val=None,
-                         method='exact', step=None, form=None, step_calc=None, minimum_step=None,
-                         diagonal=None):
+    def declare_partials(
+        self,
+        of,
+        wrt,
+        dependent=True,
+        rows=None,
+        cols=None,
+        val=None,
+        method="exact",
+        step=None,
+        form=None,
+        step_calc=None,
+        minimum_step=None,
+        diagonal=None,
+    ):
         """
         Declare information about this component's subjacobians.
 
@@ -1176,43 +1324,54 @@ class Component(System):
             raise ValueError(msg.format(self.msginfo, of, wrt, method, sorted(_supported_methods)))
 
         if not isinstance(of, (str, Iterable)):
-            raise ValueError(f"{self.msginfo}: in declare_partials, the 'of' arg must be a string "
-                             f"or an iter of strings, but got {of}.")
+            raise ValueError(
+                f"{self.msginfo}: in declare_partials, the 'of' arg must be a string "
+                f"or an iter of strings, but got {of}."
+            )
         if not isinstance(wrt, (str, Iterable)):
-            raise ValueError(f"{self.msginfo}: in declare_partials, the 'wrt' arg must be a "
-                             f"string or an iter of strings, but got {wrt}.")
+            raise ValueError(
+                f"{self.msginfo}: in declare_partials, the 'wrt' arg must be a "
+                f"string or an iter of strings, but got {wrt}."
+            )
 
         of = of if isinstance(of, str) else tuple(of)
         wrt = wrt if isinstance(wrt, str) else tuple(wrt)
 
         key = (of, wrt)
         if key not in self._declared_partials_patterns:
-            self._declared_partials_patterns[key] = {}   # SUBJAC_META_DEFAULTS.copy()
+            self._declared_partials_patterns[key] = {}  # SUBJAC_META_DEFAULTS.copy()
         meta = self._declared_partials_patterns[key]
-        meta['dependent'] = dependent
+        meta["dependent"] = dependent
 
         # If only one of rows/cols is specified
         if (rows is None) ^ (cols is None):
-            raise ValueError('{}: d({})/d({}): If one of rows/cols is specified, then '
-                             'both must be specified.'.format(self.msginfo, of, wrt))
+            raise ValueError(
+                "{}: d({})/d({}): If one of rows/cols is specified, then "
+                "both must be specified.".format(self.msginfo, of, wrt)
+            )
 
-        if rows is not None and method in ('fd', 'cs'):
-            issue_warning(f"d({of})/d({wrt}): rows and cols do not reduce the number of "
-                          f"evaluations when method='{method}'. Use declare_coloring to compute "
-                          "the sparsity of approximated partials.",
-                          prefix=self.msginfo, category=DerivativesWarning)
+        if rows is not None and method in ("fd", "cs"):
+            issue_warning(
+                f"d({of})/d({wrt}): rows and cols do not reduce the number of "
+                f"evaluations when method='{method}'. Use declare_coloring to compute "
+                "the sparsity of approximated partials.",
+                prefix=self.msginfo,
+                category=DerivativesWarning,
+            )
 
         if dependent:
-            meta['val'] = val
-            meta['diagonal'] = diagonal
+            meta["val"] = val
+            meta["diagonal"] = diagonal
 
             if val is not None:
                 _val = val.data if issparse(val) else val
                 if np.all(_val == 0):
-                    warn_deprecation(f'{self.msginfo}: d({of})/d({wrt}): Partial was declared to be'
-                                     ' exactly zero. This is inefficient and the declaration '
-                                     'should be removed. In a future version of OpenMDAO this '
-                                     'behavior will raise an error.')
+                    warn_deprecation(
+                        f"{self.msginfo}: d({of})/d({wrt}): Partial was declared to be"
+                        " exactly zero. This is inefficient and the declaration "
+                        "should be removed. In a future version of OpenMDAO this "
+                        "behavior will raise an error."
+                    )
 
             if rows is not None:
                 rows = np.asarray(rows, dtype=INT_DTYPE)
@@ -1221,20 +1380,22 @@ class Component(System):
                 # Check the length of rows and cols to catch this easy mistake and give a
                 # clear message.
                 if len(cols) != len(rows):
-                    raise RuntimeError("{}: d({})/d({}): declare_partials has been called "
-                                       "with rows and cols, which should be arrays of equal length,"
-                                       " but rows is length {} while cols is length "
-                                       "{}.".format(self.msginfo, of, wrt, len(rows), len(cols)))
+                    raise RuntimeError(
+                        "{}: d({})/d({}): declare_partials has been called "
+                        "with rows and cols, which should be arrays of equal length,"
+                        " but rows is length {} while cols is length "
+                        "{}.".format(self.msginfo, of, wrt, len(rows), len(cols))
+                    )
 
                 if rows.size > 0 and rows.min() < 0:
-                    msg = '{}: d({})/d({}): row indices must be non-negative'
+                    msg = "{}: d({})/d({}): row indices must be non-negative"
                     raise ValueError(msg.format(self.msginfo, of, wrt))
                 if cols.size > 0 and cols.min() < 0:
-                    msg = '{}: d({})/d({}): col indices must be non-negative'
+                    msg = "{}: d({})/d({}): col indices must be non-negative"
                     raise ValueError(msg.format(self.msginfo, of, wrt))
 
-                meta['rows'] = rows
-                meta['cols'] = cols
+                meta["rows"] = rows
+                meta["cols"] = cols
 
                 # Check for repeated rows/cols indices.
                 size = len(rows)
@@ -1247,17 +1408,18 @@ class Component(System):
                     if csc.data.size < dsize:
                         coo = csc.tocoo()
                         del csc
-                        inds = np.where(coo.data > 1.)
+                        inds = np.where(coo.data > 1.0)
                         dups = list(zip(coo.row[inds], coo.col[inds]))
-                        raise RuntimeError("{}: d({})/d({}): declare_partials has been called "
-                                           "with rows and cols that specify the following duplicate"
-                                           " subjacobian entries: {}.".format(self.msginfo, of, wrt,
-                                                                              sorted(dups)))
+                        raise RuntimeError(
+                            "{}: d({})/d({}): declare_partials has been called "
+                            "with rows and cols that specify the following duplicate"
+                            " subjacobian entries: {}.".format(self.msginfo, of, wrt, sorted(dups))
+                        )
 
         if method_func is not None:
             # we're doing approximations
             self._has_approx = True
-            meta['method'] = method
+            meta["method"] = method
             self._get_approx_scheme(method)
 
             default_opts = method_func.DEFAULT_OPTIONS
@@ -1265,45 +1427,59 @@ class Component(System):
             default_opts = ()
 
         if step:
-            if 'step' in default_opts:
-                meta['step'] = step
+            if "step" in default_opts:
+                meta["step"] = step
             else:
-                raise RuntimeError("{}: d({})/d({}): 'step' is not a valid option for "
-                                   "'{}'".format(self.msginfo, of, wrt, method))
+                raise RuntimeError(
+                    "{}: d({})/d({}): 'step' is not a valid option for '{}'".format(
+                        self.msginfo, of, wrt, method
+                    )
+                )
         if minimum_step is not None:
-            if 'minimum_step' in default_opts:
-                meta['minimum_step'] = minimum_step
+            if "minimum_step" in default_opts:
+                meta["minimum_step"] = minimum_step
             else:
-                raise RuntimeError("{}: d({})/d({}): 'minimum_step' is not a valid option for "
-                                   "'{}'".format(self.msginfo, of, wrt, method))
+                raise RuntimeError(
+                    "{}: d({})/d({}): 'minimum_step' is not a valid option for '{}'".format(
+                        self.msginfo, of, wrt, method
+                    )
+                )
         if form:
-            if 'form' in default_opts:
-                meta['form'] = form
+            if "form" in default_opts:
+                meta["form"] = form
             else:
-                raise RuntimeError("{}: d({})/d({}): 'form' is not a valid option for "
-                                   "'{}'".format(self.msginfo, of, wrt, method))
+                raise RuntimeError(
+                    "{}: d({})/d({}): 'form' is not a valid option for '{}'".format(
+                        self.msginfo, of, wrt, method
+                    )
+                )
         if step_calc:
-            if 'step_calc' in default_opts:
-                meta['step_calc'] = step_calc
+            if "step_calc" in default_opts:
+                meta["step_calc"] = step_calc
             else:
-                raise RuntimeError("{}: d({})/d({}): 'step_calc' is not a valid option "
-                                   "for '{}'".format(self.msginfo, of, wrt, method))
+                raise RuntimeError(
+                    "{}: d({})/d({}): 'step_calc' is not a valid option for '{}'".format(
+                        self.msginfo, of, wrt, method
+                    )
+                )
 
         return meta
 
-    def declare_coloring(self,
-                         wrt=_DEFAULT_COLORING_META['wrt_patterns'],
-                         method=_DEFAULT_COLORING_META['method'],
-                         form=None,
-                         step=None,
-                         per_instance=_DEFAULT_COLORING_META['per_instance'],
-                         num_full_jacs=_DEFAULT_COLORING_META['num_full_jacs'],
-                         tol=_DEFAULT_COLORING_META['tol'],
-                         orders=_DEFAULT_COLORING_META['orders'],
-                         perturb_size=_DEFAULT_COLORING_META['perturb_size'],
-                         min_improve_pct=_DEFAULT_COLORING_META['min_improve_pct'],
-                         show_summary=_DEFAULT_COLORING_META['show_summary'],
-                         show_sparsity=_DEFAULT_COLORING_META['show_sparsity']):
+    def declare_coloring(
+        self,
+        wrt=_DEFAULT_COLORING_META["wrt_patterns"],
+        method=_DEFAULT_COLORING_META["method"],
+        form=None,
+        step=None,
+        per_instance=_DEFAULT_COLORING_META["per_instance"],
+        num_full_jacs=_DEFAULT_COLORING_META["num_full_jacs"],
+        tol=_DEFAULT_COLORING_META["tol"],
+        orders=_DEFAULT_COLORING_META["orders"],
+        perturb_size=_DEFAULT_COLORING_META["perturb_size"],
+        min_improve_pct=_DEFAULT_COLORING_META["min_improve_pct"],
+        show_summary=_DEFAULT_COLORING_META["show_summary"],
+        show_sparsity=_DEFAULT_COLORING_META["show_sparsity"],
+    ):
         """
         Set options for deriv coloring of a set of wrt vars matching the given pattern(s).
 
@@ -1340,17 +1516,35 @@ class Component(System):
         show_sparsity : bool
             If True, display sparsity with coloring info after generating coloring.
         """
-        super().declare_coloring(wrt, method, form, step, per_instance,
-                                 num_full_jacs,
-                                 tol, orders, perturb_size, min_improve_pct,
-                                 show_summary, show_sparsity)
+        super().declare_coloring(
+            wrt,
+            method,
+            form,
+            step,
+            per_instance,
+            num_full_jacs,
+            tol,
+            orders,
+            perturb_size,
+            min_improve_pct,
+            show_summary,
+            show_sparsity,
+        )
 
         # create approx partials for all matches
-        meta = self.declare_partials('*', wrt, method=method, step=step, form=form)
-        meta['coloring'] = True
+        meta = self.declare_partials("*", wrt, method=method, step=step, form=form)
+        meta["coloring"] = True
 
-    def set_check_partial_options(self, wrt, method='fd', form=None, step=None, step_calc=None,
-                                  minimum_step=None, directional=False):
+    def set_check_partial_options(
+        self,
+        wrt,
+        method="fd",
+        form=None,
+        step=None,
+        step_calc=None,
+        minimum_step=None,
+        directional=False,
+    ):
         """
         Set options that will be used for checking partial derivatives.
 
@@ -1381,7 +1575,7 @@ class Component(System):
             Set to True to perform a single directional derivative for each vector variable in the
             pattern named in wrt.
         """
-        supported_methods = ('fd', 'cs')
+        supported_methods = ("fd", "cs")
         if method not in supported_methods:
             msg = "{}: Method '{}' is not supported, method must be one of {}"
             raise ValueError(msg.format(self.msginfo, method, supported_methods))
@@ -1390,24 +1584,29 @@ class Component(System):
             msg = "{}: The value of 'step' must be numeric, but '{}' was specified."
             raise ValueError(msg.format(self.msginfo, step))
 
-        supported_step_calc = ('abs', 'rel', 'rel_legacy', 'rel_avg', 'rel_element')
+        supported_step_calc = ("abs", "rel", "rel_legacy", "rel_avg", "rel_element")
         if step_calc and step_calc not in supported_step_calc:
             msg = "{}: The value of 'step_calc' must be one of {}, but '{}' was specified."
             raise ValueError(msg.format(self.msginfo, supported_step_calc, step_calc))
 
         if not isinstance(wrt, (str, list, tuple)):
-            msg = "{}: The value of 'wrt' must be a string or list of strings, but a type " \
-                  "of '{}' was provided."
+            msg = (
+                "{}: The value of 'wrt' must be a string or list of strings, but a type "
+                "of '{}' was provided."
+            )
             raise ValueError(msg.format(self.msginfo, type(wrt).__name__))
 
         if not isinstance(directional, bool):
-            msg = "{}: The value of 'directional' must be True or False, but a type " \
-                  "of '{}' was provided."
+            msg = (
+                "{}: The value of 'directional' must be True or False, but a type "
+                "of '{}' was provided."
+            )
             raise ValueError(msg.format(self.msginfo, type(directional).__name__))
 
         wrt_list = [wrt] if isinstance(wrt, str) else wrt
-        self._declared_partial_checks.append((wrt_list, method, form, step, step_calc,
-                                              minimum_step, directional))
+        self._declared_partial_checks.append(
+            (wrt_list, method, form, step, step_calc, minimum_step, directional)
+        )
 
     def _get_check_partial_options(self):
         """
@@ -1446,21 +1645,29 @@ class Component(System):
                         opt = opts[match]
 
                         # New assignments take precedence
-                        keynames = ['method', 'form', 'step', 'step_calc', 'minimum_step',
-                                    'directional']
-                        for name, value in zip(keynames,
-                                               [method, form, step, step_calc, minimum_step,
-                                                directional]):
+                        keynames = [
+                            "method",
+                            "form",
+                            "step",
+                            "step_calc",
+                            "minimum_step",
+                            "directional",
+                        ]
+                        for name, value in zip(
+                            keynames, [method, form, step, step_calc, minimum_step, directional]
+                        ):
                             if value is not None:
                                 opt[name] = value
 
                     else:
-                        opts[match] = {'method': method,
-                                       'form': form,
-                                       'step': step,
-                                       'step_calc': step_calc,
-                                       'minimum_step': minimum_step,
-                                       'directional': directional}
+                        opts[match] = {
+                            "method": method,
+                            "form": form,
+                            "step": step,
+                            "step_calc": step_calc,
+                            "minimum_step": minimum_step,
+                            "directional": directional,
+                        }
 
                     if matrix_free and directional:
                         n_directional += 1
@@ -1471,13 +1678,15 @@ class Component(System):
 
         if matrix_free:
             if n_directional > 0 and n_directional < len(wrt):
-                msg = "{}: For matrix free components, directional should be set to True for " + \
-                      "all inputs."
+                msg = (
+                    "{}: For matrix free components, directional should be set to True for "
+                    + "all inputs."
+                )
                 raise ValueError(msg.format(self.msginfo))
 
         return opts
 
-    def _get_approx_partial_options(self, key, method='fd', checkopts=None):
+    def _get_approx_partial_options(self, key, method="fd", checkopts=None):
         approx = self._get_approx_scheme(method)
         options = approx.DEFAULT_OPTIONS.copy()
         if checkopts is None:
@@ -1513,27 +1722,28 @@ class Component(System):
             Metadata dict specifying shape, and/or approx properties, keyed by (of, wrt) as
             described above.
         """
-        val = pattern_meta['val'] if 'val' in pattern_meta else None
-        dependent = pattern_meta['dependent']
+        val = pattern_meta["val"] if "val" in pattern_meta else None
+        dependent = pattern_meta["dependent"]
         matfree = self.matrix_free
         if matfree:
-            if 'val' in pattern_meta:
-                if pattern_meta['val'] is not None:
-                    issue_warning(f"{self.msginfo}: 'val' was passed to declare_partials for {of} "
-                                  f"wrt {wrt} but matrix_free is True, so 'val' will be ignored.")
-                del pattern_meta['val']
+            if "val" in pattern_meta:
+                if pattern_meta["val"] is not None:
+                    issue_warning(
+                        f"{self.msginfo}: 'val' was passed to declare_partials for {of} "
+                        f"wrt {wrt} but matrix_free is True, so 'val' will be ignored."
+                    )
+                del pattern_meta["val"]
             val = None
         elif isinstance(val, list):
-            val = pattern_meta['val'] = np.asarray(val, dtype=float)
+            val = pattern_meta["val"] = np.asarray(val, dtype=float)
 
         rows_max = cols_max = 0
         rows = cols = None
 
         if dependent:
-
-            if 'rows' in pattern_meta and pattern_meta['rows'] is not None:  # sparse list format
-                rows = pattern_meta['rows']
-                cols = pattern_meta['cols']
+            if "rows" in pattern_meta and pattern_meta["rows"] is not None:  # sparse list format
+                rows = pattern_meta["rows"]
+                cols = pattern_meta["cols"]
                 if rows.size > 0:
                     rows_max = rows.max()
                     cols_max = cols.max()
@@ -1541,17 +1751,18 @@ class Component(System):
                 if not matfree:
                     if not isscalar(val) and val is not None:
                         if rows.shape != val.shape:
-                            raise ValueError('{}: d({})/d({}): If rows and cols are specified, val '
-                                             'must be a scalar or have the same shape, val: {}, '
-                                             'rows/cols: {}'.format(self.msginfo, of, wrt,
-                                                                    val.shape, rows.shape))
+                            raise ValueError(
+                                "{}: d({})/d({}): If rows and cols are specified, val "
+                                "must be a scalar or have the same shape, val: {}, "
+                                "rows/cols: {}".format(self.msginfo, of, wrt, val.shape, rows.shape)
+                            )
 
-        abs2meta_in = self._var_abs2meta['input']
-        abs2meta_out = self._var_abs2meta['output']
+        abs2meta_in = self._var_abs2meta["input"]
+        abs2meta_out = self._var_abs2meta["output"]
 
         pattern_meta = dict(pattern_meta)
 
-        for abs_key in self._matching_key_iter(of, '*' if wrt is None else wrt):
+        for abs_key in self._matching_key_iter(of, "*" if wrt is None else wrt):
             if not dependent:
                 if abs_key in self._subjacs_info:
                     del self._subjacs_info[abs_key]
@@ -1559,16 +1770,18 @@ class Component(System):
 
             _of, _wrt = abs_key
             wrtmeta = abs2meta_in[_wrt] if _wrt in abs2meta_in else abs2meta_out[_wrt]
-            shape = (abs2meta_out[_of]['size'], wrtmeta['size'])
+            shape = (abs2meta_out[_of]["size"], wrtmeta["size"])
 
-            dist_out = abs2meta_out[_of]['distributed']
-            dist_in = wrtmeta['distributed']
+            dist_out = abs2meta_out[_of]["distributed"]
+            dist_in = wrtmeta["distributed"]
 
             if dist_in and not dist_out and not matfree:
                 rel_key = abs_key2rel_key(self, abs_key)
-                raise RuntimeError(f"{self.msginfo}: component has defined partial {rel_key} "
-                                   "which is a non-distributed output wrt a distributed input."
-                                   " This is only supported using the matrix free API.")
+                raise RuntimeError(
+                    f"{self.msginfo}: component has defined partial {rel_key} "
+                    "which is a non-distributed output wrt a distributed input."
+                    " This is only supported using the matrix free API."
+                )
 
             if shape[0] == 0 or shape[1] == 0:
                 if shape[0] == 0:
@@ -1588,17 +1801,20 @@ class Component(System):
 
             if rows_max >= shape[0] or cols_max >= shape[1]:
                 relof, relwrt = abs_key2rel_key(self, abs_key)
-                raise ValueError(f"{self.msginfo}: d({relof})/d({relwrt}): Expected {shape[0]}x"
-                                 f"{shape[1]} but declared at least {rows_max + 1}x"
-                                 f"{cols_max + 1}.")
+                raise ValueError(
+                    f"{self.msginfo}: d({relof})/d({relwrt}): Expected {shape[0]}x"
+                    f"{shape[1]} but declared at least {rows_max + 1}x"
+                    f"{cols_max + 1}."
+                )
 
             if abs_key in self._subjacs_info:
                 prev_meta = self._subjacs_info[abs_key]
             else:
                 prev_meta = None
 
-            self._subjacs_info[abs_key] = Subjac.get_instance_metadata(pattern_meta, prev_meta,
-                                                                       shape, self, abs_key)
+            self._subjacs_info[abs_key] = Subjac.get_instance_metadata(
+                pattern_meta, prev_meta, shape, self, abs_key
+            )
 
     def _column_iotypes(self):
         """
@@ -1609,7 +1825,7 @@ class Component(System):
         tuple of the form ('input',)
             The iotypes that make up columns of the jacobian.
         """
-        return ('input',)
+        return ("input",)
 
     def _get_partials_wrts(self):
         """
@@ -1637,7 +1853,7 @@ class Component(System):
         list
             List of 'of' relative variable names.
         """
-        return list(self._var_rel_names['output'])
+        return list(self._var_rel_names["output"])
 
     def _matching_key_iter(self, of_patterns, wrt_patterns, use_resname=False):
         """
@@ -1688,8 +1904,10 @@ class Component(System):
             matching variable and meta is the metadata for that variable.
         """
         of_list = [pattern] if isinstance(pattern, str) else pattern
-        return [(pattern, find_matches(pattern, self._get_partials_ofs(use_resname=use_resname)))
-                for pattern in of_list]
+        return [
+            (pattern, find_matches(pattern, self._get_partials_ofs(use_resname=use_resname)))
+            for pattern in of_list
+        ]
 
     def _find_wrt_matches(self, pattern):
         """
@@ -1734,7 +1952,7 @@ class Component(System):
             if wrt not in wrtset:
                 wrtset.add(wrt)
                 meta = subjacs_info[key]
-                self._approx_schemes[meta['method']].add_approximation(wrt, self, meta)
+                self._approx_schemes[meta["method"]].add_approximation(wrt, self, meta)
 
         # get rid of any empty approx schemes
         to_remove = [name for name, scheme in self._approx_schemes.items() if not scheme._wrt_meta]
@@ -1849,10 +2067,10 @@ class Component(System):
             Metadata for this system's graph node.
         """
         meta = super()._get_graph_node_meta()
-        meta['base'] = 'ExplicitComponent' if self.is_explicit() else 'ImplicitComponent'
+        meta["base"] = "ExplicitComponent" if self.is_explicit() else "ImplicitComponent"
         return meta
 
-    def compute_fd_jac(self, jac, method='fd'):
+    def compute_fd_jac(self, jac, method="fd"):
         """
         Force the use of finite difference to compute a jacobian.
 
@@ -1867,9 +2085,9 @@ class Component(System):
             The type of finite difference to perform. Valid options are 'fd' for forward difference,
             or 'cs' for complex step.
         """
-        if method == 'jax':
-            method = 'fd'
-        fd_methods = {'fd': _supported_methods['fd'], 'cs': _supported_methods['cs']}
+        if method == "jax":
+            method = "fd"
+        fd_methods = {"fd": _supported_methods["fd"], "cs": _supported_methods["cs"]}
         try:
             approximation = fd_methods[method]()
         except KeyError:
@@ -1879,8 +2097,9 @@ class Component(System):
         added_wrts = set()
 
         for rel_key in product(self._get_partials_ofs(), self._get_partials_wrts()):
-            fd_options = self._get_approx_partial_options(rel_key, method=method,
-                                                          checkopts=local_opts)
+            fd_options = self._get_approx_partial_options(
+                rel_key, method=method, checkopts=local_opts
+            )
             _, rel_wrt = rel_key
             wrt = self._resolver.rel2abs(rel_wrt)
 
@@ -1893,7 +2112,7 @@ class Component(System):
         with self._unscaled_context(outputs=[self._outputs], residuals=[self._residuals]):
             approximation.compute_approximations(self, jac=jac)
 
-    def check_sparsity(self, method='fd', max_nz=90., out_stream=_DEFAULT_OUT_STREAM):
+    def check_sparsity(self, method="fd", max_nz=90.0, out_stream=_DEFAULT_OUT_STREAM):
         """
         Check the sparsity of the computed jacobian against the declared sparsity.
 
@@ -1931,20 +2150,20 @@ class Component(System):
 
         sparsity, _ = self.compute_fd_sparsity(method=method)
 
-        prefix = self.pathname + '.'
+        prefix = self.pathname + "."
         plen = len(prefix)
         ret = []
-        for of, wrt, nzrows, nzcols, shape in submat_sparsity_iter(rowsizeiter(), colsizeiter(),
-                                                                   sparsity.row, sparsity.col,
-                                                                   sparsity.shape):
+        for of, wrt, nzrows, nzcols, shape in submat_sparsity_iter(
+            rowsizeiter(), colsizeiter(), sparsity.row, sparsity.col, sparsity.shape
+        ):
             if 1 in shape:
                 continue
             key = (of, wrt)
             if key in self._subjacs_info:
                 meta = self._subjacs_info[key]
                 computed = sorted(zip(nzrows, nzcols))
-                if meta['rows'] is None:
-                    if meta['diagonal']:
+                if meta["rows"] is None:
+                    if meta["diagonal"]:
                         rows = np.arange(shape[0])
                         cols = np.arange(shape[1])
                         declared = sorted(zip(rows, cols))
@@ -1953,29 +2172,33 @@ class Component(System):
                         cols = []
                         declared = []
                 else:
-                    rows = meta['rows']
-                    cols = meta['cols']
+                    rows = meta["rows"]
+                    cols = meta["cols"]
                     declared = sorted(zip(rows, cols))
 
                 if declared != computed:
-                    pct_nonzero = 100. * len(nzrows) / (shape[0] * shape[1])
+                    pct_nonzero = 100.0 * len(nzrows) / (shape[0] * shape[1])
                     if pct_nonzero > max_nz:
                         continue
                     if shape[0] > 200 or shape[1] > 200:
                         mstr = "Sparsity matrix too large to show."
                     else:
                         stream = StringIO()
-                        val_map = {0: '.', 1: 'C', 3: 'D', 4: 'x'}
-                        sparsity_diff_viz(csr_matrix((np.ones(len(nzrows)), (nzrows, nzcols)),
-                                                     shape=shape, dtype=bool),
-                                          csr_matrix((np.ones(len(rows)), (rows, cols)),
-                                                     shape=shape, dtype=bool),
-                                          val_map=val_map,
-                                          stream=stream)
+                        val_map = {0: ".", 1: "C", 3: "D", 4: "x"}
+                        sparsity_diff_viz(
+                            csr_matrix(
+                                (np.ones(len(nzrows)), (nzrows, nzcols)), shape=shape, dtype=bool
+                            ),
+                            csr_matrix((np.ones(len(rows)), (rows, cols)), shape=shape, dtype=bool),
+                            val_map=val_map,
+                            stream=stream,
+                        )
                         mstr = stream.getvalue()
-                    wrn = (f"{self.msginfo}:\n(D)eclared sparsity pattern != (C)omputed sparsity "
-                           f"pattern for sub-jacobian ({of[plen:]}, {wrt[plen:]}) with shape "
-                           f"{shape} and {pct_nonzero:.2f}% nonzeros:\n{mstr}\n")
+                    wrn = (
+                        f"{self.msginfo}:\n(D)eclared sparsity pattern != (C)omputed sparsity "
+                        f"pattern for sub-jacobian ({of[plen:]}, {wrt[plen:]}) with shape "
+                        f"{shape} and {pct_nonzero:.2f}% nonzeros:\n{mstr}\n"
+                    )
                     ret.append((of, wrt, nzrows, nzcols, rows, cols, shape, pct_nonzero, wrn))
                     if out_stream is not None:
                         print(wrn, file=out_stream)
@@ -1995,22 +2218,21 @@ class Component(System):
 
         nocs = False
         if not alloc_complex:
-            if method == 'cs':
+            if method == "cs":
                 nocs = True
 
             for meta in local_opts.values():
-                if 'method' in meta and meta['method'] == 'cs':
+                if "method" in meta and meta["method"] == "cs":
                     nocs = True
                     break
 
         for keypats, meta in self._declared_partials_patterns.items():
-
             # Get the complete set of options, including defaults
             #    for the computing of the derivs for this component
-            if 'method' not in meta:
+            if "method" not in meta:
                 meta_with_defaults = {}
-                meta_with_defaults['method'] = 'exact'
-            elif meta['method'] == 'cs':
+                meta_with_defaults["method"] = "exact"
+            elif meta["method"] == "cs":
                 meta_with_defaults = ComplexStep.DEFAULT_OPTIONS.copy()
             else:
                 meta_with_defaults = FiniteDifference.DEFAULT_OPTIONS.copy()
@@ -2024,48 +2246,77 @@ class Component(System):
                 for var in wrtvars:
                     # we now have individual vars like 'x'
                     # get the options for checking partials
-                    fd_options = _get_fd_options(var, requested_method, local_opts, step,
-                                                 form, step_calc, alloc_complex, minimum_step)
+                    fd_options = _get_fd_options(
+                        var,
+                        requested_method,
+                        local_opts,
+                        step,
+                        form,
+                        step_calc,
+                        alloc_complex,
+                        minimum_step,
+                    )
 
                     if not alloc_complex:
-                        if meta_with_defaults['method'] == 'cs' or fd_options['method'] == 'cs':
+                        if meta_with_defaults["method"] == "cs" or fd_options["method"] == "cs":
                             nocs = True
 
                     # compare the compute options to the check options
-                    if fd_options['method'] != meta_with_defaults['method']:
+                    if fd_options["method"] != meta_with_defaults["method"]:
                         all_same = False
                     else:
                         all_same = True
-                        if fd_options['method'] == 'fd':
-                            option_names = ['form', 'step', 'step_calc', 'minimum_step',
-                                            'directional']
+                        if fd_options["method"] == "fd":
+                            option_names = [
+                                "form",
+                                "step",
+                                "step_calc",
+                                "minimum_step",
+                                "directional",
+                            ]
                         else:
-                            option_names = ['step', 'directional']
+                            option_names = ["step", "directional"]
                         for name in option_names:
                             if fd_options[name] != meta_with_defaults[name]:
                                 all_same = False
                                 break
                     if all_same:
-                        msg = (f"Checking partials with respect to variable '{var}' in component "
-                               f"'{self.pathname}' using the same method and options as are used "
-                               "to compute the component's derivatives will not provide any "
-                               "relevant information on the accuracy.\n"
-                               "To correct this, change the options to do the "
-                               "check_partials using either:\n"
-                               "     - arguments to Problem.check_partials.\n"
-                               "     - arguments to Component.set_check_partial_options")
+                        msg = (
+                            f"Checking partials with respect to variable '{var}' in component "
+                            f"'{self.pathname}' using the same method and options as are used "
+                            "to compute the component's derivatives will not provide any "
+                            "relevant information on the accuracy.\n"
+                            "To correct this, change the options to do the "
+                            "check_partials using either:\n"
+                            "     - arguments to Problem.check_partials.\n"
+                            "     - arguments to Component.set_check_partial_options"
+                        )
 
-                        issue_warning(msg, prefix=self.msginfo,
-                                      category=OMInvalidCheckDerivativesOptionsWarning)
+                        issue_warning(
+                            msg,
+                            prefix=self.msginfo,
+                            category=OMInvalidCheckDerivativesOptionsWarning,
+                        )
 
         if nocs:
             self._nocs_warning()
 
-    def check_partials(self, out_stream=_DEFAULT_OUT_STREAM,
-                       compact_print=False, abs_err_tol=0.0, rel_err_tol=1e-6,
-                       method='fd', step=None, form='forward', step_calc='abs',
-                       minimum_step=1e-12, force_dense=True, show_only_incorrect=False,
-                       show_worst=True, rich_print=True):
+    def check_partials(
+        self,
+        out_stream=_DEFAULT_OUT_STREAM,
+        compact_print=False,
+        abs_err_tol=0.0,
+        rel_err_tol=1e-6,
+        method="fd",
+        step=None,
+        form="forward",
+        step_calc="abs",
+        minimum_step=1e-12,
+        force_dense=True,
+        show_only_incorrect=False,
+        show_worst=True,
+        rich_print=True,
+    ):
         """
         Check partial derivatives comprehensively for this component.
 
@@ -2135,10 +2386,12 @@ class Component(System):
             out_stream = sys.stdout
 
         if self._problem_meta is not None:
-            if self._problem_meta['setup_status'] < _SetupStatus.POST_FINAL_SETUP:
-                raise RuntimeError(f"{self.msginfo}: Can't check_partials before final_setup. Also,"
-                                   " make sure to set valid input values before calling "
-                                   "check_partials either manually or by running the model.")
+            if self._problem_meta["setup_status"] < _SetupStatus.POST_FINAL_SETUP:
+                raise RuntimeError(
+                    f"{self.msginfo}: Can't check_partials before final_setup. Also,"
+                    " make sure to set valid input values before calling "
+                    "check_partials either manually or by running the model."
+                )
 
         self._check_fds_differ(method, step, form, step_calc, minimum_step)
 
@@ -2151,37 +2404,35 @@ class Component(System):
         local_opts = self._get_check_partial_options()
 
         if self.matrix_free:
-            directions = ('fwd', 'rev')
+            directions = ("fwd", "rev")
         else:
             # TODO: replace 'fwd' with self.best_partial_deriv_direction(). Currently fails
             # when it equals 'rev' for directional derivatives.
-            directions = ('fwd',)  # rev same as fwd for analytic jacobians
+            directions = ("fwd",)  # rev same as fwd for analytic jacobians
             self.run_linearize(sub_do_ln=False)
 
         nondep_derivs = set()
         of_list = self._get_partials_ofs()
         wrt_list = self._get_partials_wrts()
-        axis = {'fwd': 1, 'rev': 0}
+        axis = {"fwd": 1, "rev": 0}
         mfree_directions = {}
-        abs2meta_in = self._var_allprocs_abs2meta['input']
-        abs2meta_out = self._var_allprocs_abs2meta['output']
+        abs2meta_in = self._var_allprocs_abs2meta["input"]
+        abs2meta_out = self._var_allprocs_abs2meta["output"]
         partials_data = defaultdict(dict)
         requested_method = method
         probmeta = self._problem_meta
-        prefix = self.pathname + '.'
+        prefix = self.pathname + "."
 
         # ensure we don't miss any pertials due to relevance
         with self._relevance.active(False):
-
             for mode in directions:
-                jac_key = 'J_' + mode
+                jac_key = "J_" + mode
 
                 with self._unscaled_context(outputs=[self._outputs], residuals=[self._residuals]):
-
                     # Matrix-free components need to calculate Jacobian by matrix-vector product.
                     if self.matrix_free:
                         dstate = self._doutputs
-                        if mode == 'fwd':
+                        if mode == "fwd":
                             dinputs = self._dinputs
                             doutputs = self._dresiduals
                             in_list = wrt_list
@@ -2194,8 +2445,8 @@ class Component(System):
 
                         for inp in in_list:
                             inp_abs = prefix + inp
-                            if mode == 'fwd':
-                                directional = inp in local_opts and local_opts[inp]['directional']
+                            if mode == "fwd":
+                                directional = inp in local_opts and local_opts[inp]["directional"]
                             else:
                                 directional = len(mfree_directions) > 0
 
@@ -2220,7 +2471,6 @@ class Component(System):
                                 perturb = 1.0
 
                             for idx in idxs:
-
                                 dinputs.set_val(0.0)
                                 dstate.set_val(0.0)
 
@@ -2230,11 +2480,11 @@ class Component(System):
                                     flat_view[idx] = perturb
 
                                 # Matrix Vector Product
-                                probmeta['checking'] = True
+                                probmeta["checking"] = True
                                 try:
                                     self.run_apply_linear(mode)
                                 finally:
-                                    probmeta['checking'] = False
+                                    probmeta["checking"] = False
 
                                 for out in out_list:
                                     out_abs = prefix + out
@@ -2245,7 +2495,7 @@ class Component(System):
                                         # Implicit state
                                         derivs = dstate._abs_get_val(out_abs)
 
-                                    if mode == 'fwd':
+                                    if mode == "fwd":
                                         key = out, inp
                                         deriv = partials_data[key]
 
@@ -2266,16 +2516,22 @@ class Component(System):
                                             m = mfree_directions[out]
                                             d = mfree_directions[inp]
                                             mhat = derivs
-                                            dhat = deriv['J_fwd'][:, idx]
-                                            deriv['directional_fwd_rev'] = \
-                                                (dhat.dot(d), mhat.dot(m))
+                                            dhat = deriv["J_fwd"][:, idx]
+                                            deriv["directional_fwd_rev"] = (
+                                                dhat.dot(d),
+                                                mhat.dot(m),
+                                            )
                                         else:
-                                            meta = abs2meta_in[out_abs] if out_abs in abs2meta_in \
+                                            meta = (
+                                                abs2meta_in[out_abs]
+                                                if out_abs in abs2meta_in
                                                 else abs2meta_out[out_abs]
-                                            if not meta['distributed']:  # serial input or state
-                                                if inconsistent_across_procs(self.comm, derivs,
-                                                                             return_array=False):
-                                                    deriv['rank_inconsistent'] = True
+                                            )
+                                            if not meta["distributed"]:  # serial input or state
+                                                if inconsistent_across_procs(
+                                                    self.comm, derivs, return_array=False
+                                                ):
+                                                    deriv["rank_inconsistent"] = True
 
                                         # Allocate first time
                                         if jac_key not in deriv:
@@ -2287,23 +2543,22 @@ class Component(System):
 
                     # This component already has a Jacobian with calculated derivatives.
                     else:
-
                         subjacs = self._get_jacobian()._get_subjacs(self)
 
                         for rel_key in product(of_list, wrt_list):
                             abs_key = rel_key2abs_key(self, rel_key)
                             of, wrt = abs_key
 
-                            if mode == 'fwd':
+                            if mode == "fwd":
                                 inp = rel_key[1]
-                                directional = inp in local_opts and local_opts[inp]['directional']
+                                directional = inp in local_opts and local_opts[inp]["directional"]
                             else:
                                 directional = len(mfree_directions) > 0
 
-                            if wrt in self._var_abs2meta['input']:
-                                wrt_meta = self._var_abs2meta['input'][wrt]
+                            if wrt in self._var_abs2meta["input"]:
+                                wrt_meta = self._var_abs2meta["input"][wrt]
                             else:
-                                wrt_meta = self._var_abs2meta['output'][wrt]
+                                wrt_meta = self._var_abs2meta["output"][wrt]
 
                             copy = True
 
@@ -2317,23 +2572,23 @@ class Component(System):
                             except KeyError:
                                 rows = None
                                 # Missing derivatives are assumed 0.
-                                in_size = 1 if directional else wrt_meta['size']
-                                out_size = self._var_abs2meta['output'][of]['size']
+                                in_size = 1 if directional else wrt_meta["size"]
+                                out_size = self._var_abs2meta["output"][of]["size"]
                                 deriv_value = None
                                 copy = False
                                 nondep_derivs.add(rel_key)
                             else:
-                                if subjac.info['diagonal']:
+                                if subjac.info["diagonal"]:
                                     rows = cols = np.arange(subjac.nrows)
                                 else:
-                                    rows = subjac.info['rows']
-                                    cols = subjac.info['cols']
+                                    rows = subjac.info["rows"]
+                                    cols = subjac.info["cols"]
                                 # Testing for pairs that are not dependent so that we suppress
                                 # printing them unless the fd is nonzero.
                                 # Note: subjacs_info is empty for undeclared partials, which is the
                                 # default behavior now.
                                 try:
-                                    if not subjac.info['dependent']:
+                                    if not subjac.info["dependent"]:
                                         nondep_derivs.add(rel_key)
                                 except KeyError:
                                     nondep_derivs.add(rel_key)
@@ -2341,30 +2596,34 @@ class Component(System):
                             if force_dense:
                                 if directional:
                                     if rows is not None:
-                                        in_size = wrt_meta['size']
-                                        out_size = self._var_abs2meta['output'][of]['size']
+                                        in_size = wrt_meta["size"]
+                                        out_size = self._var_abs2meta["output"][of]["size"]
                                         # if a scalar value is provided (in declare_partials),
                                         # expand to the correct size array value for zipping
                                         if deriv_value.size == 1:
                                             deriv_value *= np.ones(rows.size)
-                                        deriv_value = coo_matrix((deriv_value, (rows, cols)),
-                                                                 shape=(out_size, in_size))
-                                        deriv_value = \
-                                            np.atleast_2d(deriv_value.sum(axis=axis[mode]))
+                                        deriv_value = coo_matrix(
+                                            (deriv_value, (rows, cols)), shape=(out_size, in_size)
+                                        )
+                                        deriv_value = np.atleast_2d(
+                                            deriv_value.sum(axis=axis[mode])
+                                        )
                                         if deriv_value.shape[0] < deriv_value.shape[1]:
                                             deriv_value = deriv_value.T
                                         copy = False
 
                                     elif issparse(deriv_value):
                                         if directional:
-                                            deriv_value = \
-                                                np.atleast_2d(deriv_value.sum(axis=axis[mode]))
+                                            deriv_value = np.atleast_2d(
+                                                deriv_value.sum(axis=axis[mode])
+                                            )
                                             if deriv_value.shape[0] < deriv_value.shape[1]:
                                                 deriv_value = deriv_value.T
                                         copy = False
                                     else:
-                                        deriv_value = \
-                                            np.atleast_2d(np.sum(deriv_value, axis=axis[mode])).T
+                                        deriv_value = np.atleast_2d(
+                                            np.sum(deriv_value, axis=axis[mode])
+                                        ).T
                                 else:
                                     if rows is not None or issparse(deriv_value):
                                         copy = False
@@ -2394,7 +2653,7 @@ class Component(System):
 
             for step in steps:
                 self.run_apply_nonlinear()
-                approximations = {'fd': FiniteDifference(), 'cs': ComplexStep()}
+                approximations = {"fd": FiniteDifference(), "cs": ComplexStep()}
 
                 added_wrts = set()
 
@@ -2403,11 +2662,18 @@ class Component(System):
                 for rel_key in product(of, wrt):
                     _, rel_wrt = rel_key
 
-                    fd_options = _get_fd_options(rel_wrt, requested_method,
-                                                 local_opts, step, form, step_calc,
-                                                 alloc_complex, minimum_step)
+                    fd_options = _get_fd_options(
+                        rel_wrt,
+                        requested_method,
+                        local_opts,
+                        step,
+                        form,
+                        step_calc,
+                        alloc_complex,
+                        minimum_step,
+                    )
 
-                    actual_steps[rel_key].append(fd_options['step'])
+                    actual_steps[rel_key].append(fd_options["step"])
 
                     # Determine if fd or cs.
                     method = requested_method
@@ -2422,9 +2688,9 @@ class Component(System):
                     # warnings)
                     abs_wrt = rel2abs(rel_wrt)
                     if abs_wrt not in added_wrts:
-                        approximations[fd_options['method']].add_approximation(abs_wrt, self,
-                                                                               fd_options,
-                                                                               vector=vector)
+                        approximations[fd_options["method"]].add_approximation(
+                            abs_wrt, self, fd_options, vector=vector
+                        )
                         added_wrts.add(abs_wrt)
 
                 approx_jac = _CheckingJacobian(self)
@@ -2438,29 +2704,29 @@ class Component(System):
                     subjacs_info = approx_jac._subjacs[abs_key].info
                     _of, _wrt = rel_key
 
-                    if 'J_fd' not in deriv:
-                        deriv['J_fd'] = []
-                        deriv['steps'] = []
-                    deriv['J_fd'].append(fd_partial)
-                    deriv['steps'] = actual_steps[rel_key]
-                    deriv['rows'] = subjacs_info['rows']
-                    deriv['cols'] = subjacs_info['cols']
+                    if "J_fd" not in deriv:
+                        deriv["J_fd"] = []
+                        deriv["steps"] = []
+                    deriv["J_fd"].append(fd_partial)
+                    deriv["steps"] = actual_steps[rel_key]
+                    deriv["rows"] = subjacs_info["rows"]
+                    deriv["cols"] = subjacs_info["cols"]
 
-                    if 'uncovered_nz' in subjacs_info:
-                        deriv['uncovered_nz'] = subjacs_info['uncovered_nz']
-                        deriv['uncovered_threshold'] = subjacs_info['uncovered_threshold']
+                    if "uncovered_nz" in subjacs_info:
+                        deriv["uncovered_nz"] = subjacs_info["uncovered_nz"]
+                        deriv["uncovered_threshold"] = subjacs_info["uncovered_threshold"]
 
-                    if _wrt in local_opts and local_opts[_wrt]['directional']:
+                    if _wrt in local_opts and local_opts[_wrt]["directional"]:
                         if self.matrix_free:
                             # Dot product test for adjoint validity.
                             m = mfree_directions[_of].flatten()
                             d = mfree_directions[_wrt].flatten()
                             mhat = fd_partial.flatten()
-                            dhat = deriv['J_rev'].flatten()
+                            dhat = deriv["J_rev"].flatten()
 
-                            if 'directional_fd_rev' not in deriv:
-                                deriv['directional_fd_rev'] = []
-                            deriv['directional_fd_rev'].append((dhat.dot(d), mhat.dot(m)))
+                            if "directional_fd_rev" not in deriv:
+                                deriv["directional_fd_rev"] = []
+                            deriv["directional_fd_rev"].append((dhat.dot(d), mhat.dot(m)))
 
         # convert to regular dict from defaultdict
         partials_data = {key: dict(d) for key, d in partials_data.items()}
@@ -2470,19 +2736,45 @@ class Component(System):
         # if compact_print is True, we'll show all derivatives, even non-dependent ones
         nondeps = set() if compact_print else nondep_derivs
         # force iterator to run so that error info will be added to partials_data
-        err_iter = list(_iter_derivs(partials_data, show_only_incorrect, all_fd_options, False,
-                                     nondeps, self.matrix_free, abs_err_tol, rel_err_tol,
-                                     incon_keys))
+        err_iter = list(
+            _iter_derivs(
+                partials_data,
+                show_only_incorrect,
+                all_fd_options,
+                False,
+                nondeps,
+                self.matrix_free,
+                abs_err_tol,
+                rel_err_tol,
+                incon_keys,
+            )
+        )
         worst = None
         if out_stream is not None:
             if compact_print:
-                worst = _deriv_display_compact(self, err_iter, partials_data, out_stream,
-                                               totals=False,
-                                               show_only_incorrect=show_only_incorrect,
-                                               show_worst=show_worst, rich_print=rich_print)
+                worst = _deriv_display_compact(
+                    self,
+                    err_iter,
+                    partials_data,
+                    out_stream,
+                    totals=False,
+                    show_only_incorrect=show_only_incorrect,
+                    show_worst=show_worst,
+                    rich_print=rich_print,
+                )
             else:
-                _deriv_display(self, err_iter, partials_data, rel_err_tol, abs_err_tol, out_stream,
-                               all_fd_options, False, show_only_incorrect, rich_print=rich_print)
+                _deriv_display(
+                    self,
+                    err_iter,
+                    partials_data,
+                    rel_err_tol,
+                    abs_err_tol,
+                    out_stream,
+                    all_fd_options,
+                    False,
+                    show_only_incorrect,
+                    rich_print=rich_print,
+                )
 
         # check for zero subjacs that are declared as dependent
         zero_keys = set()
@@ -2491,42 +2783,49 @@ class Component(System):
                 continue
             abs_key = rel_key2abs_key(self, key)
             if abs_key in self._subjacs_info:
-                maxmag = max([mag.max() for mag in meta['magnitude']])
+                maxmag = max([mag.max() for mag in meta["magnitude"]])
                 if maxmag == 0.0:
                     zero_keys.add(key)
 
         if zero_keys:
-            issue_warning(f"\nComponent '{self.pathname}' has zero derivatives for the "
-                          "following variable pairs that were declared as 'dependent': "
-                          f"{sorted(zero_keys)}.\n",
-                          category=DerivativesWarning)
+            issue_warning(
+                f"\nComponent '{self.pathname}' has zero derivatives for the "
+                "following variable pairs that were declared as 'dependent': "
+                f"{sorted(zero_keys)}.\n",
+                category=DerivativesWarning,
+            )
 
         # add pathname to the partials dict to make it compatible with the return value
         # from Problem.check_partials and passable to assert_check_partials.
         return {self.pathname: partials_data}, worst
 
     def _nocs_warning(self):
-        issue_warning(f"Component '{self.pathname}' requested complex step, but "
-                      "force_alloc_complex has not been set to True, so finite difference was "
-                      "used.\nTo enable complex step, specify 'force_alloc_complex=True' when "
-                      "calling setup on the problem, e.g. "
-                      "'problem.setup(force_alloc_complex=True)'.", category=DerivativesWarning)
+        issue_warning(
+            f"Component '{self.pathname}' requested complex step, but "
+            "force_alloc_complex has not been set to True, so finite difference was "
+            "used.\nTo enable complex step, specify 'force_alloc_complex=True' when "
+            "calling setup on the problem, e.g. "
+            "'problem.setup(force_alloc_complex=True)'.",
+            category=DerivativesWarning,
+        )
 
     def _check_compute_primal_args(self):
         """
         Check that the compute_primal method args are in the correct order.
         """
         args = list(inspect.signature(self._orig_compute_primal).parameters)
-        if args and args[0] == 'self':
+        if args and args[0] == "self":
             args = args[1:]
         compargs = self._get_compute_primal_argnames()
         if args != compargs:
-            raise RuntimeError(f"{self.msginfo}: compute_primal method args {args} don't match "
-                               f"the args {compargs} mapped from this component's inputs. To "
-                               "map inputs to the compute_primal method, set the name used in "
-                               "compute_primal to the 'primal_name' arg when calling "
-                               "add_input/add_discrete_input. This is only necessary if the "
-                               "declared component input name is not a valid Python name.")
+            raise RuntimeError(
+                f"{self.msginfo}: compute_primal method args {args} don't match "
+                f"the args {compargs} mapped from this component's inputs. To "
+                "map inputs to the compute_primal method, set the name used in "
+                "compute_primal to the 'primal_name' arg when calling "
+                "add_input/add_discrete_input. This is only necessary if the "
+                "declared component input name is not a valid Python name."
+            )
 
     def _check_compute_primal_returns(self):
         """
@@ -2534,25 +2833,29 @@ class Component(System):
         """
         retnames = get_return_names(self.compute_primal)
         if self._valid_name_map:
-            expected_names = [self._valid_name_map.get(n, n) for n in self._var_rel_names['output']]
+            expected_names = [self._valid_name_map.get(n, n) for n in self._var_rel_names["output"]]
             expected_names.extend([self._valid_name_map.get(n, n) for n in self._discrete_outputs])
         else:
-            expected_names = list(self._var_rel_names['output'])
+            expected_names = list(self._var_rel_names["output"])
             expected_names.extend(self._discrete_outputs)
 
         if len(retnames) != len(expected_names):
-            raise RuntimeError(f"{self.msginfo}: compute_primal method returns {len(retnames)} "
-                               f"values but expected {len(expected_names)}.")
+            raise RuntimeError(
+                f"{self.msginfo}: compute_primal method returns {len(retnames)} "
+                f"values but expected {len(expected_names)}."
+            )
 
         for i, (expname, rname) in enumerate(zip(expected_names, retnames)):
             if rname is not None and expname != rname:
-                raise RuntimeError(f"{self.msginfo}: compute_primal method returns {rname} "
-                                   f"for return value {i} but the name of the output that was "
-                                   f"mapped for this component is {expname}. To map outputs to "
-                                   "the compute_primal method, set the name used in compute_primal "
-                                   "to the 'primal_name' arg when calling "
-                                   "add_output/add_discrete_output. This is only necessary if "
-                                   "the declared component output name is not a valid Python name.")
+                raise RuntimeError(
+                    f"{self.msginfo}: compute_primal method returns {rname} "
+                    f"for return value {i} but the name of the output that was "
+                    f"mapped for this component is {expname}. To map outputs to "
+                    "the compute_primal method, set the name used in compute_primal "
+                    "to the 'primal_name' arg when calling "
+                    "add_output/add_discrete_output. This is only necessary if "
+                    "the declared component output name is not a valid Python name."
+                )
 
     def get_declare_partials_calls(self, sparsity=None):
         """
@@ -2571,9 +2874,11 @@ class Component(System):
         """
         lines = []
         for of, wrt, nzrows, nzcols, _ in self.subjac_sparsity_iter(sparsity=sparsity):
-            lines.append(f"    self.declare_partials(of='{of}', wrt='{wrt}', "
-                         f"rows={list(nzrows)}, cols={list(nzcols)})")
-        return '\n'.join(lines)
+            lines.append(
+                f"    self.declare_partials(of='{of}', wrt='{wrt}', "
+                f"rows={list(nzrows)}, cols={list(nzcols)})"
+            )
+        return "\n".join(lines)
 
     def _get_matvec_scope(self):
         """
@@ -2596,10 +2901,10 @@ class _DictValues(object):
         self._dict = dct
 
     def __getitem__(self, key):
-        return self._dict[key]['val']
+        return self._dict[key]["val"]
 
     def __setitem__(self, key, value):
-        self._dict[key]['val'] = value
+        self._dict[key]["val"] = value
 
     def __contains__(self, key):
         return key in self._dict
@@ -2617,58 +2922,65 @@ class _DictValues(object):
         return self._dict.keys()
 
     def items(self):
-        return [(key, meta['val']) for key, meta in self._dict.items()]
+        return [(key, meta["val"]) for key, meta in self._dict.items()]
 
     def values(self):
-        return [meta['val'] for meta in self._dict.values()]
+        return [meta["val"] for meta in self._dict.values()]
 
     def set_vals(self, vals):
         for key, val in zip(self._dict, vals):
             self[key] = val
 
 
-def _get_fd_options(var, global_method, local_opts, global_step, global_form, global_step_calc,
-                    alloc_complex, global_minimum_step):
+def _get_fd_options(
+    var,
+    global_method,
+    local_opts,
+    global_step,
+    global_form,
+    global_step_calc,
+    alloc_complex,
+    global_minimum_step,
+):
     local_wrt = var
 
     # Determine if fd or cs.
     method = global_method
     if local_wrt in local_opts:
-        local_method = local_opts[local_wrt]['method']
+        local_method = local_opts[local_wrt]["method"]
         if local_method:
             method = local_method
 
     # We can't use CS if we haven't allocated a complex vector, so we fall back on fd.
-    if method == 'cs' and not alloc_complex:
-        method = 'fd'
+    if method == "cs" and not alloc_complex:
+        method = "fd"
 
-    fd_options = {'order': None,
-                  'method': method}
+    fd_options = {"order": None, "method": method}
 
-    if method == 'cs':
+    if method == "cs":
         fd_options = ComplexStep.DEFAULT_OPTIONS.copy()
-        fd_options['method'] = 'cs'
+        fd_options["method"] = "cs"
 
-        fd_options['form'] = None
-        fd_options['step_calc'] = None
-        fd_options['minimum_step'] = None
+        fd_options["form"] = None
+        fd_options["step_calc"] = None
+        fd_options["minimum_step"] = None
 
-    elif method == 'fd':
+    elif method == "fd":
         fd_options = FiniteDifference.DEFAULT_OPTIONS.copy()
-        fd_options['method'] = 'fd'
+        fd_options["method"] = "fd"
 
-        fd_options['form'] = global_form
-        fd_options['step_calc'] = global_step_calc
-        fd_options['minimum_step'] = global_minimum_step
+        fd_options["form"] = global_form
+        fd_options["step_calc"] = global_step_calc
+        fd_options["minimum_step"] = global_minimum_step
 
     if global_step and global_method == method:
-        fd_options['step'] = global_step
+        fd_options["step"] = global_step
 
-    fd_options['directional'] = False
+    fd_options["directional"] = False
 
     # Precedence: component options > global options > defaults
     if local_wrt in local_opts:
-        for name in ['form', 'step', 'step_calc', 'minimum_step', 'directional']:
+        for name in ["form", "step", "step_calc", "minimum_step", "directional"]:
             value = local_opts[local_wrt][name]
             if value is not None:
                 fd_options[name] = value

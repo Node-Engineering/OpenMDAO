@@ -370,25 +370,17 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
         The name of the script used to create the case recorder file.
     """
 
-    def __init__(
-        self, case_tracker, callback_period, doc, pid_of_calling_script, script
-    ):
+    def __init__(self, case_tracker, callback_period, doc, pid_of_calling_script, script):
         """
         Construct and initialize _RealTimeOptPlot instance.
         """
         # self._case_recorder_filename = case_recorder_filename
-        super().__init__(
-            case_tracker, callback_period, doc, pid_of_calling_script, script
-        )
+        super().__init__(case_tracker, callback_period, doc, pid_of_calling_script, script)
 
         self._lines = []
         self._toggles = []  # includes only the toggle buttons
-        self._bounds_off_on_checkboxes = (
-            []
-        )  # includes only the checkboxes for bounds on/off
-        self._column_items = (
-            []
-        )  # includes all items in the Column, including headers and toggles
+        self._bounds_off_on_checkboxes = []  # includes only the checkboxes for bounds on/off
+        self._column_items = []  # includes all items in the Column, including headers and toggles
         self._axes = []
         # flag to prevent updating label with units each time we get new data
         self._labels_updated_with_units = False
@@ -443,9 +435,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
             if desvar_name in self._both_desvars_and_cons:
                 desvar_name_with_type += " [dv]"
             desvar_button_label = f"{desvar_name_with_type} ({units})"
-            desvar_bound_indicator_source_dict[desvar_button_label] = [
-                "black"
-            ]
+            desvar_bound_indicator_source_dict[desvar_button_label] = ["black"]
         self._desvar_bound_indicator_source = ColumnDataSource(
             data=desvar_bound_indicator_source_dict
         )
@@ -458,9 +448,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
             if cons_name in self._both_desvars_and_cons:
                 con_name_with_type += " [cons]"
             cons_button_label = f"{con_name_with_type} ({units})"
-            constraint_bound_indicator_source_dict[cons_button_label] = [
-                "black"
-            ]
+            constraint_bound_indicator_source_dict[cons_button_label] = ["black"]
         self._constraint_bound_indicator_source = ColumnDataSource(
             data=constraint_bound_indicator_source_dict
         )
@@ -521,9 +509,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
                 variable_button_callback,
                 bounds_off_on_callback,
             )
-            self._make_line_and_hover_tool(
-                "objs", obj_name, False, _obj_color, "solid", True
-            )
+            self._make_line_and_hover_tool("objs", obj_name, False, _obj_color, "solid", True)
             value = new_data["objs"][obj_name]
             float_value = _get_value_for_plotting(value, "objs")
             # just give it some non-zero initial range since we only have one point
@@ -683,9 +669,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
         for obj_name, obj_value in new_data["objs"].items():
             float_obj_value = _get_value_for_plotting(obj_value, "objs")
             self._source_stream_dict[obj_name] = [float_obj_value]
-            min_max_changed = _update_y_min_max(
-                obj_name, float_obj_value, self._y_min, self._y_max
-            )
+            min_max_changed = _update_y_min_max(obj_name, float_obj_value, self._y_min, self._y_max)
             if min_max_changed:
                 self.plot_figure.y_range.start = self._y_min[obj_name]
                 self.plot_figure.y_range.end = self._y_max[obj_name]
@@ -697,9 +681,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
                 desvar_name_with_type += " [dv]"
             if not self._labels_updated_with_units and desvar_value.size > 1:
                 units = self._case_tracker._get_units(desvar_name)
-                desvar_button_label = (
-                    desvar_name_with_type + f" ({units}) {desvar_value.shape}"
-                )
+                desvar_button_label = desvar_name_with_type + f" ({units}) {desvar_value.shape}"
                 self._toggles[iline].label = desvar_button_label
 
             # handle non-scalar desvars
@@ -739,9 +721,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
                 con_name_with_type += " [cons]"
             if not self._labels_updated_with_units and cons_value.size > 1:
                 units = self._case_tracker._get_units(cons_name)
-                cons_button_label = (
-                    con_name_with_type + f" ({units}) {cons_value.shape}"
-                )
+                cons_button_label = con_name_with_type + f" ({units}) {cons_value.shape}"
                 self._toggles[iline].label = cons_button_label
             self._source_stream_dict[con_name_with_type] = [float_cons_value]
 
@@ -757,9 +737,9 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
                 self.plot_figure.extra_y_ranges[
                     f"extra_y_{con_name_with_type}"
                 ].start = self._y_min[con_name_with_type]
-                self.plot_figure.extra_y_ranges[f"extra_y_{con_name_with_type}"].end = (
-                    self._y_max[con_name_with_type]
-                )
+                self.plot_figure.extra_y_ranges[f"extra_y_{con_name_with_type}"].end = self._y_max[
+                    con_name_with_type
+                ]
             iline += 1
         self._source.stream(self._source_stream_dict)
 
@@ -773,9 +753,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
         obj_names = self._case_tracker._get_obj_names()
         desvar_names = self._case_tracker._get_desvar_names()
         con_names = self._case_tracker._get_cons_names()
-        self._both_desvars_and_cons = list(
-            set(desvar_names).intersection(set(con_names))
-        )
+        self._both_desvars_and_cons = list(set(desvar_names).intersection(set(con_names)))
 
         # Obj
         for obj_name in obj_names:
@@ -799,9 +777,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
             self._source_dict[con_name_with_type] = []
         self._source = ColumnDataSource(self._source_dict)
 
-    def _make_variable_button(
-        self, varname, var_type, active, callback, bounds_off_on_callback
-    ):
+    def _make_variable_button(self, varname, var_type, active, callback, bounds_off_on_callback):
         index = len(self._toggles)
         toggle = Toggle(
             label=varname,
@@ -868,9 +844,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
             )
         return bounds_display
 
-    def _make_line_and_hover_tool(
-        self, var_type, varname, use_varea, color, line_dash, visible
-    ):
+    def _make_line_and_hover_tool(self, var_type, varname, use_varea, color, line_dash, visible):
         if use_varea:
             line = self.plot_figure.varea(
                 x="iteration",
@@ -902,9 +876,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
             #  varname used in the source and for the button includes the [dv] but
             #  the case tracker methods expect just the name without that.
             varname_minus_type = re.sub(r"\s*\[dv\]$", "", varname)
-            lower_bound, upper_bound = self._case_tracker._get_desvar_bounds(
-                varname_minus_type
-            )
+            lower_bound, upper_bound = self._case_tracker._get_desvar_bounds(varname_minus_type)
 
             units = self._case_tracker._get_units(varname_minus_type)
             desvars_button_label = f"{varname} ({units})"
@@ -942,21 +914,15 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
                     visible=False,
                 )
 
-            self._desvar_lower_bound_indicators.append(
-                lower_bound_indicator
-            )
-            self._desvar_upper_bound_indicators.append(
-                upper_bound_indicator
-            )
+            self._desvar_lower_bound_indicators.append(lower_bound_indicator)
+            self._desvar_upper_bound_indicators.append(upper_bound_indicator)
 
         if var_type == "cons":
             # Need to remove the [cons] from the varname to get the bounds since the
             #  varname used in the source and for the button includes the [cons] but
             #  the case tracker methods expect just the name without that.
             varname_minus_type = re.sub(r"\s*\[cons\]$", "", varname)
-            lower_bound, upper_bound = self._case_tracker._get_constraint_bounds(
-                varname_minus_type
-            )
+            lower_bound, upper_bound = self._case_tracker._get_constraint_bounds(varname_minus_type)
 
             # varname includes if cons, but not units so need to add it here
             units = self._case_tracker._get_units(varname_minus_type)
@@ -976,12 +942,8 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
                 cons_button_label,
             )
 
-            self._constraint_lower_bound_indicators.append(
-                lower_bound_indicator
-            )
-            self._constraint_upper_bound_indicators.append(
-                upper_bound_indicator
-            )
+            self._constraint_lower_bound_indicators.append(lower_bound_indicator)
+            self._constraint_upper_bound_indicators.append(upper_bound_indicator)
 
         if var_type == "desvars":
             line.y_range_name = f"extra_y_{varname}_min"
@@ -1026,9 +988,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
         self._axes.append(extra_y_axis)
         self.plot_figure.add_layout(extra_y_axis, "right")
 
-        self.plot_figure.extra_y_ranges[y_range_name] = Range1d(
-            plot_value - 1, plot_value + 1
-        )
+        self.plot_figure.extra_y_ranges[y_range_name] = Range1d(plot_value - 1, plot_value + 1)
 
     def _setup_figure(self):
         # Make the figure and all the settings for it
@@ -1036,8 +996,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
             title = f"Optimization Progress Plot for: {self._script}"
         else:
             title = (
-                "Optimization Progress Plot for: "
-                f"{self._case_tracker.get_case_recorder_filename()}"
+                f"Optimization Progress Plot for: {self._case_tracker.get_case_recorder_filename()}"
             )
 
         # need to do these separate since we want to make them the default
@@ -1072,9 +1031,7 @@ class _RealTimeOptimizerPlot(_RealTimePlot):
 
         self.plot_figure.xaxis.axis_label = "Driver iterations"
         self.plot_figure.xaxis.minor_tick_line_color = None
-        self.plot_figure.xaxis.ticker = BasicTicker(
-            desired_num_ticks=10, min_interval=1
-        )
+        self.plot_figure.xaxis.ticker = BasicTicker(desired_num_ticks=10, min_interval=1)
 
         self.plot_figure.axis.axis_label_text_font_style = "bold"
         self.plot_figure.axis.axis_label_text_font_size = "20pt"

@@ -6,8 +6,14 @@ import numpy as np
 
 from openmdao.core.explicitcomponent import ExplicitComponent
 import openmdao.func_api as omf
-from openmdao.components.func_comp_common import _check_var_name, _copy_with_ignore, \
-    jac_forward, jac_reverse, _get_tangents, _ensure_iter
+from openmdao.components.func_comp_common import (
+    _check_var_name,
+    _copy_with_ignore,
+    jac_forward,
+    jac_reverse,
+    _get_tangents,
+    _ensure_iter,
+)
 from openmdao.utils.array_utils import shape_to_len
 from openmdao.utils.om_warnings import issue_warning
 from openmdao.jacobians.jacobian import JacobianUpdateContext
@@ -15,6 +21,7 @@ from openmdao.jacobians.jacobian import JacobianUpdateContext
 try:
     import jax
     from jax import jit
+
     jax.config.update("jax_enable_x64", True)  # jax by default uses 32 bit floats
 except Exception:
     _, err, tb = sys.exc_info()
@@ -27,9 +34,11 @@ if jax is not None:
         from jax import Array as JaxArray
     except ImportError:
         # versions of jax before 0.3.18 do not have the jax.Array base class
-        raise RuntimeError("An unsupported version of jax is installed. "
-                           "OpenMDAO requires 'jax>=4.0' and 'jaxlib>=4.0'. "
-                           "Try 'pip install openmdao[jax]' with Python>=3.8.")
+        raise RuntimeError(
+            "An unsupported version of jax is installed. "
+            "OpenMDAO requires 'jax>=4.0' and 'jaxlib>=4.0'. "
+            "Try 'pip install openmdao[jax]' with Python>=3.8."
+        )
 
 
 class ExplicitFuncComp(ExplicitComponent):
@@ -71,26 +80,31 @@ class ExplicitFuncComp(ExplicitComponent):
             self._compute._setup()
 
         if self._compute._use_jax:
-            self.options['derivs_method'] = 'jax'
+            self.options["derivs_method"] = "jax"
 
-        if self.options['derivs_method'] == 'jax':
+        if self.options["derivs_method"] == "jax":
             if jax is None:
-                raise RuntimeError(f"{self.msginfo}: jax is not installed. "
-                                   "Try 'pip install openmdao[jax]' with Python>=3.8.")
+                raise RuntimeError(
+                    f"{self.msginfo}: jax is not installed. "
+                    "Try 'pip install openmdao[jax]' with Python>=3.8."
+                )
             self._compute_jax = omf.jax_decorate(self._compute._f)
 
         self._tangents = None
         self._tangent_direction = None
 
         self._compute_partials = compute_partials
-        if self.options['derivs_method'] == 'jax' and self.options['use_jit']:
-            static_argnums = [i for i, m in enumerate(self._compute._inputs.values())
-                              if 'is_option' in m]
+        if self.options["derivs_method"] == "jax" and self.options["use_jit"]:
+            static_argnums = [
+                i for i, m in enumerate(self._compute._inputs.values()) if "is_option" in m
+            ]
             try:
                 self._compute_jax = jit(self._compute_jax, static_argnums=static_argnums)
             except Exception as err:
-                issue_warning(f"{self.msginfo}: failed jit compile of compute function: {err}. "
-                              "Falling back to using non-jitted function.")
+                issue_warning(
+                    f"{self.msginfo}: failed jit compile of compute function: {err}. "
+                    "Falling back to using non-jitted function."
+                )
 
     @property
     def _mode(self):
@@ -108,14 +122,15 @@ class ExplicitFuncComp(ExplicitComponent):
         """
         Define out inputs and outputs.
         """
-        optignore = {'is_option'}
-        use_jax = self.options['derivs_method'] == 'jax' and jax is not None
+        optignore = {"is_option"}
+        use_jax = self.options["derivs_method"] == "jax" and jax is not None
 
         for name, meta in self._compute.get_input_meta():
             _check_var_name(self, name)
-            if 'is_option' in meta and meta['is_option']:
-                kwargs = _copy_with_ignore(meta, omf._allowed_declare_options_args,
-                                           ignore=optignore)
+            if "is_option" in meta and meta["is_option"]:
+                kwargs = _copy_with_ignore(
+                    meta, omf._allowed_declare_options_args, ignore=optignore
+                )
                 self.options.declare(name, **kwargs)
             else:
                 kwargs = omf._filter_dict(meta, omf._allowed_add_input_args)
@@ -126,7 +141,7 @@ class ExplicitFuncComp(ExplicitComponent):
 
         for name, meta in self._compute.get_output_meta():
             _check_var_name(self, name)
-            kwargs = _copy_with_ignore(meta, omf._allowed_add_output_args, ignore=('resid',))
+            kwargs = _copy_with_ignore(meta, omf._allowed_add_output_args, ignore=("resid",))
             if use_jax:
                 # make sure internal openmdao values are numpy arrays and not jax Arrays
                 self._dev_arrays_to_np_arrays(kwargs)
@@ -138,9 +153,9 @@ class ExplicitFuncComp(ExplicitComponent):
         pass
 
     def _dev_arrays_to_np_arrays(self, meta):
-        if 'val' in meta:
-            if isinstance(meta['val'], JaxArray):
-                meta['val'] = np.asarray(meta['val'])
+        if "val" in meta:
+            if isinstance(meta["val"], JaxArray):
+                meta["val"] = np.asarray(meta["val"])
 
     def _linearize(self, sub_do_ln=False):
         """
@@ -151,7 +166,7 @@ class ExplicitFuncComp(ExplicitComponent):
         sub_do_ln : bool
             Flag indicating if the children should call linearize on their linear solvers.
         """
-        if self.options['derivs_method'] == 'jax':
+        if self.options["derivs_method"] == "jax":
             if self._mode != self._tangent_direction:
                 # force recomputation of coloring and tangents
                 self._first_call_to_linearize = True
@@ -170,7 +185,7 @@ class ExplicitFuncComp(ExplicitComponent):
         """
         inames = list(self._compute.get_input_names())
         # argnums specifies which position args are to be differentiated
-        argnums = [i for i, m in enumerate(self._compute._inputs.values()) if 'is_option' not in m]
+        argnums = [i for i, m in enumerate(self._compute._inputs.values()) if "is_option" not in m]
         # keep this around for use locally even if we pass None as argnums to jax
         argidxs = argnums
         if len(argnums) == len(inames):
@@ -181,9 +196,9 @@ class ExplicitFuncComp(ExplicitComponent):
         coloring = self._coloring_info.coloring
         func = self._compute_jax
 
-        if self._mode == 'rev':  # use reverse mode to compute derivs
+        if self._mode == "rev":  # use reverse mode to compute derivs
             outvals = tuple(self._outputs.values())
-            tangents = self._get_tangents(outvals, 'rev', coloring)
+            tangents = self._get_tangents(outvals, "rev", coloring)
             if coloring is None:
                 j = np.empty((osize, isize), dtype=float)
                 cstart = cend = 0
@@ -199,11 +214,13 @@ class ExplicitFuncComp(ExplicitComponent):
                         j[:, cstart:cend] = a.reshape((a.shape[0], cend - cstart))
                     cstart = cend
             else:
-                j = [np.asarray(a).reshape((a.shape[0], shape_to_len(a.shape[1:])))
-                     for a in jac_reverse(func, argnums, tangents)(*invals)]
-                j = coloring._expand_jac(np.hstack(j), 'rev').toarray()
+                j = [
+                    np.asarray(a).reshape((a.shape[0], shape_to_len(a.shape[1:])))
+                    for a in jac_reverse(func, argnums, tangents)(*invals)
+                ]
+                j = coloring._expand_jac(np.hstack(j), "rev").toarray()
         else:
-            tangents = self._get_tangents(invals, 'fwd', coloring, argnums)
+            tangents = self._get_tangents(invals, "fwd", coloring, argnums)
             if coloring is None:
                 j = np.empty((osize, isize), dtype=float)
                 start = end = 0
@@ -220,9 +237,11 @@ class ExplicitFuncComp(ExplicitComponent):
                         j[start:end, :] = a
                     start = end
             else:
-                j = [np.asarray(a).reshape((shape_to_len(a.shape[:-1]), a.shape[-1]))
-                     for a in jac_forward(func, argnums, tangents)(*invals)]
-                j = coloring._expand_jac(np.vstack(j), 'fwd').toarray()
+                j = [
+                    np.asarray(a).reshape((shape_to_len(a.shape[:-1]), a.shape[-1]))
+                    for a in jac_forward(func, argnums, tangents)(*invals)
+                ]
+                j = coloring._expand_jac(np.vstack(j), "fwd").toarray()
 
         self._get_jacobian().set_dense_jac(self, j)
 
@@ -310,7 +329,7 @@ class ExplicitFuncComp(ExplicitComponent):
         inps = inputs.values()
 
         for name, meta in self._compute._inputs.items():
-            if 'is_option' in meta:
+            if "is_option" in meta:
                 yield self.options[name]
             else:
                 yield next(inps)

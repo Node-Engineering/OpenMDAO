@@ -22,8 +22,8 @@ class ComplexStep(ApproximationScheme):
     """
 
     DEFAULT_OPTIONS = {
-        'step': 1e-40,
-        'directional': False,
+        "step": 1e-40,
+        "directional": False,
     }
 
     def __init__(self):
@@ -52,7 +52,7 @@ class ComplexStep(ApproximationScheme):
         """
         options = self.DEFAULT_OPTIONS.copy()
         options.update(kwargs)
-        options['vector'] = vector
+        options["vector"] = vector
 
         if wrt in self._wrt_meta:
             self._wrt_meta[wrt].update(options)
@@ -78,7 +78,7 @@ class ComplexStep(ApproximationScheme):
         float
             Delta needed for complex step perturbation.
         """
-        step = meta['step']
+        step = meta["step"]
         step *= 1j
         return step
 
@@ -104,13 +104,15 @@ class ComplexStep(ApproximationScheme):
             return
 
         if system.under_complex_step:
-
             # If we are nested under another complex step, then warn and swap to FD.
             if not self._fd:
                 from openmdao.approximation_schemes.finite_difference import FiniteDifference
 
-                issue_warning("Nested complex step detected. Finite difference will be used.",
-                              prefix=system.pathname, category=DerivativesWarning)
+                issue_warning(
+                    "Nested complex step detected. Finite difference will be used.",
+                    prefix=system.pathname,
+                    category=DerivativesWarning,
+                )
 
                 fd = self._fd = FiniteDifference()
                 empty = {}

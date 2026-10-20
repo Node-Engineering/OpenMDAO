@@ -1,4 +1,3 @@
-
 import time
 
 from openmdao.components.exec_comp import ExecComp
@@ -36,9 +35,18 @@ class ExecComp4Test(ExecComp):
         RuntimeError when a failure is induced. Otherwise, an AnalysisError
         will be raised.
     """
-    def __init__(self, exprs, nl_delay=0.01, lin_delay=0.01,
-                 req_procs=(1,1), fail_rank=-1, fails=(),
-                 fail_hard=False, **kwargs):
+
+    def __init__(
+        self,
+        exprs,
+        nl_delay=0.01,
+        lin_delay=0.01,
+        req_procs=(1, 1),
+        fail_rank=-1,
+        fails=(),
+        fail_hard=False,
+        **kwargs,
+    ):
 
         super().__init__(exprs, **kwargs)
         self.nl_delay = nl_delay
@@ -65,7 +73,9 @@ class ExecComp4Test(ExecComp):
             `Vector` containing outputs.
         """
         try:
-            if (self.fail_rank == -1 or self.comm.rank in self.fail_rank) and self.num_nl_solves in self.fails:
+            if (
+                self.fail_rank == -1 or self.comm.rank in self.fail_rank
+            ) and self.num_nl_solves in self.fails:
                 if self.fail_hard:
                     raise RuntimeError("OMG, a critical error!")
                 else:

@@ -4,13 +4,23 @@ A collection of utilities for file wrapping.
 Note: This is a work in progress.
 """
 
-
 import re
 
 try:
     import pyparsing
-    from pyparsing import CaselessLiteral, Combine, OneOrMore, Optional, \
-        TokenConverter, Word, nums, oneOf, printables, ParserElement, alphanums
+    from pyparsing import (
+        CaselessLiteral,
+        Combine,
+        OneOrMore,
+        Optional,
+        TokenConverter,
+        Word,
+        nums,
+        oneOf,
+        printables,
+        ParserElement,
+        alphanums,
+    )
 except ImportError:
     pyparsing = None
     TokenConverter = object
@@ -153,9 +163,11 @@ class _SubHelper(object):
         self._current_location += 1
         end = len(self._newtext)
 
-        if self._current_location >= self._start_location and \
-           self._current_location <= self._end_location and \
-           self._counter < end:
+        if (
+            self._current_location >= self._start_location
+            and self._current_location <= self._end_location
+            and self._counter < end
+        ):
             if isinstance(self._newtext[self._counter], float):
                 val = self._newtext[self._counter]
                 newval = _getformat(val) % val
@@ -216,7 +228,7 @@ class _ToFloat(TokenConverter):
         float
             float value for token.
         """
-        return float(tokenlist[0].replace('D', 'E'))
+        return float(tokenlist[0].replace("D", "E"))
 
 
 class _ToNan(TokenConverter):
@@ -242,7 +254,7 @@ class _ToNan(TokenConverter):
         float
             the float value for NaN.
         """
-        return float('nan')
+        return float("nan")
 
 
 class _ToInf(TokenConverter):
@@ -268,7 +280,7 @@ class _ToInf(TokenConverter):
         float
             the float value for infinity.
         """
-        return float('inf')
+        return float("inf")
 
 
 class InputFileGenerator(object):
@@ -300,14 +312,16 @@ class InputFileGenerator(object):
         Initialize attributes.
         """
         if pyparsing is None:
-            raise RuntimeError("The 'pyparsing' package is required to use the file wrapping "
-                               "utilities but it is not installed. Try 'pip install pyparsing'.")
+            raise RuntimeError(
+                "The 'pyparsing' package is required to use the file wrapping "
+                "utilities but it is not installed. Try 'pip install pyparsing'."
+            )
 
         self._template_filename = None
         self._output_filename = None
 
         self._delimiter = " "
-        self._reg = re.compile('[^ \n]+')
+        self._reg = re.compile("[^ \n]+")
 
         self._data = []
         self._current_row = 0
@@ -326,7 +340,7 @@ class InputFileGenerator(object):
         """
         self._template_filename = filename
 
-        templatefile = open(filename, 'r')
+        templatefile = open(filename, "r")
         self._data = templatefile.readlines()
         templatefile.close()
 
@@ -351,7 +365,7 @@ class InputFileGenerator(object):
             A string containing characters to be used as delimiters.
         """
         self._delimiter = delimiter
-        self._reg = re.compile('[^' + delimiter + '\n]+')
+        self._reg = re.compile("[^" + delimiter + "\n]+")
 
     def mark_anchor(self, anchor, occurrence=1):
         """
@@ -389,7 +403,6 @@ class InputFileGenerator(object):
                     line = line.split(anchor)[-1]
 
                 if line.find(anchor) > -1:
-
                     instance += 1
                     if instance == occurrence:
                         self._current_row += count
@@ -421,8 +434,9 @@ class InputFileGenerator(object):
         else:
             raise ValueError("0 is not valid for an anchor occurrence.")
 
-        raise RuntimeError("Could not find pattern %s in template file %s" %
-                           (anchor, self._template_filename))
+        raise RuntimeError(
+            "Could not find pattern %s in template file %s" % (anchor, self._template_filename)
+        )
 
     def reset_anchor(self):
         """
@@ -454,8 +468,7 @@ class InputFileGenerator(object):
 
         self._data[j] = newline
 
-    def transfer_array(self, value, row_start, field_start, field_end,
-                       row_end=None, sep=", "):
+    def transfer_array(self, value, row_start, field_start, field_end, row_end=None, sep=", "):
         """
         Change the values of an array in the template relative to the current anchor.
 
@@ -503,7 +516,7 @@ class InputFileGenerator(object):
         # Sometimes an array is too large for the example in the template
         # This is resolved by adding more fields at the end
         if sub._counter < len(value):
-            for val in value[sub._counter:]:
+            for val in value[sub._counter :]:
                 newline = newline.rstrip() + sep + str(val)
             self._data[j] = newline
 
@@ -584,13 +597,13 @@ class InputFileGenerator(object):
             has not been provided, else None.
         """
         if self._output_filename:
-            with open(self._output_filename, 'w') as f:
+            with open(self._output_filename, "w") as f:
                 f.writelines(self._data)
         else:
             return_data = True
 
         if return_data:
-            return '\n'.join(self._data)
+            return "\n".join(self._data)
         else:
             return None
 
@@ -631,8 +644,10 @@ class FileParser(object):
         Initialize attributes.
         """
         if pyparsing is None:
-            raise RuntimeError("The 'pyparsing' package is required to use the file wrapping "
-                               "utilities but it is not installed. Try 'pip install pyparsing'.")
+            raise RuntimeError(
+                "The 'pyparsing' package is required to use the file wrapping "
+                "utilities but it is not installed. Try 'pip install pyparsing'."
+            )
 
         self._filename = None
         self._data = []
@@ -657,7 +672,7 @@ class FileParser(object):
         """
         self._filename = filename
 
-        inputfile = open(filename, 'r')
+        inputfile = open(filename, "r")
 
         if not self._end_of_line_comment_char and not self._full_line_comment_char:
             self._data = inputfile.readlines()
@@ -725,7 +740,6 @@ class FileParser(object):
                     line = line.split(anchor)[-1]
 
                 if anchor in line:
-
                     instance += 1
                     if instance == occurrence:
                         self._current_row += count
@@ -757,8 +771,7 @@ class FileParser(object):
         else:
             raise ValueError("0 is not valid for an anchor occurrence.")
 
-        raise RuntimeError("Could not find pattern %s in output file %s" %
-                           (anchor, self._filename))
+        raise RuntimeError("Could not find pattern %s in output file %s" % (anchor, self._filename))
 
     def reset_anchor(self):
         """
@@ -812,9 +825,9 @@ class FileParser(object):
 
         if self._delimiter == "columns":
             if not fieldend:
-                line = line[(field - 1):]
+                line = line[(field - 1) :]
             else:
-                line = line[(field - 1):(fieldend)]
+                line = line[(field - 1) : (fieldend)]
 
             # Let pyparsing figure out if this is a number, and return it
             # as a float or int as appropriate
@@ -863,7 +876,7 @@ class FileParser(object):
         instance = 0
         if occurrence > 0:
             row = 0
-            for line in self._data[self._current_row:]:
+            for line in self._data[self._current_row :]:
                 if line.find(key) > -1:
                     instance += 1
                     if instance == occurrence:
@@ -872,7 +885,7 @@ class FileParser(object):
 
         elif occurrence < 0:
             row = -1
-            for line in reversed(self._data[self._current_row:]):
+            for line in reversed(self._data[self._current_row :]):
                 if line.find(key) > -1:
                     instance += -1
                     if instance == occurrence:
@@ -930,7 +943,7 @@ class FileParser(object):
 
         for i, line in enumerate(lines):
             if self._delimiter == "columns":
-                line = line[(fieldstart - 1):fieldend]
+                line = line[(fieldstart - 1) : fieldend]
 
                 # Stripping whitespace may be controversial.
                 line = line.strip()
@@ -950,9 +963,9 @@ class FileParser(object):
                 parsed = self._parse_line().parseString(line)
 
                 if i == j2 - j1 - 1:
-                    data = np.append(data, np.array(parsed[(fieldstart - 1):fieldend]))
+                    data = np.append(data, np.array(parsed[(fieldstart - 1) : fieldend]))
                 else:
-                    data = np.append(data, np.array(parsed[(fieldstart - 1):]))
+                    data = np.append(data, np.array(parsed[(fieldstart - 1) :]))
 
                 fieldstart = 1
 
@@ -999,9 +1012,9 @@ class FileParser(object):
 
         if self._delimiter == "columns":
             if fieldend:
-                line = lines[0][(fieldstart - 1):fieldend]
+                line = lines[0][(fieldstart - 1) : fieldend]
             else:
-                line = lines[0][(fieldstart - 1):]
+                line = lines[0][(fieldstart - 1) :]
 
             parsed = self._parse_line().parseString(line)
             row = np.array(parsed[:])
@@ -1010,18 +1023,18 @@ class FileParser(object):
 
             for i, line in enumerate(list(lines[1:])):
                 if fieldend:
-                    line = line[(fieldstart - 1):fieldend]
+                    line = line[(fieldstart - 1) : fieldend]
                 else:
-                    line = line[(fieldstart - 1):]
+                    line = line[(fieldstart - 1) :]
 
                 parsed = self._parse_line().parseString(line)
                 data[i + 1, :] = np.array(parsed[:])
         else:
             parsed = self._parse_line().parseString(lines[0])
             if fieldend:
-                row = np.array(parsed[(fieldstart - 1):fieldend])
+                row = np.array(parsed[(fieldstart - 1) : fieldend])
             else:
-                row = np.array(parsed[(fieldstart - 1):])
+                row = np.array(parsed[(fieldstart - 1) :])
 
             data = np.zeros(shape=(abs(j2 - j1), len(row)))
             data[0, :] = row
@@ -1031,11 +1044,11 @@ class FileParser(object):
 
                 if fieldend:
                     try:
-                        data[i + 1, :] = np.array(parsed[(fieldstart - 1):fieldend])
+                        data[i + 1, :] = np.array(parsed[(fieldstart - 1) : fieldend])
                     except Exception:
                         print(data)
                 else:
-                    data[i + 1, :] = np.array(parsed[(fieldstart - 1):])
+                    data[i + 1, :] = np.array(parsed[(fieldstart - 1) :])
 
         return data
 
@@ -1067,9 +1080,35 @@ class FileParser(object):
         else:
             textchars = alphanums
 
-            symbols = ['.', '/', '+', '*', '^', '(', ')', '[', ']', '=',
-                       ':', ';', '?', '%', '&', '!', '#', '|', '<', '>',
-                       '{', '}', '-', '_', '@', '$', '~']
+            symbols = [
+                ".",
+                "/",
+                "+",
+                "*",
+                "^",
+                "(",
+                ")",
+                "[",
+                "]",
+                "=",
+                ":",
+                ";",
+                "?",
+                "%",
+                "&",
+                "!",
+                "#",
+                "|",
+                "<",
+                ">",
+                "{",
+                "}",
+                "-",
+                "_",
+                "@",
+                "$",
+                "~",
+            ]
 
             for symbol in symbols:
                 if symbol not in self._delimiter:
@@ -1078,22 +1117,25 @@ class FileParser(object):
         digits = Word(nums)
         dot = "."
         sign = oneOf("+ -")
-        ee = CaselessLiteral('E') | CaselessLiteral('D')
+        ee = CaselessLiteral("E") | CaselessLiteral("D")
 
         num_int = _ToInteger(Combine(Optional(sign) + digits))
 
-        num_float = _ToFloat(Combine(
-            Optional(sign) +
-            ((digits + dot + Optional(digits)) | (dot + digits)) +
-            Optional(ee + Optional(sign) + digits)
-        ))
+        num_float = _ToFloat(
+            Combine(
+                Optional(sign)
+                + ((digits + dot + Optional(digits)) | (dot + digits))
+                + Optional(ee + Optional(sign) + digits)
+            )
+        )
 
         # special case for a float written like "3e5"
         mixed_exp = _ToFloat(Combine(digits + ee + Optional(sign) + digits))
 
-        nan = (_ToInf(oneOf("Inf -Inf")) |
-               _ToNan(oneOf("NaN nan NaN%  NaNQ NaNS qNaN sNaN 1.#SNAN 1.#QNAN -1.#IND")))
+        nan = _ToInf(oneOf("Inf -Inf")) | _ToNan(
+            oneOf("NaN nan NaN%  NaNQ NaNS qNaN sNaN 1.#SNAN 1.#QNAN -1.#IND")
+        )
 
         string_text = Word(textchars)
 
-        self.line_parse_token = (OneOrMore((nan | num_float | mixed_exp | num_int | string_text)))
+        self.line_parse_token = OneOrMore((nan | num_float | mixed_exp | num_int | string_text))

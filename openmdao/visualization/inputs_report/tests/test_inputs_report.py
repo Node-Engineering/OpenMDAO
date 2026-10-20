@@ -1,4 +1,5 @@
-"""Test the inputs report. """
+"""Test the inputs report."""
+
 import unittest
 import numpy as np
 
@@ -15,38 +16,38 @@ try:
 except ImportError:
     PETScVector = None
 
+
 @use_tempdirs
 class TestInputsReport(unittest.TestCase):
-
     def test_inputs_reports(self):
         prob = om.Problem(model=DoubleSellar(), reports=None)
         model = prob.model
 
         g1 = model.g1
         g1.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
-        g1.nonlinear_solver.options['rtol'] = 1.0e-5
+        g1.nonlinear_solver.options["rtol"] = 1.0e-5
         g1.linear_solver = om.DirectSolver(assemble_jac=True)
-        g1.options['assembled_jac_type'] = 'dense'
+        g1.options["assembled_jac_type"] = "dense"
 
         g2 = model.g2
         g2.nonlinear_solver = om.NewtonSolver(solve_subsystems=False)
-        g2.nonlinear_solver.options['rtol'] = 1.0e-5
+        g2.nonlinear_solver.options["rtol"] = 1.0e-5
         g2.linear_solver = om.DirectSolver(assemble_jac=True)
-        g2.options['assembled_jac_type'] = 'dense'
+        g2.options["assembled_jac_type"] = "dense"
 
         model.nonlinear_solver = om.NewtonSolver()
         model.linear_solver = om.ScipyKrylov(assemble_jac=True)
-        model.options['assembled_jac_type'] = 'dense'
+        model.options["assembled_jac_type"] = "dense"
 
-        model.nonlinear_solver.options['solve_subsystems'] = True
+        model.nonlinear_solver.options["solve_subsystems"] = True
 
         prob.setup()
         prob.run_model()
 
-        assert_near_equal(prob['g1.y1'], 0.64, .00001)
-        assert_near_equal(prob['g1.y2'], 0.80, .00001)
-        assert_near_equal(prob['g2.y1'], 0.64, .00001)
-        assert_near_equal(prob['g2.y2'], 0.80, .00001)
+        assert_near_equal(prob["g1.y1"], 0.64, 0.00001)
+        assert_near_equal(prob["g1.y2"], 0.80, 0.00001)
+        assert_near_equal(prob["g2.y1"], 0.64, 0.00001)
+        assert_near_equal(prob["g2.y2"], 0.80, 0.00001)
 
         expected = """| Absolute Name | Input Name | Source Name  | Source is IVC | Source is DV | Units | Shape | Tags | Val    | Min Val | Max Val | Absolute Source |
 | :------------ | :--------- | :----------- | :-----------: | :----------: | :---- | :---- | :--- | :----- | ------: | ------: | :-------------- |
@@ -61,25 +62,32 @@ class TestInputsReport(unittest.TestCase):
 | g2.d2.z       | g2.z       | _auto_ivc.v1 |     True      |    False     |       | (2,)  | []   | [0 0]  |       0 |       0 | _auto_ivc.v1    |
 | g2.d2.y1      | g2.y1      | g2.y1        |     False     |    False     |       | (1,)  | []   | [0.64] |    0.64 |    0.64 | g2.d1.y1        |
 """
-        inputs_report(prob, outfile='temp_inputs_report.md', display=True, precision=6, title=None, tablefmt='github')
-        with open('temp_inputs_report.md') as f:
+        inputs_report(
+            prob,
+            outfile="temp_inputs_report.md",
+            display=True,
+            precision=6,
+            title=None,
+            tablefmt="github",
+        )
+        with open("temp_inputs_report.md") as f:
             report_content = f.read()
         self.assertEqual(expected, report_content)
 
     def test_zero_size_input(self):
         class TestComp(om.ExplicitComponent):
             def setup(self):
-                self.add_input('foo', shape=0)
-                self.add_output('bar', shape=0)
+                self.add_input("foo", shape=0)
+                self.add_output("bar", shape=0)
 
             def compute(self, inputs, outputs):
-                outputs['bar'] = inputs['foo']
+                outputs["bar"] = inputs["foo"]
 
         p = om.Problem()
-        p.model.add_subsystem('comp', TestComp())
+        p.model.add_subsystem("comp", TestComp())
         p.setup()
 
-        p.set_val('comp.foo', np.array([]))
+        p.set_val("comp.foo", np.array([]))
         p.run_model()
 
         expected = """| Absolute Name | Input Name | Source Name  | Source is IVC | Source is DV | Units | Shape | Tags | Val | Min Val | Max Val | Absolute Source |
@@ -87,8 +95,15 @@ class TestInputsReport(unittest.TestCase):
 | comp.foo      | comp.foo   | _auto_ivc.v0 |     True      |    False     |       | (0,)  | []   | []  | []      | []      | _auto_ivc.v0    |
 """
 
-        inputs_report(p, outfile='temp_inputs_report.md', display=True, precision=6, title=None, tablefmt='github')
-        with open('temp_inputs_report.md') as f:
+        inputs_report(
+            p,
+            outfile="temp_inputs_report.md",
+            display=True,
+            precision=6,
+            title=None,
+            tablefmt="github",
+        )
+        with open("temp_inputs_report.md") as f:
             report_content = f.read()
         self.assertEqual(expected, report_content)
 
@@ -102,47 +117,53 @@ class TestInputReportsMPI(unittest.TestCase):
         # this test would error out before the fix
         class Adder(om.ExplicitComponent):
             def initialize(self):
-                self.options.declare('n0')
+                self.options.declare("n0")
 
             def setup(self):
-                self.add_input('x', shape_by_conn=True, distributed=True)
-                self.add_output('x_sum', shape=1)
+                self.add_input("x", shape_by_conn=True, distributed=True)
+                self.add_output("x_sum", shape=1)
 
             def compute(self, inputs, outputs):
-                outputs['x_sum'] = self.comm.allreduce(np.sum(inputs['x']))
-
+                outputs["x_sum"] = self.comm.allreduce(np.sum(inputs["x"]))
 
         p = om.Problem()
-        n0 = (20,2) if p.comm.rank ==0 else (8,2)
-        ivc = p.model.add_subsystem('ivc',om.IndepVarComp())
-        ivc.add_output('x', val = np.random.random(n0), distributed=True)
+        n0 = (20, 2) if p.comm.rank == 0 else (8, 2)
+        ivc = p.model.add_subsystem("ivc", om.IndepVarComp())
+        ivc.add_output("x", val=np.random.random(n0), distributed=True)
 
-        p.model.add_subsystem('adder', Adder(n0=n0))
-        p.model.connect('ivc.x','adder.x')
+        p.model.add_subsystem("adder", Adder(n0=n0))
+        p.model.connect("ivc.x", "adder.x")
 
         p.setup()
         p.run_model()
 
-        inputs_report(p, outfile='temp_inputs_report.md', display=True, precision=6, title=None, tablefmt='github')
+        inputs_report(
+            p,
+            outfile="temp_inputs_report.md",
+            display=True,
+            precision=6,
+            title=None,
+            tablefmt="github",
+        )
 
     def test_global_shape(self):
 
         class MyComp(om.ExplicitComponent):
             def initialize(self):
-                self.options.declare('size', types=int, default=1,
-                                        desc="Size of input vector x.")
+                self.options.declare("size", types=int, default=1, desc="Size of input vector x.")
 
             def setup(self):
-                self.add_input('x', np.ones(self.options['size']), distributed=True)
-                self.add_output('y', 1.0)
+                self.add_input("x", np.ones(self.options["size"]), distributed=True)
+                self.add_output("y", 1.0)
 
             def compute(self, inputs, outputs):
-                outputs['y'] = np.sum(inputs['x'])*2.0
+                outputs["y"] = np.sum(inputs["x"]) * 2.0
 
         p = om.Problem()
 
-        p.model.add_subsystem('indep', om.IndepVarComp('x', np.arange(5, dtype=float)),
-                                promotes_outputs=['x'])
+        p.model.add_subsystem(
+            "indep", om.IndepVarComp("x", np.arange(5, dtype=float)), promotes_outputs=["x"]
+        )
 
         # decide what parts of the array we want based on our rank
 
@@ -153,15 +174,22 @@ class TestInputReportsMPI(unittest.TestCase):
             # can use negative indices.
             idxs = [3, -1]
 
-        p.model.add_subsystem('C1', MyComp(size=len(idxs)))
-        p.model.promotes('C1', inputs=['x'], src_indices=idxs)
+        p.model.add_subsystem("C1", MyComp(size=len(idxs)))
+        p.model.promotes("C1", inputs=["x"], src_indices=idxs)
 
         p.setup()
-        p.set_val('x', np.arange(5, dtype=float))
+        p.set_val("x", np.arange(5, dtype=float))
         p.run_model()
 
-        inputs_report(p, outfile='temp_inputs_report.md', display=False, precision=6, title=None, tablefmt='github')
+        inputs_report(
+            p,
+            outfile="temp_inputs_report.md",
+            display=False,
+            precision=6,
+            title=None,
+            tablefmt="github",
+        )
 
         if MPI.COMM_WORLD.rank == 0:
-            with open('temp_inputs_report.md') as f:
-                self.assertIn('(5,)', f.readlines()[2].split('|')[7])
+            with open("temp_inputs_report.md") as f:
+                self.assertIn("(5,)", f.readlines()[2].split("|")[7])
