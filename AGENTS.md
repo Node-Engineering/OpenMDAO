@@ -1,3 +1,5 @@
+# OpenMDAO
+
 # Project
 
 OpenMDAO provides analysis and optimization of multidisciplinary systems using the modular approach to unified derivatives.
@@ -21,3 +23,7 @@ OpenMDAO provides analysis and optimization of multidisciplinary systems using t
 - Generated code should pass `ruff check`. Rules for ruff are established in pyproject.toml.
 
 - Use `pixi run test <path>` to invoke tests in the relevant scope. Only run `pixi run test` if the user asks for the full test suite.
+
+Shared Node Engineering conventions are optional in
+[control_centre/AGENTS.md](../../../control_centre/AGENTS.md), with a
+[published fallback](https://github.com/Node-Engineering/control_centre/blob/main/AGENTS.md).
